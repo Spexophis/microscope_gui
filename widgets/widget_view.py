@@ -9,8 +9,8 @@ class ViewWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        naparitools.addNapariGrayclipColormap()
-        self.napariViewer = naparitools.EmbeddedNapari()
+        napari_tools.addNapariGrayclipColormap()
+        self.napariViewer = napari_tools.EmbeddedNapari()
 
         self.imgLayers = {}
 
