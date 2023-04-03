@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets, QtGui
+from PyQt5 import QtWidgets, QtGui, QtCore
 
 
 def group_widget(name=''):
@@ -42,13 +42,6 @@ def lcdnumber_widget(num=None, n=None):
     lcd.setPalette(palette)
     lcd.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
     lcd.setSegmentStyle(QtWidgets.QLCDNumber.Flat)
-    # lcd.setStyleSheet('''
-    #     QLCDNumber {
-    #     background-color: black;
-    #     color: white;
-    #     border: 2px solid grey;
-    #     }
-    # ''')
     lcd.setDecMode()
     if num is not None:
         lcd.display(num)
@@ -62,57 +55,56 @@ def lcdnumber_widget(num=None, n=None):
 def spinbox_widget(range_min, range_max, step, value):
     spinbox = QtWidgets.QSpinBox()
     spinbox.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-    spinbox.setStyleSheet('''
-        QSpinBox { 
-        background-color: white; 
-        color: black; 
-        border: 1px solid grey; 
-        } 
-    ''')
-    spinbox.setRange(range_min, range_max)
-    spinbox.setSingleStep(step)
-    spinbox.setValue(value)
-    spinbox.setMaximum(range_max)
+    dark_palette = QtGui.QPalette()
+    dark_palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
+    dark_palette.setColor(QtGui.QPalette.WindowText, QtCore.Qt.white)
+    dark_palette.setColor(QtGui.QPalette.Base, QtGui.QColor(25, 25, 25))
+    dark_palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
+    dark_palette.setColor(QtGui.QPalette.ToolTipBase, QtCore.Qt.white)
+    dark_palette.setColor(QtGui.QPalette.ToolTipText, QtCore.Qt.white)
+    dark_palette.setColor(QtGui.QPalette.Text, QtCore.Qt.white)
+    dark_palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
+    dark_palette.setColor(QtGui.QPalette.ButtonText, QtCore.Qt.white)
+    dark_palette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.red)
+    dark_palette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
+    dark_palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
+    dark_palette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
+    spinbox.setPalette(dark_palette)
     spinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
     spinbox.setMinimumWidth(spinbox.sizeHint().width())
     spinbox.setMinimumHeight(spinbox.sizeHint().height())
+    spinbox.setRange(range_min, range_max)
+    spinbox.setSingleStep(step)
+    spinbox.setValue(value)
+
     return spinbox
 
 
 def doublespinbox_widget(range_min, range_max, step, decimals, value):
     doublespinbox = QtWidgets.QDoubleSpinBox()
     doublespinbox.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-    # doublespinbox.setStyleSheet('''
-    #     QDoubleSpinBox {
-    #     background-color: white;
-    #     color: black;
-    #     border: 1px solid grey;
-    #     } 
-    # ''')
-    # Set the dark palette
     dark_palette = QtGui.QPalette()
-    dark_palette.setColor(QtGui.QPalette.Window, QColor(53, 53, 53))
-    dark_palette.setColor(QtGui.QPalette.WindowText, Qt.white)
-    dark_palette.setColor(QPalette.Base, QColor(25, 25, 25))
-    dark_palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
-    dark_palette.setColor(QPalette.ToolTipBase, Qt.white)
-    dark_palette.setColor(QPalette.ToolTipText, Qt.white)
-    dark_palette.setColor(QPalette.Text, Qt.white)
-    dark_palette.setColor(QPalette.Button, QColor(53, 53, 53))
-    dark_palette.setColor(QPalette.ButtonText, Qt.white)
-    dark_palette.setColor(QPalette.BrightText, Qt.red)
-    dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
-    dark_palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
-    dark_palette.setColor(QPalette.HighlightedText, Qt.black)
-    spin_box.setPalette(dark_palette)
+    dark_palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
+    dark_palette.setColor(QtGui.QPalette.WindowText, QtCore.Qt.white)
+    dark_palette.setColor(QtGui.QPalette.Base, QtGui.QColor(25, 25, 25))
+    dark_palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
+    dark_palette.setColor(QtGui.QPalette.ToolTipBase, QtCore.Qt.white)
+    dark_palette.setColor(QtGui.QPalette.ToolTipText, QtCore.Qt.white)
+    dark_palette.setColor(QtGui.QPalette.Text, QtCore.Qt.white)
+    dark_palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
+    dark_palette.setColor(QtGui.QPalette.ButtonText, QtCore.Qt.white)
+    dark_palette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.red)
+    dark_palette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
+    dark_palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
+    dark_palette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
+    doublespinbox.setPalette(dark_palette)
+    doublespinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+    doublespinbox.setMinimumWidth(doublespinbox.sizeHint().width())
+    doublespinbox.setMinimumHeight(doublespinbox.sizeHint().height())
     doublespinbox.setRange(-range_min, range_max)
     doublespinbox.setSingleStep(step)
     doublespinbox.setDecimals(decimals)
     doublespinbox.setValue(value)
-    doublespinbox.setMaximum(range_max)
-    doublespinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
-    doublespinbox.setMinimumWidth(doublespinbox.sizeHint().width())
-    doublespinbox.setMinimumHeight(doublespinbox.sizeHint().height())
     return doublespinbox
 
 
