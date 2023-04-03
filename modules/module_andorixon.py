@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Apr 25 14:11:38 2022
-
-@author: ruizhe.lin
-"""
-
 from pyAndorSDK2 import atmcd, atmcd_codes, atmcd_errors
 import numpy as np
 

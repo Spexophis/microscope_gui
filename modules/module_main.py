@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Apr 12 14:27:48 2022
-
-@author: ruizhe.lin
-"""
-
 import module_andorixon
 import module_hamamatsu
 # import module_tiscamera

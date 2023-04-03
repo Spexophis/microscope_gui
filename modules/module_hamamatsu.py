@@ -1,9 +1,4 @@
-# -*- coding: utf-8 -*-
 """
-Created on Tue Mar  7 12:07:18 2023
-
-@author: Testa4
-
 A ctypes based interface to Hamamatsu sCMOS Flash 4.0
 """
 

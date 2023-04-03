@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Jul 26 17:22:54 2022
-
-@author: Testa4
-"""
-
-
 import numpy as np
 import PyDAQmx
 from PyDAQmx.DAQmxFunctions import *

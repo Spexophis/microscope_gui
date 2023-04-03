@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Jul 25 16:43:30 2022
-
-@author: Testa4
-"""
-
 from PIL import Image
 import numpy as np
 from ctypes import *

@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Dec 13 14:02:46 2022
-
-@author: Testa4
-"""
-
 import ctypes as ct
 import numpy as np
 

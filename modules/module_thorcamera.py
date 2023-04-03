@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Jan  2 14:08:42 2023
-
-@author: Testa4
-"""
-
-
 import pylablib as pll
 pll.par["devices/dlls/uc480"] = "C:\Program Files\Thorlabs\Scientific Imaging\ThorCam"
 

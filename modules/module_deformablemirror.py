@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Mar 23 13:20:36 2022
-
-@author: ruizhe.lin
-"""
-
 import os
 import sys
 sys.path.append(r'D:\aoresolft\Lib64')

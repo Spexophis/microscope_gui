@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Sep 21 13:49:50 2022
-
-@author: ruizhe.lin
-"""
-     
-        
 import numpy as np
 from pyicic import IC_ImagingControl
 
