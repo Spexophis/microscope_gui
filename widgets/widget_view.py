@@ -1,6 +1,6 @@
 import numpy as np
 from PyQt5 import QtWidgets
-import naparitools
+from utilities import napari_tools
 
 
 class ViewWidget(QtWidgets.QWidget):
