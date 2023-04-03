@@ -1,24 +1,54 @@
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtGui
 
 
 def group_widget(name=''):
     group = QtWidgets.QGroupBox(name)
-    group.setStyleSheet("""
-    QGroupBox {font-weight: bold;}
-    QGroupBox:title { color: rgb(240, 255, 255);}""")
+    group.setStyleSheet('''
+        QGroupBox {
+            background-color: #444444;
+            border: 2px solid #444444;
+            border-radius: 4px;
+            margin-top: 1ex;
+            font-weight: bold;
+            font-size: 12px;
+            color: #CCCCCC;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            subcontrol-position: top left;
+            padding: 0 3px;
+        }
+    ''')
     return group
 
 
 def label_widget(name=''):
     label = QtWidgets.QLabel(name)
-    label.setStyleSheet("background-color: dark; color: white; font: bold Arial 12px")
+    label.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+    # label.setStyleSheet("background-color: dark; color: #f0f0f0; padding: 2px")
+    label.setStyleSheet('background-color: #444444; color: #ECECEC; padding: 5px; border-radius: 5px;')
     return label
 
 
 def lcdnumber_widget(num=None, n=None):
     lcd = QtWidgets.QLCDNumber()
+    palette = QtGui.QPalette()
+    palette.setColor(QtGui.QPalette.WindowText, QtGui.QColor(255, 255, 255))  # set text color
+    palette.setColor(QtGui.QPalette.Background, QtGui.QColor(37, 37, 38))  # set background color
+    palette.setColor(QtGui.QPalette.Light, QtGui.QColor(64, 64, 64))  # set light color
+    palette.setColor(QtGui.QPalette.Dark, QtGui.QColor(26, 26, 27))  # set dark color
+    palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(0, 85, 255))  # set highlight color
+    palette.setColor(QtGui.QPalette.HighlightedText, QtGui.QColor(255, 255, 255))  # set highlighted text color
+    lcd.setPalette(palette)
+    lcd.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
     lcd.setSegmentStyle(QtWidgets.QLCDNumber.Flat)
-    lcd.setStyleSheet("QLCDNumber { background-color: black; color: white; border: 2px solid grey; font: bold Arial 12px; }")
+    # lcd.setStyleSheet('''
+    #     QLCDNumber {
+    #     background-color: black;
+    #     color: white;
+    #     border: 2px solid grey;
+    #     }
+    # ''')
     lcd.setDecMode()
     if num is not None:
         lcd.display(num)
@@ -31,18 +61,13 @@ def lcdnumber_widget(num=None, n=None):
 
 def spinbox_widget(range_min, range_max, step, value):
     spinbox = QtWidgets.QSpinBox()
+    spinbox.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
     spinbox.setStyleSheet('''
         QSpinBox { 
         background-color: white; 
         color: black; 
-        font: bold Arial 12px;
         border: 1px solid grey; 
         } 
-
-        QSpinBox::up-button, 
-        QSpinBox::down-button { 
-        width: 0px; 
-        }"
     ''')
     spinbox.setRange(range_min, range_max)
     spinbox.setSingleStep(step)
@@ -50,23 +75,19 @@ def spinbox_widget(range_min, range_max, step, value):
     spinbox.setMaximum(range_max)
     spinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
     spinbox.setMinimumWidth(spinbox.sizeHint().width())
+    spinbox.setMinimumHeight(spinbox.sizeHint().height())
     return spinbox
 
 
 def doublespinbox_widget(range_min, range_max, step, decimals, value):
     doublespinbox = QtWidgets.QDoubleSpinBox()
+    doublespinbox.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
     doublespinbox.setStyleSheet('''
         QDoubleSpinBox { 
         background-color: white; 
         color: black; 
-        font: bold Arial 12px;
         border: 1px solid grey; 
         } 
-        
-        QDoubleSpinBox::up-button, 
-        QDoubleSpinBox::down-button { 
-        width: 0px; 
-        }"
     ''')
     doublespinbox.setRange(-range_min, range_max)
     doublespinbox.setSingleStep(step)
@@ -75,21 +96,21 @@ def doublespinbox_widget(range_min, range_max, step, decimals, value):
     doublespinbox.setMaximum(range_max)
     doublespinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
     doublespinbox.setMinimumWidth(doublespinbox.sizeHint().width())
+    doublespinbox.setMinimumHeight(doublespinbox.sizeHint().height())
     return doublespinbox
 
 
 def pushbutton_widget(name='', checkable=False):
     button = QtWidgets.QPushButton(name)
     button.setCheckable(checkable)
-    button_size = button.fontMetrics().boundingRect(button.text()).size()
-    button.setFixedSize(button_size.width() + 24, button_size.height() + 16)
+    button.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
     button.setStyleSheet('''
         QPushButton {
-            background-color: #104E8B;
+            background-color: #3F3F3F;
             border-style: outset;
-            border-radius: 6px;
-            font: bold 12px;
-            color: white;
+            border-radius: 4px;
+            color: #FFFFFF;
+            padding: 4px;
         }
         
         QPushButton:hover {
@@ -106,12 +127,15 @@ def pushbutton_widget(name='', checkable=False):
             border-style: inset;
         }
     ''')
+    button_size = button.fontMetrics().boundingRect(button.text()).size()
+    button.setFixedSize(button_size.width() + 24, button_size.height() + 16)
     return button
 
 
 def checkbox_widget(name=''):
     checkbox = QtWidgets.QCheckBox(name)
-    button_style = '''
+    checkbox.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+    checkbox.setStyleSheet('''
         QCheckBox {
             background-color: qradialgradient(cx: 0.5, cy: 0.5, radius: 0.5, fx: 0.5, fy: 0.5, 
                 stop: 0.8 #fff, stop: 0.9 #ddd);
@@ -134,23 +158,56 @@ def checkbox_widget(name=''):
                 stop: 0.8 #9af, stop: 0.9 #8bf);
             border: 2px solid #8bf;
         }
-    '''
-    checkbox.setStyleSheet(button_style)
+    ''')
     checkbox.setChecked(False)
     checkbox.setCheckable(True)
     return checkbox
 
 def radiobutton_widget(name=''):
-    button = QtWidgets.QRadioButton(name)
-    button.setStyleSheet("background-color: dark; color: white; font: bold Arial 12px")
-    return button
+    radiobutton = QtWidgets.QRadioButton(name)
+    radiobutton.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+    # set the palette to use the Fusion style
+    palette = QtGui.QPalette()
+    palette.setColor(QtGui.QPalette.ButtonText, QtGui.QColor(200, 200, 200))  # set text color
+    palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))  # set background color
+    palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))  # set button color
+    palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(142, 45, 197))  # set highlight color
+    radiobutton.setPalette(palette)
+
+    # set the style sheet
+    radiobutton.setStyleSheet('''
+    QRadioButton {
+        background-color: #444444;
+        color: white;
+    }
+    
+    QRadioButton::indicator {
+        width: 18px;
+        height: 18px;
+    }
+
+    QRadioButton::indicator::unchecked {
+        border: 2px solid rgb(200, 200, 200);
+        border-radius: 8px;
+    }
+
+    QRadioButton::indicator::checked {
+        background-color: rgb(192, 255, 62);
+        border: 2px solid rgb(192, 255, 62);
+        border-radius: 8px;
+    }''')
+    return radiobutton
 
 
 def combobox_widget(list_items):
     combobox = QtWidgets.QComboBox()
     for item in list_items:
         combobox.addItem(item)
-    combobox.setStyleSheet("background-color: lightgrey; color: black; font: bold Arial 12px")
+    combobox.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+    combobox.setStyle(QtWidgets.QStyleFactory.create('Fusion'))
+    combobox.setStyleSheet('QComboBox {background-color: #454545; color: #f0f0f0;}'
+                            'QComboBox::drop-down {background-color: #454545;}'
+                            'QComboBox::down-arrow {image: url(down_arrow.png);}')
     return combobox
 
 
@@ -158,12 +215,6 @@ def lineedit_widget():
     lineedit = QtWidgets.QLineEdit()
     lineedit.setStyleSheet("background-color: dark; color: white; font: bold Arial 12px")
     return lineedit
-
-
-def checkbox_widget(name=''):
-    checkbox = QtWidgets.QCheckBox(name)
-    checkbox.setStyleSheet("background-color: dark; color: white; font: bold Arial 12px")
-    return checkbox
 
 
 def toolbar_widget():
