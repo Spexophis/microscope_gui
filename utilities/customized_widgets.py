@@ -174,15 +174,12 @@ def checkbox_widget(name=''):
 def radiobutton_widget(name=''):
     radiobutton = QtWidgets.QRadioButton(name)
     radiobutton.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-    # set the palette to use the Fusion style
     palette = QtGui.QPalette()
     palette.setColor(QtGui.QPalette.ButtonText, QtGui.QColor(200, 200, 200))  # set text color
     palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))  # set background color
     palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))  # set button color
     palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(142, 45, 197))  # set highlight color
     radiobutton.setPalette(palette)
-
-    # set the style sheet
     radiobutton.setStyleSheet('''
     QRadioButton {
         background-color: #444444;
