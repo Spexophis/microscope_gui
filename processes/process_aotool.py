@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Mar 21 16:21:12 2022
-
-@author: ruizhe.lin
-"""
-
 import tifffile as tf
 import numpy as np
 import matplotlib.pyplot as P

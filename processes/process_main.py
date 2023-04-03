@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Mar 18 11:17:53 2022
-
-@author: ruizhe.lin
-"""
-
-
 import process_image
 import process_aotool
 import process_ShackHartmannWavefrontReconstruction

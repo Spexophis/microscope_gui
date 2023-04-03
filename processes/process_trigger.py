@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Aug  5 14:50:09 2022
-
-@author: Testa4
-"""
-
 import numpy as np
 from scipy.interpolate import BPoly
 

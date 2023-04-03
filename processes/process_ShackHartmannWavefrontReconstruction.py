@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Mar  3 12:22:33 2020
-updated from old code
-@author: rl74173
-"""
-
 import numpy as N
 # import tifffile as tf
 from scipy.signal import fftconvolve as corr

@@ -1,12 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Mar 13 10:46:54 2023
-
-Inherited from GalvoScanDesigner.py in ImSwitch/imcontrol/model/signaldesigners
-
-@author: Testa4
-"""
-
 import numpy as np
 from scipy.interpolate import BPoly
 
