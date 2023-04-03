@@ -408,10 +408,10 @@ class ConWidget(QtWidgets.QWidget):
             self.QDoubleSpinBox_ttl_stop_camera.setValue(0.041)
 
 
-import sys
-
-if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)
-    window = ConWidget()
-    window.show()
-    sys.exit(app.exec_())
+# import sys
+#
+# if __name__ == "__main__":
+#     app = QtWidgets.QApplication(sys.argv)
+#     window = ConWidget()
+#     window.show()
+#     sys.exit(app.exec_())

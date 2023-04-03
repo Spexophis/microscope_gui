@@ -237,10 +237,10 @@ class AOWidget(QtWidgets.QWidget):
             self.Signal_load_dm.emit(file)
 
 
-import sys
-
-if __name__ == '__main__':
-    app = QtWidgets.QApplication(sys.argv)
-    window = AOWidget()
-    window.show()
-    sys.exit(app.exec_())
+# import sys
+#
+# if __name__ == '__main__':
+#     app = QtWidgets.QApplication(sys.argv)
+#     window = AOWidget()
+#     window.show()
+#     sys.exit(app.exec_())
