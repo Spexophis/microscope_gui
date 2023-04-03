@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Apr 11 16:17:06 2022
-
-@author: ruizhe.lin
-"""
-
 class AOController():
 
     def __init__(self, view):

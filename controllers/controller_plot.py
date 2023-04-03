@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Sep 29 14:58:45 2022
-
-@author: Testa4
-"""
-
 class PlotController():
 
     def __init__(self, view):

@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Apr  6 14:40:07 2022
-
-@author: ruizhe.lin
-"""
-
 class ViewController():
 
     def __init__(self, view):

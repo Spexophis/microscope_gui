@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Apr  6 14:07:10 2022
-
-@author: ruizhe.lin
-"""
-
 class ConController():
 
     def __init__(self, view):

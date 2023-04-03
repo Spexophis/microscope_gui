@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Apr  6 13:58:21 2022
-
-@author: ruizhe.lin
-"""
-
 from PyQt5 import QtCore
 import time, os
 import tifffile as tf
