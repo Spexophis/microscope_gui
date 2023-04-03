@@ -289,34 +289,26 @@ class ConWidget(QtWidgets.QWidget):
 
     def set_laser_488_0(self):
         if self.QPushButton_laser_488_0.isChecked():
-            self.QPushButton_laser_488_0.setStyleSheet("background-color : red")
             self.Signal_setlaseron_488_0.emit()
         else:
-            self.QPushButton_laser_488_0.setStyleSheet("background-color : lightgrey")
             self.Signal_setlaseroff_488_0.emit()
 
     def set_laser_488_1(self):
         if self.QPushButton_laser_488_1.isChecked():
-            self.QPushButton_laser_488_1.setStyleSheet("background-color : red")
             self.Signal_setlaseron_488_1.emit()
         else:
-            self.QPushButton_laser_488_1.setStyleSheet("background-color : lightgrey")
             self.Signal_setlaseroff_488_1.emit()
 
     def set_laser_488_2(self):
         if self.QPushButton_laser_488_2.isChecked():
-            self.QPushButton_laser_488_2.setStyleSheet("background-color : red")
             self.Signal_setlaseron_488_2.emit()
         else:
-            self.QPushButton_laser_488_2.setStyleSheet("background-color : lightgrey")
             self.Signal_setlaseroff_488_2.emit()
 
     def set_laser_405(self):
         if self.QPushButton_laser_405.isChecked():
-            self.QPushButton_laser_405.setStyleSheet("background-color : red")
             self.Signal_setlaseron_405.emit()
         else:
-            self.QPushButton_laser_405.setStyleSheet("background-color : lightgrey")
             self.Signal_setlaseroff_405.emit()
 
     def set_coordinates(self):

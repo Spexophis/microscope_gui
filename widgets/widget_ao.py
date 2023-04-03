@@ -1,8 +1,8 @@
 from PyQt5 import QtWidgets, QtCore
 from utilities import customized_widgets as cw
 
+
 class AOWidget(QtWidgets.QWidget):
-    
     Signal_shwfs_initiate = QtCore.pyqtSignal()
     Signal_shwfs_computewf = QtCore.pyqtSignal()
     Signal_shwfs_correctwf = QtCore.pyqtSignal()
@@ -23,7 +23,7 @@ class AOWidget(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        
+
         layout = QtWidgets.QVBoxLayout(self)
         Group_exposuretime = cw.group_widget('SH Camera')
         Group_parameters = cw.group_widget('Parameters')
@@ -40,7 +40,7 @@ class AOWidget(QtWidgets.QWidget):
         layout.addWidget(Group_File)
         layout.addStretch()
         self.setLayout(layout)
-        
+
         Layout_exposuretime = QtWidgets.QFormLayout()
         self.Label_exposuretime = cw.label_widget(str('Exposure time'))
         self.QDoubleSpinBox_exposuretime = cw.doublespinbox_widget(0, 10, 0.005, 3, 0.05)
@@ -61,7 +61,7 @@ class AOWidget(QtWidgets.QWidget):
         Layout_exposuretime.addRow(self.Label_wfmin, self.lcdNumber_wfmin)
         Layout_exposuretime.addRow(self.Label_wfrms, self.lcdNumber_wfrms)
         Group_exposuretime.setLayout(Layout_exposuretime)
-        
+
         Layout_parameters = QtWidgets.QGridLayout()
         self.Label_base = cw.label_widget(str('Base'))
         self.Label_base_xcenter = cw.label_widget(str('X_center'))
@@ -179,7 +179,7 @@ class AOWidget(QtWidgets.QWidget):
         Layout_sensorlessao.addWidget(self.QSpinBox_zernike_mode_start, 1, 1, 1, 1)
         Layout_sensorlessao.addWidget(self.Label_zernike_mode_stop, 2, 0, 1, 1)
         Layout_sensorlessao.addWidget(self.QSpinBox_zernike_mode_stop, 2, 1, 1, 1)
-        Layout_sensorlessao.addWidget(self.Label_zernike_modes_amps, 0, 2, 1, 2 )
+        Layout_sensorlessao.addWidget(self.Label_zernike_modes_amps, 0, 2, 1, 2)
         Layout_sensorlessao.addWidget(self.Label_zernike_modes_amps_start, 1, 2, 1, 1)
         Layout_sensorlessao.addWidget(self.QDoubleSpinBox_zernike_mode_amps_start, 1, 3, 1, 1)
         Layout_sensorlessao.addWidget(self.Label_zernike_modes_amps_stepnum, 2, 2, 1, 1)
@@ -195,7 +195,7 @@ class AOWidget(QtWidgets.QWidget):
         Layout_sensorlessao.addWidget(self.button_sensorlessAO_run, 2, 5, 1, 1)
         Layout_sensorlessao.addWidget(self.button_saveDM, 3, 5, 1, 1)
         Group_sensorlessao.setLayout(Layout_sensorlessao)
-        
+
         Layout_File = QtWidgets.QGridLayout()
         self.QLabel_file_name = cw.label_widget(str('File name'))
         self.QLineEdit_filename = cw.lineedit_widget()
@@ -228,16 +228,19 @@ class AOWidget(QtWidgets.QWidget):
         self.QSpinBox_diamter.setValue(19)
         self.QSpinBox_spacing.setValue(33)
         self.QSpinBox_radius.setValue(14)
-        
+
     def dialog(self):
-        file, check = QtWidgets.QFileDialog.getOpenFileName(None, "QtWidgets.QFileDialog.getOpenFileName()","", "All Files (*);;Python Files (*.py);;Text Files (*.txt)")
+        file, check = QtWidgets.QFileDialog.getOpenFileName(None, "QtWidgets.QFileDialog.getOpenFileName()", "",
+                                                            "All Files (*);;Python Files (*.py);;Text Files (*.txt)")
         if check:
             print(file)
             self.Signal_load_dm.emit(file)
 
-# import sys
-# if __name__ == '__main__':
-#     app = QtWidgets.QApplication(sys.argv)
-#     window = AOWidget()
-#     window.show()
-#     sys.exit(app.exec_())
+
+import sys
+
+if __name__ == '__main__':
+    app = QtWidgets.QApplication(sys.argv)
+    window = AOWidget()
+    window.show()
+    sys.exit(app.exec_())
