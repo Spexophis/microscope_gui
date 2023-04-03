@@ -13,12 +13,13 @@ def label_widget(name=''):
     return label
 
 
-def lcdnumber_widget():
+def lcdnumber_widget(n=None):
     lcd = QtWidgets.QLCDNumber()
     lcd.setStyleSheet("background-color: dark; color: white; font: bold Arial 12px")
     lcd.setDecMode()
     lcd.setSegmentStyle(QtWidgets.QLCDNumber.Flat)
-    # lcd.setDigitCount(n)
+    if n is not None:
+        lcd.setDigitCount(n)
     lcd.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
     lcd.setMinimumWidth(lcd.sizeHint().width())
     return lcd

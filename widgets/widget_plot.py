@@ -6,6 +6,7 @@ from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 plt.style.use('dark_background')
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+from utilities import customized_widgets as cw
 
 class MplCanvas(FigureCanvas):
 
@@ -26,10 +27,8 @@ class PlotWidget(QtWidgets.QWidget):
         
         self.Layout = QtWidgets.QHBoxLayout(self)
                 
-        Group_Plot = QtWidgets.QGroupBox('Plot')
-        Group_Plot.setStyleSheet("font: bold Arial 10px")
-        Group_Ctrl = QtWidgets.QGroupBox('Ctrl')
-        Group_Ctrl.setStyleSheet("font: bold Arial 10px")
+        Group_Plot = cw.group_widget('Plot')
+        Group_Ctrl = cw.group_widget('Ctrl')
         
         self.Layout.addWidget(Group_Plot)
         self.Layout.addWidget(Group_Ctrl)
@@ -48,15 +47,11 @@ class PlotWidget(QtWidgets.QWidget):
         
         Layout_Ctrl = QtWidgets.QVBoxLayout()
         
-        self.QRadioButton_horizontal = QtWidgets.QRadioButton('Horizontal', self)
-        self.QRadioButton_horizontal.setStyleSheet("background-color: dark; color: white; font: bold Arial 10px")
-        self.QRadioButton_vertical = QtWidgets.QRadioButton('Vertical', self)
-        self.QRadioButton_vertical.setStyleSheet("background-color: dark; color: white; font: bold Arial 10px")        
-        self.QPushButton_plot_static = QtWidgets.QPushButton('Plot', self)
-        self.QPushButton_plot_static.setStyleSheet("background-color: lightgrey; color: dark; font: bold Arial 10px")        
-        self.QPushButton_plot_update = QtWidgets.QPushButton('Update', self)
-        self.QPushButton_plot_update.setStyleSheet("background-color: lightgrey; color: dark; font: bold Arial 10px")
-    
+        self.QRadioButton_horizontal = cw.radiobutton_widget('Horizontal')
+        self.QRadioButton_vertical = cw.radiobutton_widget('Vertical')
+        self.QPushButton_plot_static = cw.pushbutton_widget('Plot')
+        self.QPushButton_plot_update = cw.pushbutton_widget('Update')
+
         Layout_Ctrl.addWidget(self.QRadioButton_horizontal, 0)
         Layout_Ctrl.addWidget(self.QRadioButton_vertical, 1)
         Layout_Ctrl.addWidget(self.QPushButton_plot_static, 2)
@@ -72,4 +67,10 @@ class PlotWidget(QtWidgets.QWidget):
         
     def plot_update(self):
         self.Signal_plot_update.emit()
-        
+
+# import sys
+# if __name__ == '__main__':
+#     app = QtWidgets.QApplication(sys.argv)
+#     main = PlotWidget()
+#     main.show()
+#     sys.exit(app.exec_())

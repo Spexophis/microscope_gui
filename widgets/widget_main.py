@@ -52,4 +52,10 @@ class MainWidget(QtWidgets.QMainWindow):
     
     def getPlotWidget(self):
         return self.plot_view
-    
+
+# import sys
+# if __name__ == '__main__':
+#     app = QtWidgets.QApplication(sys.argv)
+#     gui = MainWidget()
+#     gui.show()
+#     sys.exit(app.exec_())
