@@ -82,13 +82,29 @@ def spinbox_widget(range_min, range_max, step, value):
 def doublespinbox_widget(range_min, range_max, step, decimals, value):
     doublespinbox = QtWidgets.QDoubleSpinBox()
     doublespinbox.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-    doublespinbox.setStyleSheet('''
-        QDoubleSpinBox { 
-        background-color: white; 
-        color: black; 
-        border: 1px solid grey; 
-        } 
-    ''')
+    # doublespinbox.setStyleSheet('''
+    #     QDoubleSpinBox {
+    #     background-color: white;
+    #     color: black;
+    #     border: 1px solid grey;
+    #     } 
+    # ''')
+    # Set the dark palette
+    dark_palette = QtGui.QPalette()
+    dark_palette.setColor(QtGui.QPalette.Window, QColor(53, 53, 53))
+    dark_palette.setColor(QtGui.QPalette.WindowText, Qt.white)
+    dark_palette.setColor(QPalette.Base, QColor(25, 25, 25))
+    dark_palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
+    dark_palette.setColor(QPalette.ToolTipBase, Qt.white)
+    dark_palette.setColor(QPalette.ToolTipText, Qt.white)
+    dark_palette.setColor(QPalette.Text, Qt.white)
+    dark_palette.setColor(QPalette.Button, QColor(53, 53, 53))
+    dark_palette.setColor(QPalette.ButtonText, Qt.white)
+    dark_palette.setColor(QPalette.BrightText, Qt.red)
+    dark_palette.setColor(QPalette.Link, QColor(42, 130, 218))
+    dark_palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
+    dark_palette.setColor(QPalette.HighlightedText, Qt.black)
+    spin_box.setPalette(dark_palette)
     doublespinbox.setRange(-range_min, range_max)
     doublespinbox.setSingleStep(step)
     doublespinbox.setDecimals(decimals)
@@ -106,7 +122,7 @@ def pushbutton_widget(name='', checkable=False):
     button.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
     button.setStyleSheet('''
         QPushButton {
-            background-color: #3F3F3F;
+            background-color: #282828;
             border-style: outset;
             border-radius: 4px;
             color: #FFFFFF;
