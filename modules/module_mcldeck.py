@@ -1,10 +1,9 @@
 import ctypes as ct
-import numpy as np
 
 mcl_lib = r'D:\aoresolft\MicroDrive.dll'
 
 
-class MCLMicroDrive():
+class MCLMicroDrive:
     
     def __init__(self):
         super().__init__()
