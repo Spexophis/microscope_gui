@@ -6,7 +6,7 @@ def group_widget(name=''):
     group.setStyleSheet('''
         QGroupBox {
             background-color: #444444;
-            border: 2px solid #444444;
+            border: 0px solid #444444;
             border-radius: 4px;
             margin-top: 1ex;
             font-weight: bold;
@@ -16,7 +16,7 @@ def group_widget(name=''):
         QGroupBox::title {
             subcontrol-origin: margin;
             subcontrol-position: top left;
-            padding: 0 3px;
+            padding: 0 2px;
         }
     ''')
     return group
@@ -25,8 +25,7 @@ def group_widget(name=''):
 def label_widget(name=''):
     label = QtWidgets.QLabel(name)
     label.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-    # label.setStyleSheet("background-color: dark; color: #f0f0f0; padding: 2px")
-    label.setStyleSheet('background-color: #444444; color: #ECECEC; padding: 5px; border-radius: 5px;')
+    label.setStyleSheet('background-color: #444444; color: #ECECEC; padding: 2px; border-radius: 2px;')
     return label
 
 
@@ -99,8 +98,7 @@ def doublespinbox_widget(range_min, range_max, step, decimals, value):
     doublespinbox.setPalette(dark_palette)
     doublespinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
     doublespinbox.setMinimumWidth(doublespinbox.sizeHint().width())
-    doublespinbox.setMinimumHeight(doublespinbox.sizeHint().height())
-    doublespinbox.setRange(-range_min, range_max)
+    doublespinbox.setRange(range_min, range_max)
     doublespinbox.setSingleStep(step)
     doublespinbox.setDecimals(decimals)
     doublespinbox.setValue(value)
@@ -117,7 +115,7 @@ def pushbutton_widget(name='', checkable=False):
             border-style: outset;
             border-radius: 4px;
             color: #FFFFFF;
-            padding: 4px;
+            padding: 2px;
         }
         
         QPushButton:hover {
@@ -147,8 +145,7 @@ def checkbox_widget(name=''):
             background-color: qradialgradient(cx: 0.5, cy: 0.5, radius: 0.5, fx: 0.5, fy: 0.5, 
                 stop: 0.8 #fff, stop: 0.9 #ddd);
             color: #000;
-            font: 14px;
-            padding: 5px;
+            padding: 2px;
             border: 2px solid #aaa;
             border-radius: 20px;
         }
@@ -186,8 +183,8 @@ def radiobutton_widget(name=''):
     }
     
     QRadioButton::indicator {
-        width: 18px;
-        height: 18px;
+        width: 12px;
+        height: 12px;
     }
 
     QRadioButton::indicator::unchecked {
