@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtCore
-
+from utilities import customized_widgets as cw
 import widget_con
 import widget_view
 import widget_plot
@@ -12,8 +12,7 @@ class MainWidget(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        toolbar = QtWidgets.QToolBar()
-        toolbar.setStyleSheet("background-color: dark; color: white; font: bold Arial 12px; width: 36px; height: 18px")
+        toolbar = cw.toolbar_widget()
         self.addToolBar(toolbar)
 
         button_exit = QtWidgets.QAction("Exit", self)

@@ -1,6 +1,12 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 
 
+def toolbar_widget():
+    toolbar = QtWidgets.QToolBar()
+    toolbar.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+    toolbar.setStyleSheet('QToolBar {background-color: #2E2E2E; color: white;}')
+    return toolbar
+
 def group_widget(name=''):
     group = QtWidgets.QGroupBox(name)
     group.setStyleSheet('''
@@ -9,6 +15,7 @@ def group_widget(name=''):
             border: 0px solid #444444;
             border-radius: 4px;
             margin-top: 1ex;
+            margin-bottom: 1ex;
             font-weight: bold;
             font-size: 12px;
             color: #CCCCCC;
@@ -16,7 +23,7 @@ def group_widget(name=''):
         QGroupBox::title {
             subcontrol-origin: margin;
             subcontrol-position: top left;
-            padding: 0 2px;
+            padding: 0 0px;
         }
     ''')
     return group
@@ -133,7 +140,15 @@ def pushbutton_widget(name='', checkable=False):
         }
     ''')
     button_size = button.fontMetrics().boundingRect(button.text()).size()
-    button.setFixedSize(button_size.width() + 24, button_size.height() + 16)
+    if button_size.width() < 100:
+        button_size.setWidth(100)
+    else:
+        button_size.setWidth(button_size.width() + 24)
+    if button_size.height() < 30:
+        button_size.setHeight(30)
+    else:
+        button_size.setHeight(button_size.height() + 16)
+    button.setFixedSize(button_size.width(), button_size.height())
     return button
 
 
