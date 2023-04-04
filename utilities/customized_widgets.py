@@ -167,7 +167,8 @@ def checkbox_widget(name=''):
     checkbox.setCheckable(True)
     return checkbox
 
-def radiobutton_widget(name=''):
+
+def radiobutton_widget(name='', color=f"rgb(192, 255, 62)"):
     radiobutton = QtWidgets.QRadioButton(name)
     radiobutton.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
     palette = QtGui.QPalette()
@@ -183,20 +184,20 @@ def radiobutton_widget(name=''):
     }
     
     QRadioButton::indicator {
-        width: 12px;
-        height: 12px;
+        width: 8px;
+        height: 8px;
     }
 
     QRadioButton::indicator::unchecked {
         border: 2px solid rgb(200, 200, 200);
-        border-radius: 8px;
+        border-radius: 4px;
     }
 
     QRadioButton::indicator::checked {
-        background-color: rgb(192, 255, 62);
-        border: 2px solid rgb(192, 255, 62);
-        border-radius: 8px;
-    }''')
+        background-color: %s;
+        border: 2px solid %s;
+        border-radius: 4px;
+    }''' % (color, color))
     return radiobutton
 
 
@@ -207,8 +208,8 @@ def combobox_widget(list_items):
     combobox.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
     combobox.setStyle(QtWidgets.QStyleFactory.create('Fusion'))
     combobox.setStyleSheet('QComboBox {background-color: #454545; color: #f0f0f0;}'
-                            'QComboBox::drop-down {background-color: #454545;}'
-                            'QComboBox::down-arrow {image: url(down_arrow.png);}')
+                           'QComboBox::down-arrow { image: none; }'
+                           'QComboBox::drop-down { border: none; }')
     return combobox
 
 

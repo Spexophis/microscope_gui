@@ -108,7 +108,7 @@ class AOWidget(QtWidgets.QWidget):
         self.button_shwfs_computewf = cw.pushbutton_widget('ComputeWF')
         self.button_shwfs_correctwf = cw.pushbutton_widget('CorrectWF')
         self.button_shwfs_savewf = cw.pushbutton_widget('SaveWF')
-        self.radioButton_exclude_zm = cw.radiobutton_widget("Exclude")
+        self.radioButton_exclude_zm = cw.radiobutton_widget("Exclude", f"rgb(220, 20, 60)")
         Layout_commands.addWidget(self.button_shwfs_initiate, 0, 0, 1, 1)
         Layout_commands.addWidget(self.button_wfsstart, 1, 0, 1, 1)
         Layout_commands.addWidget(self.button_wfsstop, 1, 1, 1, 1)
