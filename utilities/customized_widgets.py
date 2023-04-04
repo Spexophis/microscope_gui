@@ -76,7 +76,6 @@ def spinbox_widget(range_min, range_max, step, value):
     spinbox.setRange(range_min, range_max)
     spinbox.setSingleStep(step)
     spinbox.setValue(value)
-
     return spinbox
 
 
