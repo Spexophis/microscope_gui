@@ -1,7 +1,8 @@
 import numpy as np
 from PyQt5.QtCore import pyqtSlot
 
-class ViewController():
+
+class ViewController:
 
     def __init__(self, view):
         self.view = view
