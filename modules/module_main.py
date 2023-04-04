@@ -8,7 +8,7 @@ import module_daq
 import module_mcldeck
 
 
-class Microscope():
+class MainModule:
 
     def __init__(self):
         self.cam = module_andorixon.EMCCDCamera()
