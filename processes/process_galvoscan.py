@@ -10,20 +10,12 @@ class GalvoScan:
         self.sample_rate = 100000
         self.dt = 1 / self.sample_rate
         self.v_max = 0.1  # µm/µs
-        self.a_max = 1.  # 1e-4 µm/µs^2
+        self.a_max = 1e-4  # µm/µs^2
         self.conversion_factor = 17  # µm / V
-        self.v_max = self.v_max / self.conversion_factor
-        self.a_max = self.a_max / self.conversion_factor
+        self.v_max = 1e6 * self.v_max / self.conversion_factor
+        self.a_max = 1e12 * self.a_max / self.conversion_factor
         self.voltage_range = 10.  # V
 
-    def _acceleration_curve(self):
-        t, d = self._acceleration(self.a_max, 0., self.v_max)
-        acceleration_samples = int(np.ceil(np.ceil(t) / self.dt))
-        acceleration_distance = np.ceil(d)
-        _bp = BPoly.from_derivatives([0, acceleration_samples],
-                                     [[0, 0., self.a_max],
-                                      [acceleration_distance, self.v_max, 0.]])
-        self.acceleration_curve = _bp(np.linspace(0, acceleration_distance, acceleration_samples))
 
     def map_scan(self):
         self.start_position = 4.
@@ -35,6 +27,10 @@ class GalvoScan:
         self.dwell_speed = 0.4
         self.step_size = 0.5
         self.end_position = self.start_position + self.step_size * self.scan_steps
+
+    def generate_scan(self):
+        ac, vc, pc = self._acceleration_curve(self.a_max, 0, self.v_max, self.dt)
+
 
     def generate_one_axis_scan(self):
         one_axis_scan = np.array([])
@@ -70,35 +66,32 @@ class GalvoScan:
         ax.plot(y)
         plt.show()
 
-    def _acceleration(self, a, v0, vt):
+    def _acceleration_curve(self, a, v0, vt, dt):
         t = (vt - v0) / a
-        s = v0 * t + 0.5 * a * t ** 2
-        return t, s
+        acceleration_samples = int(np.ceil(t / dt))
+        acceleration_curve = np.ones(acceleration_samples) * a
+        velocity_curve = v0 + np.cumsum(acceleration_curve) * dt
+        position_curve = np.cumsum(velocity_curve) * dt
+        return acceleration_curve, velocity_curve, position_curve
 
-    def _end_velocity(self, a, v0, d):
-        return np.sqrt(v0 ^ 2 + 2 * a * d)
-
-    def _end_position(self, a, v0, t):
-        return v0 * t + 0.5 * a * t ^ 2
-
-    def _first_order_derivative(self, x, y):
-        dx = x[1] - x[0]
-        d_dx = FinDiff(0, dx, 1)
-        return d_dx(y)
-
-    def _second_order_derivative(self, x, y):
-        dx = x[1] - x[0]
-        d2_dx2 = FinDiff(0, dx, 2)
-        return d2_dx2(y)
+    def _scan_curve(self, v, t, dt):
+        scan_samples = int(np.ceil(t / dt))
+        velocity_curve = np.ones(scan_samples) * v
+        position_curve = np.cumsum(velocity_curve) * dt
+        return velocity_curve, position_curve
 
 
 if __name__ == '__main__':
     g = GalvoScan()
-    g.map_the_scan(-5.)
-    g._plot_curve(g.initial_curve)
-    # y = g.generate_one_axis_scan()
-    # g._plot_curve(y)
-    # dy = g._first_order_derivative(np.arange(len(y)), y)
-    # g._plot_curve(dy)
-    # d2y = g._second_order_derivative(np.arange(len(y)), y)
-    # g._plot_curve(d2y)
+    a, v, p = g._acceleration_curve(g.a_max, 0, g.v_max, g.dt)
+    g._plot_curve(a)
+    g._plot_curve(v)
+    g._plot_curve(p)
+    print(p[-1])
+    print(0.5 * g.a_max * (g.v_max / g.a_max) ** 2)
+    a, v, p = g._acceleration_curve(-g.a_max, g.v_max, -g.v_max, g.dt)
+    g._plot_curve(a)
+    g._plot_curve(v)
+    g._plot_curve(p)
+    print(p[-1])
+
