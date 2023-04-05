@@ -5,10 +5,10 @@ from getpass import getuser
 import tifffile as tf
 from PyQt5 import QtCore
 
-import controller_ao
-import controller_con
-import controller_plot
-import controller_view
+from controllers import controller_ao
+from controllers import controller_con
+from controllers import controller_plot
+from controllers import controller_view
 
 datapath = r'D:/data_ruizhe'
 
