@@ -77,7 +77,7 @@ class WavefrontReconstruction:
         self._n_lenslets = self.diameter * self.diameter
         self._influence_function = np.zeros((2 * self._n_lenslets, self._n_actuators))
         for i in range(int(n / 2)):
-            self._get_gradient_xy(data[i], data[i + 1], verbose=False)
+            self._get_gradient_xy(data[i], data[i + 1])
             self._influence_function[:self._n_lenslets, i] = self.gradx.flatten()
             self._influence_function[self._n_lenslets:, i] = self.grady.flatten()
 
@@ -86,7 +86,7 @@ class WavefrontReconstruction:
         self._control_matrix = np.dot(vh.T, np.dot(np.diag(np.diag(1 / s)), u.T))
 
     def _close_loop_correction(self, measurement, method='zonal'):
-        self._get_gradient_xy(self.base, measurement, verbose=False)
+        self._get_gradient_xy(self.base, measurement)
         self._measurement = np.concatenate((self.gradx.flatten(), self.grady.flatten()))
         _c = np.dot(self._control_matrix, self._measurement)
         self._correction.append(_c)
