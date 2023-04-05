@@ -1,6 +1,8 @@
 from pyAndorSDK2 import atmcd, atmcd_codes, atmcd_errors
 import numpy as np
+import sys
 
+sys.path.append(r'C:\Program Files\Andor SDK')
 
 class EMCCDCamera:
 

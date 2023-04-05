@@ -1,11 +1,11 @@
-import module_andorixon
-import module_hamamatsu
-# import module_tiscamera
-# import module_thorcamera
-import module_deformablemirror
-import module_laser
-import module_daq
-import module_mcldeck
+from modules import module_andorixon
+from modules import module_hamamatsu
+# from modules import module_tiscamera
+# from modules import module_thorcamera
+from modules import module_deformablemirror
+from modules import module_laser
+from modules import module_daq
+from modules import module_mcldeck
 
 
 class MainModule:

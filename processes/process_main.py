@@ -1,8 +1,8 @@
-import process_image
-import process_aotool
-import process_ShackHartmannWavefrontReconstruction
-import process_trigger
-import beads_scan_reconstruction
+from processes import process_image
+from processes import process_aotool
+from processes import process_ShackHartmannWavefrontReconstruction
+from processes import process_trigger
+from processes import beads_scan_reconstruction
 
 
 class MainProcess:

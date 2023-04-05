@@ -1,23 +1,23 @@
-import os
 import sys
-sys.path.append(r'D:\aoresolft\Lib64')
+import os
+
+sys.path.append(r'C:\Program Files\Alpao\sourcefiles')
 from Lib64.asdk import DM
 import numpy as np
 import csv
 
 
-class DeformableMirror():
+class DeformableMirror:
 
     def __init__(self):
-        super().__init__()
 
         try:
-            self.serialName = 'BAX513'
-            self.dm = DM(self.serialName)
+            serialName = 'BAX513'
+            self.dm = DM(serialName)
             print("Connect the mirror")
             print("Retrieve number of actuators")
             self.nbAct = int(self.dm.Get('NBOfActuator'))
-            print("Number of actuator for " + self.serialName + ": " + str(self.nbAct))
+            print("Number of actuator for " + serialName + ": " + str(self.nbAct))
             # self.values = [0.] * self.nbAct
             # self.dm.Send( self.values )
         except:
@@ -29,7 +29,7 @@ class DeformableMirror():
         print("Exit")
 
     def SetDM(self, values):
-        if (all(np.abs(v) < 1. for v in values)):
+        if all(np.abs(v) < 1. for v in values):
             self.dm.Send(values)
             print('DM set')
         else:

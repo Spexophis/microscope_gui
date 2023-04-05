@@ -1,9 +1,9 @@
 from PyQt5 import QtWidgets, QtCore
 from utilities import customized_widgets as cw
-import widget_con
-import widget_view
-import widget_plot
-import widget_ao
+from widgets import widget_con
+from widgets import widget_view
+from widgets import widget_plot
+from widgets import widget_ao
 
 
 class MainWidget(QtWidgets.QMainWindow):
