@@ -52,7 +52,6 @@ class GalvoScan:
         # _bp = BPoly.from_derivatives([0, dwell_samples], [[0., self.dwell_speed, 0.], [self.dwell_speed * self.dwell_time, self.scan_speed, 0.]])
         # dwell_curve = _bp(np.linspace(0, dwell_samples, dwell_samples))
         # single_step = np.append(interval_curve, dwell_curve)
-        #
 
         # one_axis_scan = np.append(initial_curve, one_axis_scan)
         # end_position = one_axis_scan[-1]
