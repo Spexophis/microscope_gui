@@ -153,6 +153,9 @@ class WavefrontReconstruction:
         imgsub = (img - thresh) * binary
         return imgsub
 
+    def _gaussian2d(self, x, y, x0, y0, sigmax, sigmay, a):
+        return a * np.exp(-((x - x0) / sigmax) ** 2 - ((y - y0) / sigmay) ** 2)
+
     def _parabolicfit(self, sec):
         try:
             MaxIntLoc = np.unravel_index(sec.argmax(), sec.shape)
