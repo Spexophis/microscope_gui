@@ -1,8 +1,10 @@
-from pyAndorSDK2 import atmcd, atmcd_codes, atmcd_errors
-import numpy as np
 import sys
 
+import numpy as np
+from pyAndorSDK2 import atmcd, atmcd_codes, atmcd_errors
+
 sys.path.append(r'C:\Program Files\Andor SDK')
+
 
 class EMCCDCamera:
 
@@ -137,8 +139,10 @@ class EMCCDCamera:
         (self.ret, self.arr) = self.sdk.GetMostRecentImage16(self.imageSize)
         if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
             self.data = self.arr.reshape(self.xpixels, self.ypixels)
+            return True
         else:
             print(atmcd_errors.Error_Codes(self.ret))
+            return False
 
     def stop_live(self):
         self.ret = self.sdk.AbortAcquisition()

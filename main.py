@@ -1,27 +1,36 @@
 import sys
-from modules import module_main
-from widgets import widget_main
+
+from PyQt5 import QtWidgets
+
 from controllers import controller_main
+from modules import module_main
 from processes import process_main
+from widgets import widget_main
 
 
-class MicroscopeGUI:
+class MicroscopeGUI(QtWidgets.QMainWindow):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
-        self.viewer = widget_main.MainWidget()
+        self.view = widget_main.MainWidget()
         self.process = process_main.MainProcess()
         self.module = module_main.MainModule()
-        self.controller = controller_main.MainController(self.my_view, self.module, self.process)
-        self.viewer.Signal_quit.connect(self.close)
-
-    def close(self):
-        self.module.close()
-        self.my_view.close()
-        sys.exit()
+        self.controller = controller_main.MainController(self.view, self.module, self.process)
+        self.view.Signal_quit.connect(self.close)
 
 
-if __name__ == '__main__':
-    gui = MicroscopeGUI()
-    gui.my_view.show()
+app = QtWidgets.QApplication(sys.argv)
+gui = MicroscopeGUI()
+gui.view.show()
+
+
+def close():
+    gui.module.close()
+    gui.view.close()
+    app.exit()
+
+
+gui.view.Signal_quit.connect(close)
+
+sys.exit(app.exec_())

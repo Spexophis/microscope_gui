@@ -10,7 +10,7 @@ from controllers import controller_con
 from controllers import controller_plot
 from controllers import controller_view
 
-datapath = r'D:/data_ruizhe'
+datapath = r'C:\Users\ruizhe.lin\Documents\data'
 
 
 class MainController:
@@ -203,8 +203,10 @@ class MainController:
         self.om.laser.laserOFF_405()
 
     def imshow_main(self):
-        self.om.cam.getImage_live()
-        self.view_controller.plot_main(self.om.cam.data)
+        if self.om.cam.getImage_live():
+            self.view_controller.plot_main(self.om.cam.data)
+        else:
+            print('No Camera Data')
 
     def imshow_fft(self):
         self.view_controller.plot_fft(self.p.imgprocess.fourier_transform(self.om.cam.data))
@@ -227,7 +229,7 @@ class MainController:
     def save_data(self):
         t = time.strftime("%Y%m%d_%H%M%S_")
         slideName = self.con_controller.get_file_name()
-        tf.imsave(self.path + '/' + t + slideName + '.tif', self.om.cam.data)
+        tf.write(self.path + '/' + t + slideName + '.tif', self.om.cam.data)
         self.stackparams['Slide Name'] = slideName
         fnt = self.path + '/' + t + slideName + '_info.txt'
         self._SaveText(fnt)
