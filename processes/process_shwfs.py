@@ -1,9 +1,10 @@
 import asyncio
-from concurrent.futures import ProcessPoolExecutor
 import os
-import tifffile as tf
+from concurrent.futures import ProcessPoolExecutor
+
 import matplotlib.pyplot as plt
 import numpy as np
+import tifffile as tf
 from findiff import FinDiff
 from scipy.ndimage import center_of_mass as com
 from scipy.signal import fftconvolve as corr
@@ -15,8 +16,7 @@ ifft2 = np.fft.ifft2
 fftshift = np.fft.fftshift
 pi = np.pi
 
-
-# influence_fuction
+control_matrix = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_20230406_1752.tif')
 # flat_start
 
 
@@ -36,7 +36,9 @@ class WavefrontReconstruction:
         section = np.ones((2 * self.hsp, 2 * self.hsp))
         sectioncorr = corr(1.0 * section, 1.0 * section[::-1, ::-1], mode='full')
         self.CorrCenter = np.unravel_index(sectioncorr.argmax(), sectioncorr.shape)
-
+        self.base = np.array([])
+        self.offset = np.array([])
+        self.wf = np.array([])
         self.zernike = self._zernike_polynomials(nz=58, size=[self.diameter, self.diameter])
         self._correction = []
         self._dm_cmd = []
@@ -65,32 +67,37 @@ class WavefrontReconstruction:
         self.x_center_offset = self.x_center_offset - self.hsp + round(ind_off[1])
         self.y_center_offset = self.y_center_offset - self.hsp + round(ind_off[0])
 
-    def _generate_influence_function(self, data_folder, method='zonal'):
+    def _generate_influence_matrix(self, data_folder, method='zonal'):
         self._n_actuators = 97
         self._n_lenslets = self.diameter * self.diameter
-        influence_function = np.zeros((2 * self._n_lenslets, self._n_actuators))
+        _influence_matrix = np.zeros((2 * self._n_lenslets, self._n_actuators))
+        _msk = self._disc(1, (self.diameter, self.diameter))
         for filename in os.listdir(data_folder):
             if filename.endswith(".tif"):
                 ind = int(filename.split("_")[3])
+                print(filename.split("_")[3])
                 data_stack = tf.imread(os.path.join(data_folder, filename))
                 n, x, y = data_stack.shape
                 if n != 4:
                     raise "The image number has to be 4"
                 gdxp, gdyp = self._get_gradient_xy(data_stack[0], data_stack[1])
                 gdxn, gdyn = self._get_gradient_xy(data_stack[2], data_stack[3])
-                influence_function[:self._n_lenslets, ind] = (gdxp - gdxn).flatten()
-                influence_function[self._n_lenslets:, ind] = (gdxp - gdxn).flatten()
-        return influence_function
+                _influence_matrix[:self._n_lenslets, ind] = (gdxp * _msk - gdxn * _msk).flatten()
+                _influence_matrix[self._n_lenslets:, ind] = (gdxp * _msk - gdxn * _msk).flatten()
+        return _influence_matrix
 
-    def _get_control_matrix(self, method='zonal'):
-        u, s, vh = np.linalg.svd(self._influence_function, full_matrices=True)
-        self._control_matrix = np.dot(vh.T, np.dot(np.diag(np.diag(1 / s)), u.T))
+    def _get_control_matrix(self, influence_matrix, method='zonal'):
+        A = influence_matrix
+        U, s, Vt = np.linalg.svd(A)
+        s_inv = np.zeros_like(A.T, dtype=float)
+        s_inv[:min(A.shape), :min(A.shape)] = np.diag(1 / s[:min(A.shape)])
+        return Vt.T @ s_inv @ U.T
 
-    def _close_loop_correction(self, measurement, method='zonal'):
-        self._get_gradient_xy(self.base, measurement)
-        self._measurement = np.concatenate((self.gradx.flatten(), self.grady.flatten()))
-        _c = np.dot(self._control_matrix, self._measurement)
-        self._correction.append(_c)
+    def _get_correction(self, measurement, method='zonal'):
+        gradx, grady = self._get_gradient_xy(self.base, measurement)
+        _measurement = np.concatenate((gradx.flatten(), grady.flatten()))
+        self._correction.append(np.dot(control_matrix, _measurement))
+        return self._correction[-1]
 
     def _correct_cmd(self):
         _c = self._dm_cmd[-1] + self._correction
@@ -111,11 +118,10 @@ class WavefrontReconstruction:
             results = asyncio.run(self.run_tasks(tasks))
         else:
             for indices in indices_list:
-                gradx[indices[0], indices[1]], grady[indices[0], indices[1]] = self._find_dots_correlate(indices)
+                gradx[indices[0], indices[1]], grady[indices[0], indices[1]], ind = self._find_dots_correlate(indices)
         return gradx, grady
 
     def _find_dots_correlate(self, indices):
-        """finds new spots using each section correlated with the center"""
         ix = indices[1]
         iy = indices[0]
         hsp = self.hsp
