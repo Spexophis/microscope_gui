@@ -1,6 +1,7 @@
 import asyncio
 from concurrent.futures import ProcessPoolExecutor
-
+import os
+import tifffile as tf
 import matplotlib.pyplot as plt
 import numpy as np
 from findiff import FinDiff
@@ -22,15 +23,15 @@ pi = np.pi
 class WavefrontReconstruction:
 
     def __init__(self):
-        self.radius = 8  # 1/2 the total number of lenslets in linear direction
-        self.diameter = 16  # total number of lenslets in linear direction
-        self.x_center_base = 256
-        self.y_center_base = 256
-        self.x_center_offset = 256
-        self.y_center_offset = 256
-        self.px_spacing = 16  # spacing between each lenslet
-        self.hsp = 8  # size of subimage is 2*hsp
-        self.calfactor = (.0046 / 5.2) * (150)  # pixel size * focalLength * pitch
+        self.radius = 9  # 1/2 the total number of lenslets in linear direction
+        self.diameter = 18  # total number of lenslets in linear direction
+        self.x_center_base = 1012
+        self.y_center_base = 1079
+        self.x_center_offset = 1012
+        self.y_center_offset = 1012
+        self.px_spacing = 60  # spacing between each lenslet
+        self.hsp = 32  # size of subimage is 2*hsp
+        self.calfactor = 0.5 * (.0065 / 5.2) * (150)  # pixel size * focalLength * pitch
         # set up seccorr center
         section = np.ones((2 * self.hsp, 2 * self.hsp))
         sectioncorr = corr(1.0 * section, 1.0 * section[::-1, ::-1], mode='full')
@@ -69,17 +70,22 @@ class WavefrontReconstruction:
         self.x_center_offset = self.x_center_offset - self.hsp + round(ind_off[1])
         self.y_center_offset = self.y_center_offset - self.hsp + round(ind_off[0])
 
-    def _generate_influence_function(self, data, method='zonal'):
-        n, x, y = data.shape
-        if n % 2 != 0:
-            raise "The image number has to be even"
-        self._n_actuators = int(n / 2)
+    def _generate_influence_function(self, data_folder, method='zonal'):
+        self._n_actuators = 97
         self._n_lenslets = self.diameter * self.diameter
-        self._influence_function = np.zeros((2 * self._n_lenslets, self._n_actuators))
-        for i in range(int(n / 2)):
-            self._get_gradient_xy(data[i], data[i + 1])
-            self._influence_function[:self._n_lenslets, i] = self.gradx.flatten()
-            self._influence_function[self._n_lenslets:, i] = self.grady.flatten()
+        influence_function = np.zeros((2 * self._n_lenslets, self._n_actuators))
+        for filename in os.listdir(data_folder):
+            if filename.endswith(".tif"):
+                ind = int(filename.split("_")[3])
+                data_stack = tf.imread(os.path.join(data_folder, filename))
+                n, x, y = data_stack.shape
+                if n != 4:
+                    raise "The image number has to be 4"
+                gdxp, gdyp = self._get_gradient_xy(data_stack[0], data_stack[1], r=True)
+                gdxn, gdyn = self._get_gradient_xy(data_stack[2], data_stack[3], r=True)
+                influence_function[:self._n_lenslets, ind] = (gdxp - gdxn).flatten()
+                influence_function[self._n_lenslets:, ind] = (gdxp - gdxn).flatten()
+        return influence_function
 
     def _get_control_matrix(self, method='zonal'):
         u, s, vh = np.linalg.svd(self._influence_function, full_matrices=True)
@@ -95,7 +101,7 @@ class WavefrontReconstruction:
         _c = self._dm_cmd[-1] + self._correction
         self._dm_cmd.append(_c)
 
-    def _get_gradient_xy(self, baseimg, offsetimg):
+    def _get_gradient_xy(self, baseimg, offsetimg, r=False):
         """ Determines Gradients by Correlating each section with its base reference section"""
         self.nx = self.diameter
         self.ny = self.diameter
@@ -115,6 +121,8 @@ class WavefrontReconstruction:
         asyncio.run(self.run_tasks(tasks))
         self.gradxy[0] = self.gradx
         self.gradxy[1] = self.grady
+        if r:
+            return self.gradx, self.grady
 
     def _find_dots_correlate(self, indices):
         """finds new spots using each section correlated with the center"""
