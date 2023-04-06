@@ -4,6 +4,7 @@ A ctypes based interface to Hamamatsu sCMOS Flash 4.0
 
 import ctypes
 import ctypes.util
+
 import numpy
 
 dcam = ctypes.windll.dcamapi
@@ -805,8 +806,8 @@ class HamamatsuCameraMR(HamamatsuCamera):
         self.old_frame_bytes = -1
 
         # Configure all cameras to allow input triggers (for multi-camera control)
-        self.setPropertyValue("output_trigger_kind[0]", "EXPOSURE")
-        self.setPropertyValue("output_trigger_polarity[0]", "POSITIVE")
+        # self.setPropertyValue("output_trigger_kind[0]", "EXPOSURE")
+        # self.setPropertyValue("output_trigger_polarity[0]", "POSITIVE")
         self.setACQMode(self.acquisition_mode)
 
         self.setPropertyValue("defect_correct_mode", 1)
@@ -922,114 +923,3 @@ class HamamatsuCameraMR(HamamatsuCamera):
 
         print("max camera backlog was:", self.max_backlog)
         self.max_backlog = 0
-
-# class hamamatsu_orcaflash():
-
-#     def __init__(self):
-#         # Initialization
-#         self.paraminit = DCAMAPI_INIT(0, 0, 0, 0, None, None) 
-#         self.paraminit.size = ctypes.sizeof(self.paraminit)
-#         error_code = dcam.dcamapi_init(ctypes.byref(self.paraminit))
-#         if (error_code != DCAMERR_NOERROR):
-#             raise DCAMException("DCAM initialization failed with error code " + str(error_code))
-#         n_cameras = self.paraminit.iDeviceCount
-#         print("found:", n_cameras, "cameras")
-#         if (n_cameras > 0):
-#             self.hcam = HamamatsuCamera(camera_id = 0)
-#             self.hcam.setPropertyValue("defect_correct_mode", 1)
-#             print("camera 0 model:", self.hcam.getModelInfo(0))
-#             self.set_camera_properties()
-
-
-#     def close(self):
-#         self.hcam.shutdown()
-
-#     # Setting & getting some parameters.
-#     def set_camera_properties(self):
-#         self.hcam.setPropertyValue("exposure_time", 0.00104)
-#         self.hcam.setPropertyValue("binning", "1x1")
-#         self.hcam.setPropertyValue("readout_speed", 2)
-#         # self.hcam.setPropertyValue("subarray_hsize", 2048)
-#         # self.hcam.setPropertyValue("subarray_vsize", 2048)
-#         # self.hcam.setPropertyValue("subarray_hpos", 512)
-#         # self.hcam.setPropertyValue("subarray_vpos", 512)
-#         # self.hcam.setPropertyValue("subarray_hsize", 1024)
-#         # self.hcam.setPropertyValue("subarray_vsize", 1024)
-
-#     def list_camera_properties(self):
-#         self.props = self.hcam.getProperties()
-#         for i, id_name in enumerate(sorted(self.props.keys())):
-#             [p_value, p_type] = self.hcam.getPropertyValue(id_name)
-#             p_rw = self.hcam.getPropertyRW(id_name)
-#             read_write = ""
-#             if (p_rw[0]):
-#                 read_write += "read"
-#             if (p_rw[1]):
-#                 read_write += ", write"
-#             print("  ", i, ")", id_name, " = ", p_value, " type is:", p_type, ",", read_write)
-#             text_values = self.hcam.getPropertyText(id_name)
-#             if (len(text_values) > 0):
-#                 print("          option / value")
-#                 for key in sorted(text_values, key = text_values.get):
-#                     print("         ", key, "/", text_values[key])
-
-
-#         # params = ["internal_frame_rate",
-#         #           "timing_readout_time",
-#         #           "exposure_time"]
-#         #                      "image_height",
-#         #                      "image_width",
-#         #                      "image_framebytes",
-#         #                      "buffer_framebytes",
-#         #                      "buffer_rowbytes",
-#         #                      "buffer_top_offset_bytes",
-#         #                      "subarray_hsize",
-#         #                      "subarray_vsize",
-#         #                      "binning"]
-#         # for param in params:
-#         #     self.hcam.getPropertyValue(param)[0]
-
-
-#     def start_acquisition(self):
-#         self.hcam.startAcquisition()
-
-#     def stop_acquisition(self):
-#         self.hcam.stopAcquisition()
-
-#     # def 
-#     #     hcam.setACQMode("run_till_abort")
-#     #     hcam.startAcquisition()
-#     #     time.sleep(random.random())
-#     #     contFrames = hcam.getFrames()
-#     #     hcam.stopAcquisition()
-#     #     cnt = 0
-#     #     for i in range(300):
-#     #         [frames, dims] = hcam.getFrames()
-#     #         for aframe in frames:
-#     #             print(cnt, aframe[0:5])
-#     #             cnt += 1
-
-#     #     print("Frames acquired: " + str(cnt))    
-
-
-#     # # 'fixed_length' acquisition.
-#     # def stack_acquisition(self, num):
-#     #     self.hcam.setACQMode("fixed_length", number_frames = num)
-#     #     self.hcam.startAcquisition()
-#     #     cnt = 0
-#     #     iterations = 0
-#     #     while cnt < 11 and iterations < 20:
-#     #         [frames, dims] = self.hcam.getFrames()
-#     #         waitTime = random.random()*0.03
-#     #         time.sleep(waitTime)
-#     #         iterations += 1
-#     #         print('Frames loaded: ' + str(len(frames)))
-#     #         print('Wait time: ' + str(waitTime))
-#     #         for aframe in frames:
-#     #             print(cnt, aframe[0:5])
-#     #             cnt += 1
-#     #     if cnt < 10:
-#     #         print('##############Error: Not all frames found#########')
-#     #         input("Press enter to continue")
-#     #     print("Frames acquired: " + str(cnt))        
-#     #     hcam.stopAcquisition()

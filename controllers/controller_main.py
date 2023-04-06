@@ -229,13 +229,13 @@ class MainController:
     def save_data(self):
         t = time.strftime("%Y%m%d_%H%M%S_")
         slideName = self.con_controller.get_file_name()
-        tf.write(self.path + '/' + t + slideName + '.tif', self.om.cam.data)
+        tf.imwrite(self.path + '/' + t + slideName + '.tif', self.om.cam.data)
         self.stackparams['Slide Name'] = slideName
         fnt = self.path + '/' + t + slideName + '_info.txt'
-        self._SaveText(fnt)
+        self._save_text(fnt)
         print('Data saved')
 
-    def _SaveText(self, fn=None):
+    def _save_text(self, fn=None):
         if fn == None:
             return False
         s = []
@@ -435,7 +435,7 @@ class MainController:
     #     self.thread_record.wait()
     #     t = time.strftime("%Y%m%d_%H%M%S_")
     #     slideName = self.con_controller.get_file_name()
-    #     # tf.imsave(self.path + '/' + t + slideName + '.tif', self.imgstack)
+    #     # tf.imwrite(self.path + '/' + t + slideName + '.tif', self.imgstack)
     #     fid = open(self.path + '/' + t + slideName + '_recording_counts.txt','w')
     #     fid.writelines(self.imgcount)
     #     fid.close()
@@ -456,9 +456,9 @@ class MainController:
         self.p.bsrecon.reconstruct_all_beads(self.om.cam.data, stepsize)
         t = time.strftime("%Y%m%d_%H%M%S_")
         fn = self.con_controller.get_file_name()
-        tf.imsave(self.path + '/' + t + fn + '.tif', self.om.cam.data)
-        tf.imsave(self.path + '/' + t + fn + '_recon_stack.tif', self.p.bsrecon.result)
-        tf.imsave(self.path + '/' + t + fn + '_final_image.tif', self.p.bsrecon.final_image)
+        tf.imwrite(self.path + '/' + t + fn + '.tif', self.om.cam.data)
+        tf.imwrite(self.path + '/' + t + fn + '_recon_stack.tif', self.p.bsrecon.result)
+        tf.imwrite(self.path + '/' + t + fn + '_final_image.tif', self.p.bsrecon.final_image)
         self.view_controller.plot_main(self.p.bsrecon.final_image)
         print('Data saved')
 
@@ -532,8 +532,7 @@ class MainController:
             os.mkdir(newfold)
         except:
             print('Directory already exists')
-        results = []
-        results.append(('Mode', 'Amp', 'Metric'))
+        results = [('Mode', 'Amp', 'Metric')]
         dt = []
         amprange = []
         self.start_ao_iteration()
@@ -544,7 +543,7 @@ class MainController:
         time.sleep(0.04)
         self.om.cam.get_acquired_image()
         fn = os.path.join(newfold, 'original.tif')
-        tf.imsave(fn, self.om.cam.data)
+        tf.imwrite(fn, self.om.cam.data)
         self.om.daq.Trig_stop()
         for mode in range(mode_start, mode_stop):
             for stnm in range(amp_step_number):
@@ -559,7 +558,7 @@ class MainController:
                 self.om.cam.get_acquired_image()
                 fn = "zm%0.2d_amp%.4f" % (mode, amp)
                 fn1 = os.path.join(newfold, fn + '.tif')
-                tf.imsave(fn1, self.om.cam.data)
+                tf.imwrite(fn1, self.om.cam.data)
                 if mindex == 0:
                     dt.append(self.p.imgprocess.snr(self.om.cam.data, hpr))
                 if mindex == 1:
@@ -570,7 +569,7 @@ class MainController:
                 print('----------------', stnm, amp, dt[stnm])
                 self.om.daq.Trig_stop()
             pmax = self.p.imgprocess.peak(amprange, dt)
-            if (pmax != 0.0):
+            if pmax != 0.0:
                 self.p.aotool.zmv[mode] += pmax
                 print('----------------setting mode %d at value of %.4f----' % (mode, pmax))
                 values = self.p.aotool.get_zernike(mode, pmax)
@@ -586,83 +585,52 @@ class MainController:
         time.sleep(0.04)
         self.om.cam.get_acquired_image()
         fn = os.path.join(newfold, 'final.tif')
-        tf.imsave(fn, self.om.cam.data)
+        tf.imwrite(fn, self.om.cam.data)
         self.om.dm.writeDMfile(newfold, t, self.p.aotool.cmd_best, self.p.aotool.mod, self.p.aotool.zmv, results)
         self.stop_ao_iteration()
 
-    def influence_function(self):
-        t = time.strftime("%Y%m%d_%H%M%S")
-        newfold = self.path + '/' + t + '_influence_function' + '/'
-        try:
-            os.mkdir(newfold)
-        except:
-            print('Directory already exists')
-        n, amp = self.ao_controller.getacturator()
+    def set_shcam(self):
         expo = self.ao_controller.getexposuretime()
         # self.om.tiscam.setPropertyValue('exposure', expo)
-        # self.om.tiscam.prepare_live()
-        self.om.thocam.set_exposure(expo)
-        shimg = []
-        wf = []
-        # self.om.tiscam.start_live()
-        for i in range(self.om.dm.nbAct):
-            print(i)
-            values = [0.] * self.om.dm.nbAct
-            self.om.dm.SetDM(values)
-            time.sleep(0.05)
-            # self.p.shwfsr.base = self.om.tiscam.grabFrame()
-            self.p.shwfsr.base = self.om.thocam.snap_image()
-            values[i] = amp
-            self.om.dm.SetDM(values)
-            time.sleep(0.05)
-            # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
-            self.p.shwfsr.offset = self.om.thocam.snap_image()
-            self.p.shwfsr.GetAberration2img(self.p.shwfsr.base, self.p.shwfsr.offset)
-            shimg.append(self.p.shwfsr.im[0])
-            shimg.append(self.p.shwfsr.im[1])
-            wf.append(self.p.shwfsr.phicorr)
-        tf.imsave(newfold + t + '_shimg.tif', shimg)
-        tf.imsave(newfold + t + '_influence_function.tif', wf)
-        # self.om.tiscam.stop_live()
-
-    def initiate_wfs(self):
-        expo = self.ao_controller.getexposuretime()
-        # self.om.tiscam.setPropertyValue('exposure', expo)
-        # self.om.tiscam.prepare_live()
-        # self.om.tiscam.start_live()
         # self.om.thocam.set_exposure(expo)
+        self.om.hacam.setPropertyValue('', )
         self.om.hacam.setPropertyValue('exposure_time', expo)
-        # self.p.shwfsr.base = self.om.tiscam.grabFrame()
-        # self.p.shwfsr.base = self.om.thocam.snap_image()
-        self.om.hacam.startAcquisition()
-        time.sleep(expo * 16)
-        self.p.shwfsr.base = self.om.hacam.getFrames(verbose=True, avg=True)
-        self.view_controller.plot_sh(self.p.shwfsr.base)
-        print('wfs base set')
-        # self.om.tiscam.stop_live()
-        self.om.hacam.stopAcquisition()
-        self.set_wfs()
 
     def set_wfs(self):
         parameters = self.ao_controller.getparameters()
         self.p.shwfsr.updateparameters(parameters)
         print('SHWFS parameter updated')
 
+    def initiate_wfs(self):
+        self.set_shcam()
+        self.set_wfs()
+        # self.om.tiscam.prepare_live()
+        # self.om.tiscam.start_live()
+        # self.p.shwfsr.base = self.om.tiscam.grabFrame()
+        # self.p.shwfsr.base = self.om.thocam.snap_image()
+        self.om.hacam.startAcquisition()
+        time.sleep(0.2)
+        self.p.shwfsr.base = self.om.hacam.getFrames(verbose=True, avg=True)
+        self.view_controller.plot_sh(self.p.shwfsr.base)
+        print('wfs base set')
+        # self.om.tiscam.stop_live()
+        self.om.hacam.stopAcquisition()
+
     def save_wf(self):
         t = time.strftime("%Y%m%d_%H%M%S_")
         slideName = self.ao_controller.get_file_name()
         try:
-            # tf.imsave(self.path + '/' + t + slideName + '_shimg_raw.tif', self.om.tiscam.grabFrame())
-            # tf.imsave(self.path + '/' + t + slideName + '_shimg_raw.tif', self.om.thocam.img)
-            tf.imsave(self.path + '/' + t + slideName + '_shimg_base_raw.tif', self.p.shwfsr.base)
+            # tf.imwrite(self.path + '/' + t + slideName + '_shimg_raw.tif', self.om.tiscam.grabFrame())
+            # tf.imwrite(self.path + '/' + t + slideName + '_shimg_raw.tif', self.om.thocam.img)
+            tf.imwrite(self.path + '/' + t + slideName + '_shimg_base_raw.tif', self.p.shwfsr.base)
         except ValueError:
             print("NO SH Image")
         try:
-            tf.imsave(self.path + '/' + t + slideName + '_shimg_processed.tif', self.p.shwfsr.im)
+            tf.imwrite(self.path + '/' + t + slideName + '_shimg_processed.tif', self.p.shwfsr.im)
         except ValueError:
             print("NO SH Image")
         try:
-            tf.imsave(self.path + '/' + t + slideName + '_reconstruted_wf.tif', self.p.shwfsr.phicorr)
+            tf.imwrite(self.path + '/' + t + slideName + '_reconstruted_wf.tif', self.p.shwfsr.phicorr)
         except ValueError:
             print("NO WF Image")
         print('Data saved')
@@ -698,6 +666,35 @@ class MainController:
     # def stop_wfr(self):
     #     self.thread_wfr.quit()
     #     self.thread_wfr.wait()
+
+    def influence_function(self):
+        t = time.strftime("%Y%m%d_%H%M%S")
+        newfold = self.path + '/' + t + '_influence_function' + '/'
+        try:
+            os.mkdir(newfold)
+        except:
+            print('Directory already exists')
+        n, amp = self.ao_controller.getacturator()
+        self.set_shcam()
+        shimg = []
+        # wf = []
+        # self.om.tiscam.start_live()
+        for i in range(self.om.dm.nbAct):
+            print(i)
+            values = [0.] * self.om.dm.nbAct
+            self.om.dm.SetDM(values)
+            time.sleep(0.05)
+            # self.p.shwfsr.base = self.om.tiscam.grabFrame()
+            # self.p.shwfsr.base = self.om.thocam.snap_image()
+            shimg.append(self.om.hacam.getLastFrame())
+            values[i] = amp
+            self.om.dm.SetDM(values)
+            time.sleep(0.05)
+            # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
+            # self.p.shwfsr.offset = self.om.thocam.snap_image()
+            shimg.append(self.om.hacam.getLastFrame())
+        tf.imwrite(newfold + t + '_shimg.tif', shimg)
+        # self.om.tiscam.stop_live()
 
 
 class VideoWorker(QtCore.QObject):
