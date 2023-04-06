@@ -37,10 +37,6 @@ class WavefrontReconstruction:
         sectioncorr = corr(1.0 * section, 1.0 * section[::-1, ::-1], mode='full')
         self.CorrCenter = np.unravel_index(sectioncorr.argmax(), sectioncorr.shape)
 
-        self.base = np.zeros((512, 512))
-        self.offset = np.zeros((512, 512))
-        self.wf = np.zeros((self.diameter, self.diameter))
-
         self.zernike = self._zernike_polynomials(nz=58, size=[self.diameter, self.diameter])
         self._correction = []
         self._dm_cmd = []
@@ -53,7 +49,6 @@ class WavefrontReconstruction:
         self.diameter = parameters[4]
         self.px_spacing = parameters[6]
         self.hsp = parameters[5]
-        self.wf = np.zeros((self.diameter, self.diameter))
         section = np.ones((2 * self.hsp, 2 * self.hsp))
         sectioncorr = corr(1.0 * section, 1.0 * section[::-1, ::-1], mode='full')
         self.CorrCenter = np.unravel_index(sectioncorr.argmax(), sectioncorr.shape)
@@ -81,8 +76,8 @@ class WavefrontReconstruction:
                 n, x, y = data_stack.shape
                 if n != 4:
                     raise "The image number has to be 4"
-                gdxp, gdyp = self._get_gradient_xy(data_stack[0], data_stack[1], r=True)
-                gdxn, gdyn = self._get_gradient_xy(data_stack[2], data_stack[3], r=True)
+                gdxp, gdyp = self._get_gradient_xy(data_stack[0], data_stack[1])
+                gdxn, gdyn = self._get_gradient_xy(data_stack[2], data_stack[3])
                 influence_function[:self._n_lenslets, ind] = (gdxp - gdxn).flatten()
                 influence_function[self._n_lenslets:, ind] = (gdxp - gdxn).flatten()
         return influence_function
@@ -101,28 +96,23 @@ class WavefrontReconstruction:
         _c = self._dm_cmd[-1] + self._correction
         self._dm_cmd.append(_c)
 
-    def _get_gradient_xy(self, baseimg, offsetimg, r=False):
+    def _get_gradient_xy(self, baseimg, offsetimg, cocurrent=False):
         """ Determines Gradients by Correlating each section with its base reference section"""
         self.nx = self.diameter
         self.ny = self.diameter
         self.im = np.zeros((2, 2 * self.hsp * self.diameter, 2 * self.hsp * self.diameter))
-        self.gradxy = np.zeros((2, self.diameter, self.diameter))
-        self.gradx = np.zeros((self.ny, self.nx))
-        self.grady = np.zeros((self.ny, self.nx))
-        # self.findcenter(baseimg, offsetimg)
-        # baseimg = baseimg / baseimg.max()
-        # offsetimg = offsetimg / offsetimg.max()
+        gradx = np.zeros((self.ny, self.nx))
+        grady = np.zeros((self.ny, self.nx))
         self.baseimg = baseimg
         self.offsetimg = offsetimg
-        self.gradx = np.zeros((self.ny, self.nx))
-        self.grady = np.zeros((self.ny, self.nx))
         indices_list = [(ii, jj) for ii in range(self.nx) for jj in range(self.ny)]
-        tasks = [self.run_in_process_pool(self._find_dots_correlate, i) for i in indices_list]
-        asyncio.run(self.run_tasks(tasks))
-        self.gradxy[0] = self.gradx
-        self.gradxy[1] = self.grady
-        if r:
-            return self.gradx, self.grady
+        if cocurrent:
+            tasks = [self.run_in_process_pool(self._find_dots_correlate, i) for i in indices_list]
+            results = asyncio.run(self.run_tasks(tasks))
+        else:
+            for indices in indices_list:
+                gradx[indices[0], indices[1]], grady[indices[0], indices[1]] = self._find_dots_correlate(indices)
+        return gradx, grady
 
     def _find_dots_correlate(self, indices):
         """finds new spots using each section correlated with the center"""
@@ -140,20 +130,11 @@ class WavefrontReconstruction:
         horiz_offset = int(left_offset + ix * self.px_spacing)
         sec = self.offsetimg[(vert_offset - hsp):(vert_offset + hsp), (horiz_offset - hsp):(horiz_offset + hsp)]
         secbase = self.baseimg[(vert_base - hsp):(vert_base + hsp), (horiz_base - hsp):(horiz_base + hsp)]
-        # indsec = N.where(sec == np.amax(sec))
-        # indsecbase = N.where(sec == np.amax(secbase))
         sec = self._sub_bg(sec)
         secbase = self._sub_bg(secbase)
         seccorr = corr(1.0 * secbase, 1.0 * sec[::-1, ::-1], mode='full')
-        # secbasecorr = corr(1.0*secbase, 1.0*secbase[::-1,::-1], mode='full')
         py, px = self._parabolicfit(seccorr)
-        # self.CorrCenter = np.unravel_index(secbasecorr.argmax(), secbasecorr.shape)
-        self.gradx[iy, ix] = self.CorrCenter[1] - px
-        self.grady[iy, ix] = self.CorrCenter[0] - py
-        self.im[0, iy * 2 * self.hsp: iy * 2 * self.hsp + 2 * self.hsp,
-        ix * 2 * self.hsp: ix * 2 * self.hsp + 2 * self.hsp] = secbase
-        self.im[1, iy * 2 * self.hsp: iy * 2 * self.hsp + 2 * self.hsp,
-        ix * 2 * self.hsp: ix * 2 * self.hsp + 2 * self.hsp] = sec
+        return self.CorrCenter[1] - px, self.CorrCenter[0] - py, indices
 
     def _sub_bg(self, img):
         thresh = threshold_otsu(img)
