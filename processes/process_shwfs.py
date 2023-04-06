@@ -271,10 +271,12 @@ class WavefrontReconstruction:
             Z[nx * ny:, ii] = dz[2 * ii + 1].flatten()
         return Z
 
-    def _zernike_coefficients(self, slopes, Z):
-        u, s, vh = np.linalg.svd(Z, full_matrices=True)
-        Zplus = np.dot(vh.T, np.dot(np.diag(np.diag(1 / s)), u.T))
-        return np.dot(Zplus, slopes)
+    def _zernike_coefficients(self, gradxy, gradz):
+        U, s, Vt = np.linalg.svd(gradz)
+        s_inv = np.zeros_like(gradz.T, dtype=float)
+        s_inv[:min(gradz.shape), :min(gradz.shape)] = np.diag(1 / s[:min(gradz.shape)])
+        zplus = Vt.T @ s_inv @ U.T
+        return np.multiply(zplus, gradxy)
 
     async def run_in_process_pool(self, func, *args):
         loop = asyncio.get_event_loop()
