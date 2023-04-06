@@ -16,7 +16,7 @@ ifft2 = np.fft.ifft2
 fftshift = np.fft.fftshift
 pi = np.pi
 
-control_matrix = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_20230406_1752.tif')
+control_matrix = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_20230406_1101.tif')
 # flat_start
 
 
@@ -28,10 +28,11 @@ class WavefrontReconstruction:
         self.x_center_base = 1012
         self.y_center_base = 1079
         self.x_center_offset = 1012
-        self.y_center_offset = 1012
+        self.y_center_offset = 1079
         self.px_spacing = 60  # spacing between each lenslet
         self.hsp = 32  # size of subimage is 2*hsp
-        self.calfactor = 0.5 * (.0065 / 5.2) * (150)  # pixel size * focalLength * pitch
+        self.calfactor = (.0065 / 5.2) * 150  # pixel size * focalLength * pitch
+        self.mag = 2
         # set up seccorr center
         section = np.ones((2 * self.hsp, 2 * self.hsp))
         sectioncorr = corr(1.0 * section, 1.0 * section[::-1, ::-1], mode='full')
@@ -82,8 +83,8 @@ class WavefrontReconstruction:
                     raise "The image number has to be 4"
                 gdxp, gdyp = self._get_gradient_xy(data_stack[0], data_stack[1])
                 gdxn, gdyn = self._get_gradient_xy(data_stack[2], data_stack[3])
-                _influence_matrix[:self._n_lenslets, ind] = (gdxp * _msk - gdxn * _msk).flatten()
-                _influence_matrix[self._n_lenslets:, ind] = (gdxp * _msk - gdxn * _msk).flatten()
+                _influence_matrix[:self._n_lenslets, ind] = ((gdxp * _msk - gdxn * _msk) / 0.2).flatten()
+                _influence_matrix[self._n_lenslets:, ind] = ((gdxp * _msk - gdxn * _msk) / 0.2).flatten()
         return _influence_matrix
 
     def _get_control_matrix(self, influence_matrix, method='zonal'):
@@ -119,7 +120,7 @@ class WavefrontReconstruction:
         else:
             for indices in indices_list:
                 gradx[indices[0], indices[1]], grady[indices[0], indices[1]], ind = self._find_dots_correlate(indices)
-        return gradx, grady
+        return gradx / self.mag, grady / self.mag
 
     def _find_dots_correlate(self, indices):
         ix = indices[1]

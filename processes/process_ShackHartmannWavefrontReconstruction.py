@@ -20,14 +20,15 @@ class Wavefront_Reconstruction():
     def __init__(self):
         # set up inital parameters to determine size of the scene composition
         #        self.radius = 8 # 1/2 the total number of lenslets in linear direction
-        self.diameter = 12
-        self.x_center_base = 256
-        self.y_center_base = 256
-        self.x_center_offset = 256
-        self.y_center_offset = 256
-        self.px_spacing = 16  # spacing between each lenslet
-        self.hsp = 8  # size of subimage is 2*hsp
-        self.calfactor = (.00345 / 5.2) * (150)  # pixel size / focalLength * pitch
+        self.radius = 9  # 1/2 the total number of lenslets in linear direction
+        self.diameter = 18  # total number of lenslets in linear direction
+        self.x_center_base = 1012
+        self.y_center_base = 1079
+        self.x_center_offset = 1012
+        self.y_center_offset = 1079
+        self.px_spacing = 60  # spacing between each lenslet
+        self.hsp = 32  # size of subimage is 2*hsp
+        self.calfactor = (.0065 / 5.2) * (150)  # pixel size / focalLength * pitch
         self.m = 2
         # set up seccorr center
         section = N.ones((2 * self.hsp, 2 * self.hsp))
