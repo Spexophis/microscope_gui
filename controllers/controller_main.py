@@ -2,6 +2,7 @@ import os
 import time
 from getpass import getuser
 
+import numpy as np
 import tifffile as tf
 from PyQt5 import QtCore
 
@@ -593,7 +594,7 @@ class MainController:
         expo = self.ao_controller.getexposuretime()
         # self.om.tiscam.setPropertyValue('exposure', expo)
         # self.om.thocam.set_exposure(expo)
-        self.om.hacam.setPropertyValue('', )
+        # self.om.hacam.setPropertyValue('', )
         self.om.hacam.setPropertyValue('exposure_time', expo)
 
     def set_wfs(self):
@@ -676,10 +677,10 @@ class MainController:
             print('Directory already exists')
         n, amp = self.ao_controller.getacturator()
         self.set_shcam()
-        shimg = []
-        # wf = []
         # self.om.tiscam.start_live()
+        self.om.hacam.startAcquisition()
         for i in range(self.om.dm.nbAct):
+            shimg = []
             print(i)
             values = [0.] * self.om.dm.nbAct
             self.om.dm.SetDM(values)
@@ -693,7 +694,20 @@ class MainController:
             # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
             # self.p.shwfsr.offset = self.om.thocam.snap_image()
             shimg.append(self.om.hacam.getLastFrame())
-        tf.imwrite(newfold + t + '_shimg.tif', shimg)
+            values = [0.] * self.om.dm.nbAct
+            self.om.dm.SetDM(values)
+            time.sleep(0.05)
+            # self.p.shwfsr.base = self.om.tiscam.grabFrame()
+            # self.p.shwfsr.base = self.om.thocam.snap_image()
+            shimg.append(self.om.hacam.getLastFrame())
+            values[i] = - amp
+            self.om.dm.SetDM(values)
+            time.sleep(0.05)
+            # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
+            # self.p.shwfsr.offset = self.om.thocam.snap_image()
+            shimg.append(self.om.hacam.getLastFrame())
+            tf.imwrite(newfold + t + '_actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
+        self.om.hacam.stopAcquisition()
         # self.om.tiscam.stop_live()
 
 
