@@ -5,7 +5,6 @@ from concurrent.futures import ProcessPoolExecutor
 import matplotlib.pyplot as plt
 import numpy as np
 import tifffile as tf
-from findiff import FinDiff
 from scipy.ndimage import center_of_mass as com
 from scipy.signal import fftconvolve as corr
 from scipy.special import factorial
@@ -16,7 +15,9 @@ ifft2 = np.fft.ifft2
 fftshift = np.fft.fftshift
 pi = np.pi
 
-control_matrix = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_20230406_1101.tif')
+control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230407_2027.tif')
+control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230407_2027.tif')
+
 # flat_start
 
 
@@ -32,7 +33,6 @@ class WavefrontReconstruction:
         self.px_spacing = 60  # spacing between each lenslet
         self.hsp = 32  # size of subimage is 2*hsp
         self.calfactor = (.0065 / 5.2) * 150  # pixel size * focalLength * pitch
-        self.mag = 2
         # set up seccorr center
         section = np.ones((2 * self.hsp, 2 * self.hsp))
         sectioncorr = corr(1.0 * section, 1.0 * section[::-1, ::-1], mode='full')
@@ -40,7 +40,10 @@ class WavefrontReconstruction:
         self.base = np.array([])
         self.offset = np.array([])
         self.wf = np.array([])
-        self.zernike = self._zernike_polynomials(nz=58, size=[self.diameter, self.diameter])
+        self.amp = 0.1 * 2
+        self._n_zernikes = 58
+        self.zernike = self._zernike_polynomials(nz=self._n_zernikes, size=[self.diameter, self.diameter])
+        self.zslopes = self._zernike_slopes(nz=self._n_zernikes, size=[self.diameter, self.diameter])
         self._correction = []
         self._dm_cmd = []
 
@@ -71,8 +74,13 @@ class WavefrontReconstruction:
     def _generate_influence_matrix(self, data_folder, method='zonal'):
         self._n_actuators = 97
         self._n_lenslets = self.diameter * self.diameter
-        _influence_matrix = np.zeros((2 * self._n_lenslets, self._n_actuators))
-        _msk = self._disc(1, (self.diameter, self.diameter))
+        if method == 'zonal':
+            _influence_matrix = np.zeros((2 * self._n_lenslets, self._n_actuators))
+        elif method == 'modal':
+            _influence_matrix = np.zeros((self._n_zernikes, self._n_actuators))
+        else:
+            raise ValueError("Invalid method")
+        _msk = self._disc(1.05, (self.diameter, self.diameter))
         for filename in os.listdir(data_folder):
             if filename.endswith(".tif"):
                 ind = int(filename.split("_")[3])
@@ -83,36 +91,43 @@ class WavefrontReconstruction:
                     raise "The image number has to be 4"
                 gdxp, gdyp = self._get_gradient_xy(data_stack[0], data_stack[1])
                 gdxn, gdyn = self._get_gradient_xy(data_stack[2], data_stack[3])
-                _influence_matrix[:self._n_lenslets, ind] = ((gdxp * _msk - gdxn * _msk) / 0.2).flatten()
-                _influence_matrix[self._n_lenslets:, ind] = ((gdxp * _msk - gdxn * _msk) / 0.2).flatten()
+                if method == 'zonal':
+                    _influence_matrix[:self._n_lenslets, ind] = ((gdxp * _msk - gdxn * _msk) / self.amp).flatten()
+                    _influence_matrix[self._n_lenslets:, ind] = ((gdyp * _msk - gdyn * _msk) / self.amp).flatten()
+                if method == 'modal':
+                    a1 = self._zernike_coefficients(np.concatenate((gdxp.flatten(), gdyp.flatten())), self.zslopes)
+                    a2 = self._zernike_coefficients(np.concatenate((gdxn.flatten(), gdyn.flatten())), self.zslopes)
+                    _influence_matrix[:, ind] = ((a1 - a2) / self.amp).flatten()
         return _influence_matrix
 
-    def _get_control_matrix(self, influence_matrix, method='zonal'):
-        A = influence_matrix
-        U, s, Vt = np.linalg.svd(A)
-        s_inv = np.zeros_like(A.T, dtype=float)
-        s_inv[:min(A.shape), :min(A.shape)] = np.diag(1 / s[:min(A.shape)])
-        return Vt.T @ s_inv @ U.T
+    def _get_control_matrix(self, influence_matrix):
+        return self._pseudo_inverse(influence_matrix)
 
     def _get_correction(self, measurement, method='zonal'):
         gradx, grady = self._get_gradient_xy(self.base, measurement)
         _measurement = np.concatenate((gradx.flatten(), grady.flatten()))
-        self._correction.append(np.dot(control_matrix, _measurement))
+        if method == 'zonal':
+            self._correction.append(np.matmul(control_matrix_zonal, _measurement))
+        elif method == 'modal':
+            a = self._zernike_coefficients(_measurement, self.zslopes)
+            self._correction.append(np.matmul(control_matrix_modal, a))
+        else:
+            raise ValueError("Invalid method")
         return self._correction[-1]
 
     def _correct_cmd(self):
         _c = self._dm_cmd[-1] + self._correction
         self._dm_cmd.append(_c)
 
-    def _get_gradient_xy(self, baseimg, offsetimg, cocurrent=False):
+    def _get_gradient_xy(self, base, offset, cocurrent=False):
         """ Determines Gradients by Correlating each section with its base reference section"""
         self.nx = self.diameter
         self.ny = self.diameter
         self.im = np.zeros((2, 2 * self.hsp * self.diameter, 2 * self.hsp * self.diameter))
         gradx = np.zeros((self.ny, self.nx))
         grady = np.zeros((self.ny, self.nx))
-        self.baseimg = baseimg
-        self.offsetimg = offsetimg
+        self.baseimg = base
+        self.offsetimg = offset
         indices_list = [(ii, jj) for ii in range(self.nx) for jj in range(self.ny)]
         if cocurrent:
             tasks = [self.run_in_process_pool(self._find_dots_correlate, i) for i in indices_list]
@@ -120,7 +135,7 @@ class WavefrontReconstruction:
         else:
             for indices in indices_list:
                 gradx[indices[0], indices[1]], grady[indices[0], indices[1]], ind = self._find_dots_correlate(indices)
-        return gradx / self.mag, grady / self.mag
+        return gradx, grady
 
     def _find_dots_correlate(self, indices):
         ix = indices[1]
@@ -176,7 +191,7 @@ class WavefrontReconstruction:
     def _cartesian_grid(self, nx, ny):
         x = np.linspace(-1, 1, nx)
         y = np.linspace(-1, 1, ny)
-        return np.meshgrid(y, x)
+        return np.meshgrid(x, y)
 
     def _zernike_j_nm(self, j):
         if j < 1:
@@ -193,17 +208,43 @@ class WavefrontReconstruction:
     def _zernike(self, n, m, rho, phi):
         if (n < 0) or (n < abs(m)) or (n % 2 != abs(m) % 2):
             raise ValueError("n and m are not valid Zernike indices")
-        if m < 0:
-            return ((-1) ** ((n - abs(m)) / 2)) * self._zernike(n, -m, rho, phi)
-        # Compute the polynomial.
         kmax = int((n - abs(m)) / 2)
-        summation = 0
+        R = 0
         for k in range(kmax + 1):
-            summation += ((-1) ** k * factorial(n - k) /
-                          (factorial(k) * factorial(0.5 * (n + abs(m)) - k) *
-                           factorial(0.5 * (n - abs(m)) - k)) *
-                          rho ** (n - 2 * k))
-        return summation * np.cos(m * phi)
+            R += ((-1) ** k * factorial(n - k) /
+                  (factorial(k) * factorial(0.5 * (n + abs(m)) - k) *
+                   factorial(0.5 * (n - abs(m)) - k)) *
+                  rho ** (n - 2 * k))
+        if m >= 0:
+            O = np.cos(m * phi)
+        if m < 0:
+            O = np.sin(np.abs(m) * phi)
+        return R * O
+
+    def _zernike_derivatives(self, n, m, rho, phi):
+        if (n < 0) or (n < abs(m)) or (n % 2 != abs(m) % 2):
+            raise ValueError("n and m are not valid Zernike indices")
+        kmax = int((n - abs(m)) / 2)
+        R = 0
+        dR = 0
+        for k in range(kmax + 1):
+            R += ((-1) ** k * factorial(n - k) /
+                  (factorial(k) * factorial(0.5 * (n + abs(m)) - k) *
+                   factorial(0.5 * (n - abs(m)) - k)) *
+                  rho ** (n - 2 * k))
+            dR += ((-1) ** k * factorial(n - k) /
+                   (factorial(k) * factorial(0.5 * (n + abs(m)) - k) *
+                    factorial(0.5 * (n - abs(m)) - k)) *
+                   (n - 2 * k) * rho ** (n - 2 * k - 1))
+        if m >= 0:
+            O = np.cos(m * phi)
+            dO = m * np.sin(m * phi)
+        if m < 0:
+            O = np.sin(np.abs(m) * phi)
+            dO = - np.abs(m) * np.sin(np.abs(m) * phi)
+        dx = dR * O * np.cos(phi) - (R / rho) * dO * np.sin(phi)
+        dy = dR * O * np.sin(phi) + (R / rho) * dO * np.cos(phi)
+        return dx, dy
 
     def _zernike_polynomials(self, nz=58, size=[64, 64]):
         # Compute the Zernike polynomials on a grid.
@@ -213,7 +254,7 @@ class WavefrontReconstruction:
         phi = np.pi / 2 - phi
         phi = np.mod(phi, 2 * np.pi)
         zernike = np.zeros((nz, x, y))
-        msk = self._disc(1, size)
+        msk = self._disc(1.05, size)
         for j in range(nz):
             n, m = self._zernike_j_nm(j + 3)
             zernike[j, :, :] = msk * self._zernike(n, m, rho, phi)
@@ -241,42 +282,33 @@ class WavefrontReconstruction:
             plt.show()
         return ortharray
 
-    def _zernike_derivative(self, nz=58, size=[64, 64]):
+    def _zernike_slopes(self, nz=58, size=None):
         # Compute the Zernike polynomials on a grid.
+        if size is None:
+            size = [64, 64]
         x, y = size
         xv, yv = self._cartesian_grid(x, y)
         rho, phi = self._polar_grid(xv, yv)
         phi = np.pi / 2 - phi
         phi = np.mod(phi, 2 * np.pi)
-        zernike = np.zeros((nz, x, y))
-        msk = self._disc(1, size)
+        msk = self._disc(1.05, size)
+        zs = np.zeros((2 * x * y, nz))
         for j in range(nz):
             n, m = self._zernike_j_nm(j + 3)
-            zernike[j, :, :] = self._zernike(n, m, rho, phi)
-        dx = 2.0 / x
-        dy = 2.0 / y
-        d_dx = FinDiff(0, dx, 1)
-        d_dy = FinDiff(1, dy, 1)
-        dzarr = np.zeros((nz * 2, x, y))
-        for ii in range(nz):
-            dzarr[ii * 2] = d_dx(zernike[ii]) * msk
-            dzarr[ii * 2 + 1] = d_dy(zernike[ii]) * msk
-        return dzarr
-
-    def _Z(self, dz):
-        nz, nx, ny = dz.shape
-        Z = np.zeros((int(nz / 2), nx * ny * 2))
-        for ii in range(int(nz / 2)):
-            Z[:nx * ny, ii] = dz[2 * ii].flatten()
-            Z[nx * ny:, ii] = dz[2 * ii + 1].flatten()
-        return Z
+            zdx, zdy = msk * self._zernike_derivatives(n, m, rho, phi)
+            zs[:x * y, j] = zdx.flatten()
+            zs[x * y:, j] = zdy.flatten()
+        return zs
 
     def _zernike_coefficients(self, gradxy, gradz):
-        U, s, Vt = np.linalg.svd(gradz)
-        s_inv = np.zeros_like(gradz.T, dtype=float)
-        s_inv[:min(gradz.shape), :min(gradz.shape)] = np.diag(1 / s[:min(gradz.shape)])
-        zplus = Vt.T @ s_inv @ U.T
-        return np.multiply(zplus, gradxy)
+        zplus = self._pseudo_inverse(gradz)
+        return np.matmul(zplus, gradxy)
+
+    def _pseudo_inverse(self, A):
+        U, s, Vt = np.linalg.svd(A)
+        s_inv = np.zeros_like(A.T, dtype=float)
+        s_inv[:min(A.shape), :min(A.shape)] = np.diag(1 / s[:min(A.shape)])
+        return Vt.T @ s_inv @ U.T
 
     async def run_in_process_pool(self, func, *args):
         loop = asyncio.get_event_loop()
