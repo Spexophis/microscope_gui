@@ -48,26 +48,6 @@ class DeformableMirror:
             csvwriter = csv.writer(csvfile)
             csvwriter.writerow(cmd)
 
-    # def SaveDM(self, pth, t, cmd):
-    #     fns = '_' + t + 'dmcmd.txt'
-    #     fns = os.path.join(pth,fns)
-    #     with open(fns, 'w') as file:
-    #         file.write(str(cmd))
-
-    # def writeDMfile(self, pth, cmd, mod, zmv, re):
-    #     fns = '_flatfile.txt'
-    #     fns = os.path.join(pth,fns)
-    #     with open(fns, 'w') as file:
-    #         file.write(str(cmd))
-    #     fn = '_modesvalue.txt'
-    #     fn = os.path.join(pth, fn)
-    #     np.savetxt(fn, (mod,zmv))
-    #     fns1 = '_metric.csv'
-    #     fns1 = os.path.join(pth, fns1)
-    #     with open(fns1, "w", encoding='utf-8', newline='') as f:
-    #         writer = csv.writer(f)
-    #         writer.writerows(re)
-
     def writeDMfile(self, pth, t, cmd, mod, zmv, re):
         filename = '_' + t + 'flatfile.csv'
         filename = os.path.join(pth, filename)

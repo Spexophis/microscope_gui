@@ -5,6 +5,7 @@ from concurrent.futures import ProcessPoolExecutor
 import matplotlib.pyplot as plt
 import numpy as np
 import tifffile as tf
+import scipy.ndimage as ndi
 from scipy.ndimage import center_of_mass as com
 from scipy.signal import fftconvolve as corr
 from scipy.special import factorial
@@ -17,6 +18,7 @@ pi = np.pi
 
 control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230407_2027.tif')
 control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230407_2027.tif')
+
 
 # flat_start
 
@@ -34,6 +36,7 @@ class WavefrontReconstruction:
         self.hsp = 32  # size of subimage is 2*hsp
         self.calfactor = (.0065 / 5.2) * 150  # pixel size * focalLength * pitch
         # set up seccorr center
+        self.md = 'correlation'  # 'centerofmass'
         section = np.ones((2 * self.hsp, 2 * self.hsp))
         sectioncorr = corr(1.0 * section, 1.0 * section[::-1, ::-1], mode='full')
         self.CorrCenter = np.unravel_index(sectioncorr.argmax(), sectioncorr.shape)
@@ -130,14 +133,14 @@ class WavefrontReconstruction:
         self.offsetimg = offset
         indices_list = [(ii, jj) for ii in range(self.nx) for jj in range(self.ny)]
         if cocurrent:
-            tasks = [self.run_in_process_pool(self._find_dots_correlate, i) for i in indices_list]
+            tasks = [self.run_in_process_pool(self._find_dot_center, i) for i in indices_list]
             results = asyncio.run(self.run_tasks(tasks))
         else:
             for indices in indices_list:
-                gradx[indices[0], indices[1]], grady[indices[0], indices[1]], ind = self._find_dots_correlate(indices)
+                gradx[indices[0], indices[1]], grady[indices[0], indices[1]], ind = self._find_dot_center(indices)
         return gradx, grady
 
-    def _find_dots_correlate(self, indices):
+    def _find_dot_center(self, indices):
         ix = indices[1]
         iy = indices[0]
         hsp = self.hsp
@@ -152,11 +155,49 @@ class WavefrontReconstruction:
         horiz_offset = int(left_offset + ix * self.px_spacing)
         sec = self.offsetimg[(vert_offset - hsp):(vert_offset + hsp), (horiz_offset - hsp):(horiz_offset + hsp)]
         secbase = self.baseimg[(vert_base - hsp):(vert_base + hsp), (horiz_base - hsp):(horiz_base + hsp)]
+        # self._detect_gaussian_object(sec, sigma=4)
         sec = self._sub_bg(sec)
         secbase = self._sub_bg(secbase)
-        seccorr = corr(1.0 * secbase, 1.0 * sec[::-1, ::-1], mode='full')
-        py, px = self._parabolicfit(seccorr)
-        return self.CorrCenter[1] - px, self.CorrCenter[0] - py, indices
+        if self.md == 'correlation':
+            seccorr = corr(1.0 * secbase, 1.0 * sec[::-1, ::-1], mode='full')
+            py, px = self._parabolicfit(seccorr)
+            gdx = self.CorrCenter[1] - px
+            gdy = self.CorrCenter[0] - py
+        # elif:
+        #     self.md == 'centerofmass'
+        return gdx, gdy, indices
+
+    def _detect_gaussian_object(self, image, sigma):
+        image = image / image.sum()
+        # Apply the Difference of Gaussians (DoG) filter
+        filtered = ndi.gaussian_filter(image, sigma=sigma) - ndi.gaussian_filter(image, sigma=sigma * 1.6)
+        # Find the local maxima with a higher threshold
+        threshold = 0.2 * np.max(filtered)
+        coordinates = np.transpose(np.nonzero(ndi.maximum_filter(filtered, size=3) == filtered))
+        coordinates = coordinates[filtered[coordinates[:, 0], coordinates[:, 1]] > threshold]
+        # Filter out small and noisy points
+        size_threshold = sigma * 16
+        sizes = []
+        for y, x in coordinates:
+            y0 = max(y - image.shape[0] // 2, 0)
+            y1 = min(y + image.shape[0] // 2 + 1, image.shape[0])
+            x0 = max(x - image.shape[1] // 2, 0)
+            x1 = min(x + image.shape[1] // 2 + 1, image.shape[1])
+            yy, xx = np.mgrid[y0:y1, x0:x1]
+            data = image[y0:y1, x0:x1]
+            fit = np.polyfit(np.arange(data.size), data.ravel(), deg=2)
+            sigma = np.sqrt(-1 / (2 * fit[0]))
+            size = np.sqrt(2 * np.pi) * sigma
+            sizes.append(size)
+        sizes = np.array(sizes)
+        coordinates = coordinates[sizes > size_threshold]
+        # return coordinates
+        if coordinates.shape == (1, 2):
+            return True
+            # print(coordinates)
+        else:
+            return False
+            # print("No Gaussian-like points found in the image")
 
     def _sub_bg(self, img):
         thresh = threshold_otsu(img)
