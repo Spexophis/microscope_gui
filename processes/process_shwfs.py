@@ -4,8 +4,8 @@ from concurrent.futures import ProcessPoolExecutor
 
 import matplotlib.pyplot as plt
 import numpy as np
-import tifffile as tf
 import scipy.ndimage as ndi
+import tifffile as tf
 from scipy.ndimage import center_of_mass as com
 from scipy.signal import fftconvolve as corr
 from scipy.special import factorial
@@ -16,14 +16,14 @@ ifft2 = np.fft.ifft2
 fftshift = np.fft.fftshift
 pi = np.pi
 
-control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230407_2027.tif')
+control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230411_1441.tif')
 control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230407_2027.tif')
 
 
 # flat_start
 
 
-class WavefrontReconstruction:
+class SHWavefrontSensing:
 
     def __init__(self):
         self.radius = 9  # 1/2 the total number of lenslets in linear direction
@@ -45,6 +45,7 @@ class WavefrontReconstruction:
         self.wf = np.array([])
         self.amp = 0.1 * 2
         self._n_zernikes = 58
+        self._az = None
         self.zernike = self._zernike_polynomials(nz=self._n_zernikes, size=[self.diameter, self.diameter])
         self.zslopes = self._zernike_slopes(nz=self._n_zernikes, size=[self.diameter, self.diameter])
         self._correction = []
@@ -83,7 +84,7 @@ class WavefrontReconstruction:
             _influence_matrix = np.zeros((self._n_zernikes, self._n_actuators))
         else:
             raise ValueError("Invalid method")
-        _msk = self._disc(1.05, (self.diameter, self.diameter))
+        _msk = self._circular_mask(self.diameter / 2, self.diameter)
         for filename in os.listdir(data_folder):
             if filename.endswith(".tif"):
                 ind = int(filename.split("_")[3])
@@ -156,15 +157,18 @@ class WavefrontReconstruction:
         sec = self.offsetimg[(vert_offset - hsp):(vert_offset + hsp), (horiz_offset - hsp):(horiz_offset + hsp)]
         secbase = self.baseimg[(vert_base - hsp):(vert_base + hsp), (horiz_base - hsp):(horiz_base + hsp)]
         # self._detect_gaussian_object(sec, sigma=4)
-        sec = self._sub_bg(sec)
-        secbase = self._sub_bg(secbase)
+        # sec = self._sub_bg(sec)
+        # secbase = self._sub_bg(secbase)
         if self.md == 'correlation':
             seccorr = corr(1.0 * secbase, 1.0 * sec[::-1, ::-1], mode='full')
             py, px = self._parabolicfit(seccorr)
             gdx = self.CorrCenter[1] - px
             gdy = self.CorrCenter[0] - py
-        # elif:
-        #     self.md == 'centerofmass'
+        elif self.md == 'centerofmass':
+            py, px = com(sec)
+            sy, sx = com(secbase)
+            gdx = px - sx
+            gdy = py - sy
         return gdx, gdy, indices
 
     def _detect_gaussian_object(self, image, sigma):
@@ -220,6 +224,19 @@ class WavefrontReconstruction:
             gradx = self.CorrCenter[1]
             grady = self.CorrCenter[0]
         return grady, gradx
+
+    def _center_of_mass(self, image):
+        height, width = image.shape
+        # row_indices, col_indices = np.indices((height, width))
+        # total_mass = np.sum(image)
+        # row_mass = np.sum(row_indices * image) / total_mass
+        # col_mass = np.sum(col_indices * image) / total_mass
+        row_indices = np.arange(0, height)[:, np.newaxis]
+        col_indices = np.arange(0, width)
+        total_mass = np.sum(image)
+        row_mass = np.sum(image * row_indices) / total_mass
+        col_mass = np.sum(image * col_indices) / total_mass
+        return row_mass, col_mass
 
     def _disc(self, radius, size):
         x, y = size
@@ -350,6 +367,102 @@ class WavefrontReconstruction:
         s_inv = np.zeros_like(A.T, dtype=float)
         s_inv[:min(A.shape), :min(A.shape)] = np.diag(1 / s[:min(A.shape)])
         return Vt.T @ s_inv @ U.T
+
+    def _wavefront_reconstruction(self, base, offset):
+        gradx, grady = self._get_gradient_xy(base, offset)
+        gradx = np.pad(gradx, ((1, 1), (1, 1)), 'constant')
+        grady = np.pad(grady, ((1, 1), (1, 1)), 'constant')
+        extx, exty = self._hudgins_extend_mask(gradx, grady)
+        phi = self._reconstruction_hudgins(extx, exty)
+        phi = phi * self.calfactor
+        phicorr = self._remove_global_waffle(phi)
+        msk = self._circular_mask(self.diameter / 2., self.diameter + 2)
+        phicorr = phicorr * msk
+        self.wf = phicorr[1:1 + self.diameter, 1:1 + self.diameter]
+
+    def _hudgins_extend_mask(self, gradx, grady):
+        """ extension technique Poyneer 2002 """
+        nx, ny = gradx.shape
+        if nx % 2 == 0:  # even
+            mx = nx / 2
+        else:  # odd
+            mx = (nx + 1) / 2
+        if ny % 2 == 0:  # even
+            my = ny / 2
+        else:  # odd
+            my = (ny + 1) / 2
+        for jj in range(int(nx)):
+            for ii in range(int(my), int(ny)):
+                if grady[jj, ii] == 0.0:
+                    grady[jj, ii] = grady[jj, ii - 1]
+            for ii in range(int(my), -1, -1):
+                if grady[jj, ii] == 0.0:
+                    grady[jj, ii] = grady[jj, ii + 1]
+        for jj in range(int(ny)):
+            for ii in range(int(mx), int(nx)):
+                if gradx[ii, jj] == 0.0:
+                    gradx[ii, jj] = gradx[ii - 1, jj]
+            for ii in range(int(mx), -1, -1):
+                if gradx[ii, jj] == 0.0:
+                    gradx[ii, jj] = gradx[ii + 1, jj]
+        gradxe = gradx.copy()
+        gradye = grady.copy()
+        gradxe[:, ny - 1] = -1.0 * gradx[:, :(ny - 1)].sum(1)
+        gradye[nx - 1, :] = -1.0 * grady[:(nx - 1), :].sum(0)
+        return gradxe, gradye
+
+    def _reconstruction_hudgins(self, gradx, grady):
+        """ wavefront reconstruction from gradients Hudgins Geometry, Poyneer 2002 """
+        sx = fft2(gradx)
+        sy = fft2(grady)
+        nx, ny = gradx.shape
+        k, l = np.meshgrid(np.arange(ny), np.arange(nx))
+        numx = (np.exp(-2j * pi * k / nx) - 1)
+        numy = (np.exp(-2j * pi * l / ny) - 1)
+        den = 4 * (np.sin(pi * k / nx) ** 2 + np.sin(pi * l / ny) ** 2)
+        sw = (numx * sx + numy * sy) / den
+        sw[0, 0] = 0.0
+        return (ifft2(sw)).real
+
+    def _remove_global_waffle(self, phi):
+        wmode = np.zeros((self.diameter + 2, self.diameter + 2))
+        constant_num = 0
+        constant_den = 0
+        # a waffle-mode vector of +-1 for a given pixel of the Wavefront
+        for x in range(self.diameter + 2):
+            for y in range(self.diameter + 2):
+                if (x + y) / 2 - np.round((x + y) / 2) == 0:
+                    wmode[y, x] = 1
+                else:
+                    wmode[y, x] = -1
+        for i in range(self.diameter + 2):
+            for k in range(self.diameter + 2):
+                temp = phi[i, k] * wmode[i, k]
+                temp2 = wmode[i, k] * wmode[i, k]
+                constant_num = constant_num + temp
+                constant_den = constant_den + temp2
+        constant = constant_num / constant_den
+        return phi - constant * wmode
+
+    def _wavefront_decomposition(self, wf):
+        self._az = np.zeros(self._n_zernikes)
+        for i in range(self._n_zernikes):
+            wz = self.zernike[i]
+            self._az[i] = (wf * wz.conj()).sum() / (wz * wz.conj()).sum()
+
+    def _wavefront_recomposition(self, d=None):
+        if d is None:
+            d = self.diameter
+        self.wf = np.zeros((d, d))
+        for i in range(self._n_zernikes):
+            self.wf += self._az[i] * self.zernike[i]
+
+    def _circular_mask(self, radius, size, circle_centre=(0, 0), origin="middle"):
+        coords = np.arange(0.5, size, 1.0)
+        x, y = np.meshgrid(coords, coords)
+        x -= size / 2.
+        y -= size / 2.
+        return x * x + y * y <= radius * radius
 
     async def run_in_process_pool(self, func, *args):
         loop = asyncio.get_event_loop()
