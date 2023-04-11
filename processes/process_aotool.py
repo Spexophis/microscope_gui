@@ -25,13 +25,11 @@ class aotool:
         self.zn = 37
         self.results = []
         self.flatfile()
-        self.influencefunction()
+        # self.influencefunction()
         self.zarr, self.zern = self.zernikemodes()
         self.mod = np.arange(self.zn)
         self.zmv = np.zeros(self.zn)
 
-    def __del__(self):
-        pass
 
     def influencefunction(self):
         infl_fcn = tf.imread(infl_fcn_file)

@@ -5,7 +5,7 @@ from PyDAQmx.DAQmxConstants import *
 from PyDAQmx.DAQmxTypes import *
 
 
-class DAQ:
+class NIDAQ:
 
     def __init__(self, frequency=100000, duty_cycle=0.5):
         super().__init__()
@@ -88,13 +88,13 @@ class DAQ:
             PyDAQmx.DAQmxGetExtendedErrorInfo(errBuff, 2048)
             print(errBuff.value)
 
-    def scan_galvo(self, axis_x, axis_y):
-        ao_channels, samples = axis_x.shape
+    def scan_galvo(self, galvo_xy):
+        channels, samples = galvo_xy.shape
         try:
             DAQmxCfgSampClkTiming(self.galvoHandle, r'100kHzTimebase', self.frequency, DAQmx_Val_Rising,
                                   DAQmx_Val_FiniteSamps, samples)
             DAQmxWriteAnalogF64(self.galvoHandle, samples, False, -1, DAQmx_Val_GroupByChannel,
-                                np.array([axis_x, axis_y], dtype=np.float64), None, None)
+                                galvo_xy.astype(np.float64), None, None)
             DAQmxStartTask(self.galvoHandle)
         except:
             errBuff = create_string_buffer(b"", 2048)
@@ -116,7 +116,6 @@ class DAQ:
                                   DAQmx_Val_ContSamps, do_samples)
             DAQmxWriteDigitalLines(self.doHandle, do_samples, False, -1, DAQmx_Val_GroupByChannel,
                                    do_sequences.astype(np.uint8), None, None)
-            print("Data Written on DAQ\n")
         except:
             errBuff = create_string_buffer(b"", 2048)
             PyDAQmx.DAQmxGetExtendedErrorInfo(errBuff, 2048)
@@ -145,7 +144,6 @@ class DAQ:
                                   DAQmx_Val_FiniteSamps, do_samples)
             DAQmxWriteDigitalLines(self.doHandle, do_samples, False, -1, DAQmx_Val_GroupByChannel,
                                    do_sequences.astype(np.uint8), None, None)
-            print("Data Written on DAQ\n")
         except:
             errBuff = create_string_buffer(b"", 2048)
             PyDAQmx.DAQmxGetExtendedErrorInfo(errBuff, 2048)
@@ -164,7 +162,6 @@ class DAQ:
                                 ao_sequences.astype(np.float64), None, None)
             DAQmxWriteDigitalLines(self.doHandle, do_samples, False, -1, DAQmx_Val_GroupByChannel,
                                    do_sequences.astype(np.uint8), None, None)
-            print("Data Written on DAQ\n")
         except:
             errBuff = create_string_buffer(b"", 2048)
             PyDAQmx.DAQmxGetExtendedErrorInfo(errBuff, 2048)

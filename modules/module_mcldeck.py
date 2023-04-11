@@ -73,7 +73,6 @@ class MCLMicroDrive:
         """
         Closes the connection by releasing the handle.
         """
-        # self.Home()
         self.stopMoving()
         self.mcl.MCL_ReleaseHandle(self.handle)
         print('Handle released.')
@@ -134,7 +133,6 @@ class MCLMicroDrive:
         [3, 1,'Axis 3 forward limit']
         """
         status = self._getStatus()
-
         errorsLimit = []
         for i, b in enumerate(bin(status)[:1:-1]):
             if b == '0':

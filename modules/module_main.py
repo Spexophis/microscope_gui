@@ -4,7 +4,7 @@ from modules import module_hamamatsu
 # from modules import module_thorcamera
 from modules import module_deformablemirror
 from modules import module_laser
-from modules import module_daq
+from modules import module_nidaq
 from modules import module_mcldeck
 
 
@@ -15,7 +15,7 @@ class MainModule:
         self.hacam = module_hamamatsu.HamamatsuCameraMR()
         self.dm = module_deformablemirror.DeformableMirror()
         self.laser = module_laser.CoboltLaser()
-        self.daq = module_daq.DAQ()
+        self.daq = module_nidaq.NIDAQ()
         # self.tiscam = module_tiscamera.TISCamera()
         self.md = module_mcldeck.MCLMicroDrive()
         # self.thocam = module_thorcamera.UC480Cam()

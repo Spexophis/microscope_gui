@@ -155,7 +155,7 @@ class MainController:
     def move_deck(self):
         if not self.om.md.isMoving():
             d = self.con_controller.get_deck_movement()
-            self.om.md.moveRelativeAxis(3, d, velocity=1.)
+            self.om.md.moveRelativeAxis(3, d, velocity=self.om.md.velocityMin)
 
     def move_deck_stop(self):
         if self.om.md.isMoving():

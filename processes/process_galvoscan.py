@@ -68,7 +68,7 @@ class GalvoScan:
     def _plot_curve(self, y):
         fig, ax = plt.subplots()
         ax.plot(y)
-        plt.show()
+        fig.show()
 
     def _acceleration_curve(self, a, v0, vt, dt):
         t = (vt - v0) / a
@@ -86,6 +86,13 @@ class GalvoScan:
         velocity_curve = np.ones(scan_samples) * v
         position_curve = v * xt
         return position_curve, velocity_curve
+
+    def _step_curve(self, sequence_length, start_position, step_size, number_of_steps, step_length):
+        step_values = start_position + np.arange(number_of_steps) * step_size
+        step_positions = np.arange(number_of_steps) * step_length
+        sequence = np.zeros(sequence_length)  # Initialize the sequence with zeros
+        for i in range(len(step_values)):
+            sequence[step_positions[i]:] = step_values[i]  # Add the step value to the sequence after the step position
 
 
 if __name__ == '__main__':
