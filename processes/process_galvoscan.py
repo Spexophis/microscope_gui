@@ -1,7 +1,5 @@
-import numpy as np
-from scipy.interpolate import BPoly
-from findiff import FinDiff
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 class GalvoScan:
@@ -16,7 +14,6 @@ class GalvoScan:
         self.a_max = 1e12 * self.a_max / self.conversion_factor
         self.voltage_range = 10.  # V
 
-
     def map_scan(self):
         self.start_position = 4.
         self.scan_steps = 5
@@ -30,7 +27,6 @@ class GalvoScan:
 
     def generate_scan(self):
         ac, vc, pc = self._acceleration_curve(self.a_max, 0, self.v_max, self.dt)
-
 
     def generate_one_axis_scan(self):
         one_axis_scan = np.array([])
@@ -115,4 +111,3 @@ if __name__ == '__main__':
     # g._plot_curve(v)
     # g._plot_curve(p)
     # print(p[-1])
-

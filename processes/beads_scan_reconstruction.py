@@ -1,8 +1,8 @@
-import numpy as np
-from scipy.ndimage.filters import minimum_filter
-from scipy.ndimage.filters import maximum_filter
-import scipy.ndimage as ndimage
 import matplotlib.pyplot as plt
+import numpy as np
+import scipy.ndimage as ndimage
+from scipy.ndimage.filters import maximum_filter
+from scipy.ndimage.filters import minimum_filter
 
 
 class BeadScanReconstruction:

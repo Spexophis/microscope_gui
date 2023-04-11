@@ -23,7 +23,7 @@ control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\c
 # flat_start
 
 
-class SHWavefrontSensing:
+class WavefrontSensing:
 
     def __init__(self):
         self.radius = 9  # 1/2 the total number of lenslets in linear direction
