@@ -1,10 +1,8 @@
 import sys
-import os
 
 sys.path.append(r'C:\Program Files\Alpao\sourcefiles')
 from Lib64.asdk import DM
 import numpy as np
-import csv
 
 
 class DeformableMirror:
@@ -40,28 +38,3 @@ class DeformableMirror:
         self.values = [0.] * self.nbAct
         self.dm.Send(self.values)
         print('DM set to null')
-
-    def SaveDM(self, pth, t, cmd):
-        fns = '_' + t + 'dmcmd.csv'
-        fns = os.path.join(pth, fns)
-        with open(fns, 'w') as csvfile:
-            csvwriter = csv.writer(csvfile)
-            csvwriter.writerow(cmd)
-
-    def writeDMfile(self, pth, t, cmd, mod, zmv, re):
-        filename = '_' + t + 'flatfile.csv'
-        filename = os.path.join(pth, filename)
-        with open(filename, 'w') as csvfile:
-            csvwriter = csv.writer(csvfile)
-            csvwriter.writerow(cmd)
-        fn = '_' + t + '_modesvalue.csv'
-        fn = os.path.join(pth, fn)
-        with open(fn, "w") as f:
-            writer = csv.writer(f)
-            writer.writerow(mod)
-            writer.writerow(zmv)
-        fns = '_' + t + '_metric.csv'
-        fns = os.path.join(pth, fns)
-        with open(fns, "w", encoding='utf-8', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerows(re)

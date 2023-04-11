@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage as ndi
 import tifffile as tf
+import pandas as pd
 from scipy.ndimage import center_of_mass as com
 from scipy.signal import fftconvolve as corr
 from scipy.special import factorial
@@ -19,8 +20,7 @@ pi = np.pi
 control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230411_1441.tif')
 control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230407_2027.tif')
 
-
-# flat_start
+initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\20230411_2047_flatfile.xlsx'
 
 
 class WavefrontSensing:
@@ -50,6 +50,7 @@ class WavefrontSensing:
         self.zslopes = self._zernike_slopes(nz=self._n_zernikes, size=[self.diameter, self.diameter])
         self._correction = []
         self._dm_cmd = []
+        self._dm_cmd.append(self._read_cmd(initial_flat))
 
     def _update_parameters(self, parameters):
         self.x_center_base = parameters[0]
@@ -122,6 +123,25 @@ class WavefrontSensing:
     def _correct_cmd(self):
         _c = self._dm_cmd[-1] + self._correction
         self._dm_cmd.append(_c)
+
+    def _read_cmd(self, fnd):
+        df = pd.read_excel(fnd)
+        return df['Push'].tolist()
+
+    def _write_cmd(self, path, t, flatfile=False):
+        if flatfile:
+            filename = t + '_flat_file.csv'
+            df = pd.DataFrame(self._dm_cmd[-1], index=np.arange(97), columns=['Push'])
+            df.to_excel(os.path.join(path, filename), index_label='Actuator')
+        else:
+            filename = t + '_cmd_file.csv'
+            data = {f'cmd{i}': cmd for i, cmd in enumerate(self._dm_cmd)}
+            writer = pd.ExcelWriter(os.path.join(path, filename), engine='xlsxwriter')
+            workbook = writer.book
+            for sheet_name, list_data in data.items():
+                df = pd.DataFrame(list_data, index=np.arange(97), columns=['Push'])
+                df.to_excel(writer, sheet_name=sheet_name, index_label='Actuator')
+            writer.close()
 
     def _get_gradient_xy(self, base, offset, cocurrent=False):
         """ Determines Gradients by Correlating each section with its base reference section"""

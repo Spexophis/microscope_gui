@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Qt5Agg')
 import numpy as np
 
 
@@ -61,10 +63,10 @@ class GalvoScan:
         # one_axis_scan = np.append(one_axis_scan, return_curve)
         return one_axis_scan
 
-    def _plot_curve(self, y):
-        fig, ax = plt.subplots()
-        ax.plot(y)
-        fig.show()
+    def _plot_curve(self, x, y):
+        plt.figure()
+        plt.plot(x, y)
+        plt.show(block=False)
 
     def _acceleration_curve(self, a, v0, vt, dt):
         t = (vt - v0) / a
