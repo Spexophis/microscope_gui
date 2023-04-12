@@ -118,8 +118,8 @@ class MainController:
         # DM
         self.view.getAOWidget().Signal_push_actuator.connect(self.push_actuator)
         self.view.getAOWidget().Signal_set_zernike.connect(self.set_zernike)
-        self.view.getAOWidget().Signal_null_dm.connect(self.null_dm)
-        self.view.getAOWidget().Signal_flat_dm.connect(self.reset_dm_flat)
+        self.view.getAOWidget().Signal_set_dm.connect(self.set_dm)
+        # self.view.getAOWidget().Signal_flat_dm.connect(self.reset_dm_flat)
         self.view.getAOWidget().Signal_load_dm.connect(self.load_dm)
         self.view.getAOWidget().Signal_save_dm.connect(self.save_dm)
 
@@ -481,12 +481,12 @@ class MainController:
         n, a = self.ao_controller.getacturator()
         values = [0.] * self.om.dm.nbAct
         values[n] = a
-        self.om.dm.SetDM(values + self.p.aotool.cmd_best)
+        self.om.dm.SetDM(values + self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
 
     def set_zernike(self):
         indz, amp = self.ao_controller.getzernikemode()
-        values = self.p.aotool.get_zernike(indz, amp)
-        self.om.dm.SetDM(values + self.p.aotool.cmd_best)
+        values = 0
+        self.om.dm.SetDM(values + self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
 
     def manual_correct(self):
         indz, amp = self.ao_controller.getzernikemode()
@@ -494,9 +494,17 @@ class MainController:
         self.p.aotool.cmd_best = values + self.p.aotool.cmd_best
         self.om.dm.SetDM(self.p.aotool.cmd_best)
 
-    def reset_dm_flat(self):
-        self.p.aotool.cmd_best = self.p.aotool.cmd_flat
-        self.om.dm.SetDM(self.p.aotool.cmd_flat)
+    # def reset_dm_flat(self):
+    #     self.om.dm.SetDM(self.p.shwfsr._dm_cmd[0])
+
+    def set_dm(self):
+        i = int(self.ao_controller.get_cmd_index())
+        self.om.dm.SetDM(self.p.shwfsr._dm_cmd[i])
+        self.p.shwfsr.current_cmd = i
+
+    def correct_wf(self):
+
+        self.ao_controller.update_cmd_index()
 
     def generate_digital_trigger_ao(self):
         sample_rate = 100000

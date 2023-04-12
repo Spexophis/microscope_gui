@@ -18,6 +18,14 @@ class AOController:
     def getzernikemode(self):
         return self.view.QSpinBox_zernike_mode.value(), self.view.QDoubleSpinBox_zernike_mode_amp.value()
 
+    def get_cmd_index(self):
+        return self.view.QComboBox_cmd.currentText()
+
+    def update_cmd_index(self):
+        item = '{}'.format(self.view.QComboBox_cmd.count())
+        self.view.QComboBox_cmd.addItem(item)
+        self.view.QComboBox_cmd.setCurrentIndex(self.view.QComboBox_cmd.count())
+
     def get_file_name(self):
         return self.view.QLineEdit_filename.text()
     

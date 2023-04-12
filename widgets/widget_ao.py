@@ -12,8 +12,7 @@ class AOWidget(QtWidgets.QWidget):
     Signal_shwfs_run = QtCore.pyqtSignal()
     Signal_shwfs_stop = QtCore.pyqtSignal()
     Signal_push_actuator = QtCore.pyqtSignal()
-    Signal_null_dm = QtCore.pyqtSignal()
-    Signal_flat_dm = QtCore.pyqtSignal()
+    Signal_set_dm = QtCore.pyqtSignal()
     Signal_load_dm = QtCore.pyqtSignal(str)
     Signal_save_dm = QtCore.pyqtSignal()
     Signal_set_zernike = QtCore.pyqtSignal()
@@ -134,8 +133,9 @@ class AOWidget(QtWidgets.QWidget):
         self.QDoubleSpinBox_zernike_mode_amp = cw.doublespinbox_widget(-20, 20, 0.01, 2, 0)
         self.button_set_zernike_mode = cw.pushbutton_widget('Set Zernike Mode')
         self.button_influence_fuction_laser = cw.pushbutton_widget('Influence Function')
-        self.button_nullDM = cw.pushbutton_widget('Null DM')
-        self.button_flatDM = cw.pushbutton_widget('Flat DM')
+        self.QComboBox_cmd = cw.combobox_widget(list_items=['0', '1'])
+        self.QComboBox_cmd.setCurrentIndex(1)
+        self.button_setDM = cw.pushbutton_widget('Set DM')
         self.button_loadDM = cw.pushbutton_widget('Load DM')
         self.button_manual_ao = cw.pushbutton_widget('Manual AO')
         Layout_deformablemirror.addWidget(self.Label_actuator, 0, 0, 1, 1)
@@ -149,8 +149,8 @@ class AOWidget(QtWidgets.QWidget):
         Layout_deformablemirror.addWidget(self.QDoubleSpinBox_zernike_mode_amp, 1, 3, 1, 1)
         Layout_deformablemirror.addWidget(self.button_set_zernike_mode, 2, 2, 1, 2)
         Layout_deformablemirror.addWidget(self.button_influence_fuction_laser, 3, 0, 1, 2)
-        Layout_deformablemirror.addWidget(self.button_nullDM, 3, 2, 1, 1)
-        Layout_deformablemirror.addWidget(self.button_flatDM, 3, 3, 1, 1)
+        Layout_deformablemirror.addWidget(self.QComboBox_cmd, 3, 2, 1, 1)
+        Layout_deformablemirror.addWidget(self.button_setDM, 3, 3, 1, 1)
         Layout_deformablemirror.addWidget(self.button_loadDM, 4, 0, 1, 1)
         Layout_deformablemirror.addWidget(self.button_manual_ao, 4, 3, 1, 1)
         Group_deformablemirror.setLayout(Layout_deformablemirror)
@@ -173,7 +173,7 @@ class AOWidget(QtWidgets.QWidget):
         self.Label_hpf = cw.label_widget(str('HPF'))
         self.QDoubleSpinBox_hpf = cw.doublespinbox_widget(0, 1, 0.05, 2, 0.64)
         self.Label_metric_function = cw.label_widget(str('Image Metric'))
-        self.QComboBox_metric = cw.combobox_widget(list_items=['SNR (FFT)', 'Max (Intensity)', 'HighPass (FFT)'])
+        self.QComboBox_metric = cw.combobox_widget(list_items=['SNR(FFT)', 'Max(Intensity)', 'HighPass(FFT)'])
         self.button_sensorlessAO_run = cw.pushbutton_widget('Run AO')
         self.button_saveDM = cw.pushbutton_widget('Save DM')
         Layout_sensorlessao.addWidget(self.Label_zernike_modes, 0, 0, 1, 2)
@@ -213,8 +213,7 @@ class AOWidget(QtWidgets.QWidget):
         self.button_shwfs_savewf.clicked.connect(self.Signal_shwfs_savewf.emit)
         self.button_push_actuator.clicked.connect(self.Signal_push_actuator.emit)
         self.button_set_zernike_mode.clicked.connect(self.Signal_set_zernike.emit)
-        self.button_nullDM.clicked.connect(self.Signal_null_dm.emit)
-        self.button_flatDM.clicked.connect(self.Signal_flat_dm.emit)
+        self.button_setDM.clicked.connect(self.Signal_set_dm.emit)
         self.button_run_wfr.clicked.connect(self.Signal_shwfs_run.emit)
         self.button_stop_wfr.clicked.connect(self.Signal_shwfs_stop.emit)
         self.button_influence_fuction_laser.clicked.connect(self.Signal_influence_function.emit)
@@ -239,10 +238,10 @@ class AOWidget(QtWidgets.QWidget):
             self.Signal_load_dm.emit(file)
 
 
-# import sys
-#
-# if __name__ == '__main__':
-#     app = QtWidgets.QApplication(sys.argv)
-#     window = AOWidget()
-#     window.show()
-#     sys.exit(app.exec_())
+import sys
+
+if __name__ == '__main__':
+    app = QtWidgets.QApplication(sys.argv)
+    window = AOWidget()
+    window.show()
+    sys.exit(app.exec_())

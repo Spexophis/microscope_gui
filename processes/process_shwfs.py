@@ -49,8 +49,9 @@ class WavefrontSensing:
         self.zernike = self._zernike_polynomials(nz=self._n_zernikes, size=[self.diameter, self.diameter])
         self.zslopes = self._zernike_slopes(nz=self._n_zernikes, size=[self.diameter, self.diameter])
         self._correction = []
-        self._dm_cmd = []
+        self._dm_cmd = [[0.] * 97]
         self._dm_cmd.append(self._read_cmd(initial_flat))
+        self.current_cmd = 1
 
     def _update_parameters(self, parameters):
         self.x_center_base = parameters[0]
@@ -121,7 +122,7 @@ class WavefrontSensing:
         return self._correction[-1]
 
     def _correct_cmd(self):
-        _c = self._dm_cmd[-1] + self._correction
+        _c = self._dm_cmd[self.current_cmd] - self._correction
         self._dm_cmd.append(_c)
 
     def _read_cmd(self, fnd):
