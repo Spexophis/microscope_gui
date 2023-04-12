@@ -43,13 +43,6 @@ class MainController:
         self.thread_video.started.connect(self.videoWorker.run)
         self.thread_video.finished.connect(self.videoWorker.stop)
         self.videoWorker.signal_imshow.connect(self.imshow_main)
-        # record thread    
-        # self.thread_record = QtCore.QThread()
-        # self.recordWorker = RecordWorker(parent=None)
-        # self.recordWorker.moveToThread(self.thread_record)
-        # self.thread_record.started.connect(self.recordWorker.run)
-        # self.thread_record.finished.connect(self.recordWorker.stop)
-        # self.recordWorker.signal_record.connect(self.record_data)
         # image process thread
         self.thread_impro = QtCore.QThread()
         self.improWorker = ImgProcessWorker(parent=None)
@@ -71,13 +64,6 @@ class MainController:
         self.thread_wfs.started.connect(self.wfsWorker.run)
         self.thread_wfs.finished.connect(self.wfsWorker.stop)
         self.wfsWorker.signal_wfsshow.connect(self.imshow_wfs)
-        # wavefront reconstruction thread
-        # self.thread_wfr = QtCore.QThread()
-        # self.wfrWorker = WFRWorker(parent=None)
-        # self.wfrWorker.moveToThread(self.thread_wfr)
-        # self.thread_wfr.started.connect(self.wfrWorker.run)
-        # self.thread_wfr.finished.connect(self.wfrWorker.stop)
-        # self.wfrWorker.signal_wfshow.connect(self.run_wfr)
         # Main
         self.view.getControlWidget().Signal_setcoordinates.connect(self.set_camera_coordinates)
         self.view.getControlWidget().Signal_resetcoordinates.connect(self.reset_camera_coordinates)
@@ -105,19 +91,17 @@ class MainController:
         self.view.getPlotWidget().Signal_plot_static.connect(self.profile_plot)
         self.view.getPlotWidget().Signal_plot_update.connect(self.profile_update)
         # AO
+        self.view.getAOWidget().Signal_shwfs_initiate.connect(self.initiate_wfs)
         self.view.getAOWidget().Signal_wfs_start.connect(self.start_wfs)
         self.view.getAOWidget().Signal_wfs_stop.connect(self.stop_wfs)
-        self.view.getAOWidget().Signal_shwfs_initiate.connect(self.initiate_wfs)
-        # self.view.getAOWidget().Signal_shwfs_run.connect(self.start_wfr)
-        # self.view.getAOWidget().Signal_shwfs_stop.connect(self.stop_wfr)
+        self.view.getAOWidget().Signal_shwfs_run.connect(self.run_wfr)
         self.view.getAOWidget().Signal_shwfs_savewf.connect(self.save_wf)
         self.view.getAOWidget().Signal_influence_function.connect(self.influence_function)
-        self.view.getAOWidget().Signal_shwfs_run.connect(self.run_wfr)
         self.view.getAOWidget().Signal_sensorlessAO_run.connect(self.ao_optimize)
         self.view.getAOWidget().Signal_manual_ao.connect(self.manual_correct)
         # DM
         self.view.getAOWidget().Signal_push_actuator.connect(self.push_actuator)
-        self.view.getAOWidget().Signal_set_zernike.connect(self.set_zernike)
+        # self.view.getAOWidget().Signal_set_zernike.connect(self.set_zernike)
         self.view.getAOWidget().Signal_set_dm.connect(self.set_dm)
         # self.view.getAOWidget().Signal_flat_dm.connect(self.reset_dm_flat)
         self.view.getAOWidget().Signal_load_dm.connect(self.load_dm)
@@ -127,8 +111,7 @@ class MainController:
         self.con_controller.display_camera_temperature(temperature)
         p = self.om.md.getPositionStepsTakenAxis(3)
         self.con_controller.display_deck_position(p)
-
-        self.om.dm.SetDM(self.p.aotool.cmd_best)
+        self.om.dm.SetDM(self.p.shwfsr._dm_cmd[1])
 
     def set_camera_coordinates(self):
         x, y, n = self.con_controller.get_camera_coordinates()
@@ -270,22 +253,6 @@ class MainController:
         # self.om.cam.set_exposure(expo)
         self.om.cam.set_emccd_gain(gain)
 
-    # def prepare_video(self):
-    #     p405, p488_1, p488_2 = self.con_controller.get_cobolt_laser_power()
-    #     self.om.laser.modulation_mode_488_1(p488_1)
-    #     self.om.laser.laserON_488_1()
-    #     self.om.laser.modulation_mode_488_2(p488_2)
-    #     self.om.laser.laserON_488_2()
-    #     self.om.laser.modulation_mode_405(p405)
-    #     self.om.laser.laserON_405()
-    #     l = 3
-    #     l = self.con_controller.select_laser()        
-    #     dgtr = self.generate_digital_trigger(l)
-    #     self.om.daq.Trig_open(dgtr)
-    #     self.om.cam.set_trigger_mode(7)
-    #     self.set_camera()
-    #     self.om.cam.prepare_live()
-
     def prepare_video(self):
         self.setlasers()
         dgtr = self.generate_digital_trigger_sw()
@@ -426,31 +393,6 @@ class MainController:
         self.lasersoff()
         self.reconstruct_beadscan_2d()
 
-    # def start_recording(self):
-    #     self.imgstack = []
-    #     self.imgcount = []
-    #     self.thread_record.start()
-
-    # def stop_recording(self):
-    #     self.thread_record.quit()
-    #     self.thread_record.wait()
-    #     t = time.strftime("%Y%m%d_%H%M%S_")
-    #     slideName = self.con_controller.get_file_name()
-    #     # tf.imwrite(self.path + '/' + t + slideName + '.tif', self.imgstack)
-    #     fid = open(self.path + '/' + t + slideName + '_recording_counts.txt','w')
-    #     fid.writelines(self.imgcount)
-    #     fid.close()
-    #     fnt = self.path + '/' + t + slideName + '_info.txt'
-    #     self._SaveText(fnt)
-    #     print('Recorded data saved')
-    #     self.imgstack = []
-    #     self.imgcount = []
-
-    # def record_data(self):
-    #     cfirst, clast, images = self.om.cam.get_available_images()
-    #     self.imgstack.append(images)
-    #     self.imgcount.append([cfirst, clast])
-
     def reconstruct_beadscan_2d(self):
         sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, ttl_starts, ttl_ends = self.con_controller.get_trigger_parameters()
         stepsize = step_sizes[0]
@@ -463,19 +405,15 @@ class MainController:
         self.view_controller.plot_main(self.p.bsrecon.final_image)
         print('Data saved')
 
-    def null_dm(self):
-        values = [0.] * self.om.dm.nbAct
-        self.om.dm.SetDM(values)
-
     def load_dm(self, filename):
-        self.p.aotool.cmd_best = self.p.aotool.read_cmd(filename)
-        self.om.dm.SetDM(self.p.aotool.cmd_best)
-        print('New flat file loaded')
+        self.p.shwfsr._dm_cmd.append(self.p.shwfsr._read_cmd(filename))
+        self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
+        print('New DM cmd loaded')
 
     def save_dm(self):
         t = time.strftime("%Y%m%d_%H%M%S_")
-        self.om.dm.SaveDM(self.path, t, self.p.aotool.cmd_best)
-        print('DM saved')
+        self.p.shwfsr._write_cmd(self.path, t, flatfile=False)
+        print('DM cmd saved')
 
     def push_actuator(self):
         n, a = self.ao_controller.getacturator()
@@ -490,12 +428,9 @@ class MainController:
 
     def manual_correct(self):
         indz, amp = self.ao_controller.getzernikemode()
-        values = self.p.aotool.get_zernike(indz, amp)
-        self.p.aotool.cmd_best = values + self.p.aotool.cmd_best
-        self.om.dm.SetDM(self.p.aotool.cmd_best)
-
-    # def reset_dm_flat(self):
-    #     self.om.dm.SetDM(self.p.shwfsr._dm_cmd[0])
+        values = 0
+        self.p.shwfsr._dm_cmd.append(values + self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
+        self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
 
     def set_dm(self):
         i = int(self.ao_controller.get_cmd_index())
@@ -503,7 +438,6 @@ class MainController:
         self.p.shwfsr.current_cmd = i
 
     def correct_wf(self):
-
         self.ao_controller.update_cmd_index()
 
     def generate_digital_trigger_ao(self):
@@ -545,8 +479,8 @@ class MainController:
         dt = []
         amprange = []
         self.start_ao_iteration()
-        self.om.dm.SetDM(self.p.aotool.cmd_best)
-        time.sleep(0.2)
+        self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
+        time.sleep(0.1)
         self.om.cam.single_acquisition()
         self.om.daq.Trig_run()
         time.sleep(0.04)
@@ -558,8 +492,8 @@ class MainController:
             for stnm in range(amp_step_number):
                 amp = amp_start + stnm * amp_step
                 amprange.append(amp)
-                values = self.p.aotool.get_zernike(mode, amp)
-                self.om.dm.SetDM(values + self.p.aotool.cmd_best)
+                values = 0 # self.p.shwfsr.get_zernike(mode, amp)
+                self.om.dm.SetDM(values + self.p.shwfsr._dm_cmd[-1])
                 time.sleep(0.1)
                 self.om.cam.single_acquisition()
                 self.om.daq.Trig_run()
@@ -579,15 +513,15 @@ class MainController:
                 self.om.daq.Trig_stop()
             pmax = self.p.imgprocess.peak(amprange, dt)
             if pmax != 0.0:
-                self.p.aotool.zmv[mode] += pmax
+                self.p.shwfsr.zmv[mode] += pmax
                 print('----------------setting mode %d at value of %.4f----' % (mode, pmax))
-                values = self.p.aotool.get_zernike(mode, pmax)
+                values = 0. # self.p.shwfsr.get_zernike(mode, pmax)
                 for i in range(97):
-                    self.p.aotool.cmd_best[i] = self.p.aotool.cmd_best[i] + values[i]
-                self.om.dm.SetDM(self.p.aotool.cmd_best)
+                    self.p.shwfsr._dm_cmd[-1][i] = self.p.shwfsr._dm_cmd[-1][i] + values[i]
+                self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
             else:
                 print('----------------mode %d value equals %.4f----' % (mode, pmax))
-        self.om.dm.SetDM(self.p.aotool.cmd_best)
+        self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
         time.sleep(0.1)
         self.om.cam.single_acquisition()
         self.om.daq.Trig_run()
@@ -595,7 +529,7 @@ class MainController:
         self.om.cam.get_acquired_image()
         fn = os.path.join(newfold, 'final.tif')
         tf.imwrite(fn, self.om.cam.data)
-        self.om.dm.writeDMfile(newfold, t, self.p.aotool.cmd_best, self.p.aotool.mod, self.p.aotool.zmv, results)
+        # self.om.dm.writeDMfile(newfold, t, self.p.shwfsr.cmd_best, self.p.shwfsr.mod, self.p.shwfsr.zmv, results)
         self.stop_ao_iteration()
 
     def set_shcam(self):
@@ -607,7 +541,7 @@ class MainController:
 
     def set_wfs(self):
         parameters = self.ao_controller.getparameters()
-        self.p.shwfsr.updateparameters(parameters)
+        self.p.shwfsr._update_parameters(parameters)
         print('SHWFS parameter updated')
 
     def initiate_wfs(self):
@@ -639,7 +573,7 @@ class MainController:
         except ValueError:
             print("NO SH Image")
         try:
-            tf.imwrite(self.path + '/' + t + slideName + '_reconstruted_wf.tif', self.p.shwfsr.phicorr)
+            tf.imwrite(self.path + '/' + t + slideName + '_reconstruted_wf.tif', self.p.shwfsr.wf)
         except ValueError:
             print("NO WF Image")
         print('Data saved')
@@ -647,12 +581,11 @@ class MainController:
     def imshow_wfs(self):
         # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
         # self.p.shwfsr.offset = self.om.thocam.get_last_image()
-        self.p.shwfsr.offset = self.om.hacam.getLastFrame()
-        self.view_controller.plot_sh(self.p.shwfsr.offset)
+        self.view_controller.plot_sh(self.om.hacam.getLastFrame())
 
     def run_wfr(self):
-        self.p.shwfsr.GetAberration2img(self.p.shwfsr.base, self.p.shwfsr.offset)
-        self.view_controller.plot_wf(self.p.shwfsr.phicorr)
+        self.p.shwfsr._wavefront_reconstruction(self.p.shwfsr.base, self.om.hacam.getLastFrame())
+        self.view_controller.plot_wf(self.p.shwfsr.wf)
 
     def start_wfs(self):
         # self.om.tiscam.prepare_live()
@@ -668,13 +601,6 @@ class MainController:
         # self.om.tiscam.stop_live()
         # self.om.thocam.stop_acquire()
         self.om.hacam.stopAcquisition()
-
-    # def start_wfr(self):
-    #     self.thread_wfr.start()
-
-    # def stop_wfr(self):
-    #     self.thread_wfr.quit()
-    #     self.thread_wfr.wait()
 
     def influence_function(self):
         t = time.strftime("%Y%m%d_%H%M%S")
@@ -737,25 +663,6 @@ class VideoWorker(QtCore.QObject):
             self.timer.stop()
 
 
-# class RecordWorker(QtCore.QObject):
-
-#     signal_record = QtCore.pyqtSignal()
-
-#     def __init__(self, parent=None):
-#         super().__init__()
-#         self.timer = None
-#         self.td = 400
-
-#     def run(self):
-#         self.timer = QtCore.QTimer()
-#         self.timer.setInterval(self.td)
-#         self.timer.timeout.connect(self.signal_record.emit)
-#         self.timer.start()
-
-#     def stop(self):
-#         if self.timer is not None:
-#             self.timer.stop()
-
 class ImgProcessWorker(QtCore.QObject):
     signal_fft = QtCore.pyqtSignal()
 
@@ -791,24 +698,6 @@ class WFSWorker(QtCore.QObject):
         if self.timer is not None:
             self.timer.stop()
 
-
-# class WFRWorker(QtCore.QObject):
-
-#     signal_wfshow = QtCore.pyqtSignal()
-
-#     def __init__(self, parent=None):
-#         super().__init__()
-#         self.timer = None
-
-#     def run(self):
-#         self.timer = QtCore.QTimer()
-#         self.timer.setInterval(250)
-#         self.timer.timeout.connect(self.signal_wfshow.emit)
-#         self.timer.start()
-
-#     def stop(self):
-#         if self.timer is not None:
-#             self.timer.stop()
 
 class PlotWorker(QtCore.QObject):
     signal_plot = QtCore.pyqtSignal()

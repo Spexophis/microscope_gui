@@ -10,7 +10,6 @@ class AOWidget(QtWidgets.QWidget):
     Signal_wfs_start = QtCore.pyqtSignal()
     Signal_wfs_stop = QtCore.pyqtSignal()
     Signal_shwfs_run = QtCore.pyqtSignal()
-    Signal_shwfs_stop = QtCore.pyqtSignal()
     Signal_push_actuator = QtCore.pyqtSignal()
     Signal_set_dm = QtCore.pyqtSignal()
     Signal_load_dm = QtCore.pyqtSignal(str)
@@ -80,7 +79,6 @@ class AOWidget(QtWidgets.QWidget):
         self.QSpinBox_spacing = cw.spinbox_widget(0, 64, 1, 26)
         self.Label_radius = cw.label_widget(str('Radius'))
         self.QSpinBox_radius = cw.spinbox_widget(0, 64, 1, 12)
-        # self.button_shwfs_setparamters = cw.pushbutton_widget('Set\nParameters')
         Layout_parameters.addWidget(self.Label_base, 0, 0, 1, 1)
         Layout_parameters.addWidget(self.Label_base_xcenter, 1, 0, 1, 1)
         Layout_parameters.addWidget(self.QSpinBox_base_xcenter, 1, 1, 1, 1)
@@ -97,15 +95,13 @@ class AOWidget(QtWidgets.QWidget):
         Layout_parameters.addWidget(self.QSpinBox_spacing, 5, 1, 1, 1)
         Layout_parameters.addWidget(self.Label_radius, 4, 2, 1, 1)
         Layout_parameters.addWidget(self.QSpinBox_radius, 5, 2, 1, 1)
-        # Layout_parameters.addWidget(self.button_shwfs_setparamters, 4, 3, 2, 1)
         Group_parameters.setLayout(Layout_parameters)
 
         Layout_commands = QtWidgets.QGridLayout()
         self.button_shwfs_initiate = cw.pushbutton_widget('Initiate WFS')
         self.button_wfsstart = cw.pushbutton_widget('SHStart')
         self.button_wfsstop = cw.pushbutton_widget('SHStop')
-        self.button_run_wfr = cw.pushbutton_widget('RunWF')
-        self.button_stop_wfr = cw.pushbutton_widget('StopWF')
+        self.button_run_wfr = cw.pushbutton_widget('RunWFR')
         self.button_shwfs_computewf = cw.pushbutton_widget('ComputeWF')
         self.button_shwfs_correctwf = cw.pushbutton_widget('CorrectWF')
         self.button_shwfs_savewf = cw.pushbutton_widget('SaveWF')
@@ -114,7 +110,6 @@ class AOWidget(QtWidgets.QWidget):
         Layout_commands.addWidget(self.button_wfsstart, 0, 1, 1, 1)
         Layout_commands.addWidget(self.button_wfsstop, 0, 2, 1, 1)
         Layout_commands.addWidget(self.button_run_wfr, 1, 0, 1, 1)
-        Layout_commands.addWidget(self.button_stop_wfr, 1, 1, 1, 1)
         Layout_commands.addWidget(self.radioButton_exclude_zm, 2, 0, 1, 1)
         Layout_commands.addWidget(self.button_shwfs_computewf, 2, 1, 1, 1)
         Layout_commands.addWidget(self.button_shwfs_correctwf, 2, 2, 1, 1)
@@ -215,7 +210,6 @@ class AOWidget(QtWidgets.QWidget):
         self.button_set_zernike_mode.clicked.connect(self.Signal_set_zernike.emit)
         self.button_setDM.clicked.connect(self.Signal_set_dm.emit)
         self.button_run_wfr.clicked.connect(self.Signal_shwfs_run.emit)
-        self.button_stop_wfr.clicked.connect(self.Signal_shwfs_stop.emit)
         self.button_influence_fuction_laser.clicked.connect(self.Signal_influence_function.emit)
         self.button_sensorlessAO_run.clicked.connect(self.Signal_sensorlessAO_run.emit)
         self.button_manual_ao.clicked.connect(self.Signal_manual_ao.emit)
@@ -238,10 +232,10 @@ class AOWidget(QtWidgets.QWidget):
             self.Signal_load_dm.emit(file)
 
 
-import sys
-
-if __name__ == '__main__':
-    app = QtWidgets.QApplication(sys.argv)
-    window = AOWidget()
-    window.show()
-    sys.exit(app.exec_())
+# import sys
+#
+# if __name__ == '__main__':
+#     app = QtWidgets.QApplication(sys.argv)
+#     window = AOWidget()
+#     window.show()
+#     sys.exit(app.exec_())
