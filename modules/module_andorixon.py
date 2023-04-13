@@ -49,6 +49,8 @@ class EMCCDCamera:
                 print(atmcd_errors.Error_Codes(self.ret))
 
             self.ps = 13  # micron
+        else:
+            print('AndorEMCCD is not initiated')
 
     def shutdown(self):
         self.ret = self.sdk.ShutDown()

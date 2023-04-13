@@ -9,7 +9,8 @@ class AOController:
     def getparameters(self):
         return self.view.QSpinBox_base_xcenter.value(), self.view.QSpinBox_base_ycenter.value(), \
             self.view.QSpinBox_offset_xcenter.value(), self.view.QSpinBox_offset_ycenter.value(), \
-            self.view.QSpinBox_diamter.value(), self.view.QSpinBox_radius.value(), self.view.QSpinBox_spacing.value()
+            self.view.QSpinBox_n_lenslets_x.value(), self.view.QSpinBox_n_lenslets_y.value(), \
+            self.view.QSpinBox_spacing.value(), self.view.QSpinBox_radius.value()
 
     def getacturator(self):
         return self.view.QSpinBox_actuator.value(), self.view.QDoubleSpinBox_actuator_push.value()

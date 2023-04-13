@@ -90,22 +90,23 @@ class MainController:
         self.view.getControlWidget().Signal_save_file.connect(self.save_data)
         self.view.getPlotWidget().Signal_plot_static.connect(self.profile_plot)
         self.view.getPlotWidget().Signal_plot_update.connect(self.profile_update)
+        # DM
+        self.view.getAOWidget().Signal_push_actuator.connect(self.push_actuator)
+        self.view.getAOWidget().Signal_influence_function.connect(self.influence_function)
+        # self.view.getAOWidget().Signal_set_zernike.connect(self.set_zernike)
+        self.view.getAOWidget().Signal_set_dm.connect(self.set_dm)
+        self.view.getAOWidget().Signal_load_dm.connect(self.load_dm)
+        self.view.getAOWidget().Signal_update_cmd.connect(self.update_dm)
+        self.view.getAOWidget().Signal_save_dm.connect(self.save_dm)
         # AO
         self.view.getAOWidget().Signal_shwfs_initiate.connect(self.initiate_wfs)
         self.view.getAOWidget().Signal_wfs_start.connect(self.start_wfs)
         self.view.getAOWidget().Signal_wfs_stop.connect(self.stop_wfs)
         self.view.getAOWidget().Signal_shwfs_run.connect(self.run_wfr)
         self.view.getAOWidget().Signal_shwfs_savewf.connect(self.save_wf)
-        self.view.getAOWidget().Signal_influence_function.connect(self.influence_function)
+        self.view.getAOWidget().Signal_shwfs_correctwf.connect(self.correct_wf)
         self.view.getAOWidget().Signal_sensorlessAO_run.connect(self.ao_optimize)
-        self.view.getAOWidget().Signal_manual_ao.connect(self.manual_correct)
-        # DM
-        self.view.getAOWidget().Signal_push_actuator.connect(self.push_actuator)
-        # self.view.getAOWidget().Signal_set_zernike.connect(self.set_zernike)
-        self.view.getAOWidget().Signal_set_dm.connect(self.set_dm)
-        # self.view.getAOWidget().Signal_flat_dm.connect(self.reset_dm_flat)
-        self.view.getAOWidget().Signal_load_dm.connect(self.load_dm)
-        self.view.getAOWidget().Signal_save_dm.connect(self.save_dm)
+
 
         temperature = self.om.cam.get_ccd_temperature()
         self.con_controller.display_camera_temperature(temperature)
@@ -405,16 +406,6 @@ class MainController:
         self.view_controller.plot_main(self.p.bsrecon.final_image)
         print('Data saved')
 
-    def load_dm(self, filename):
-        self.p.shwfsr._dm_cmd.append(self.p.shwfsr._read_cmd(filename))
-        self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
-        print('New DM cmd loaded')
-
-    def save_dm(self):
-        t = time.strftime("%Y%m%d_%H%M%S_")
-        self.p.shwfsr._write_cmd(self.path, t, flatfile=False)
-        print('DM cmd saved')
-
     def push_actuator(self):
         n, a = self.ao_controller.getacturator()
         values = [0.] * self.om.dm.nbAct
@@ -426,19 +417,157 @@ class MainController:
         values = 0
         self.om.dm.SetDM(values + self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
 
-    def manual_correct(self):
-        indz, amp = self.ao_controller.getzernikemode()
-        values = 0
-        self.p.shwfsr._dm_cmd.append(values + self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
-        self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
-
     def set_dm(self):
         i = int(self.ao_controller.get_cmd_index())
         self.om.dm.SetDM(self.p.shwfsr._dm_cmd[i])
         self.p.shwfsr.current_cmd = i
 
-    def correct_wf(self):
+    def update_dm(self):
+        self.p.shwfsr._dm_cmd.append(self.p.shwfsr._temp_cmd[-1])
         self.ao_controller.update_cmd_index()
+        self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
+
+    def load_dm(self, filename):
+        self.p.shwfsr._dm_cmd.append(self.p.shwfsr._read_cmd(filename))
+        self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
+        print('New DM cmd loaded')
+
+    def save_dm(self):
+        t = time.strftime("%Y%m%d_%H%M%S_")
+        self.p.shwfsr._write_cmd(self.path, t, flatfile=False)
+        print('DM cmd saved')
+
+    def set_shcam(self):
+        expo = self.ao_controller.getexposuretime()
+        # self.om.tiscam.setPropertyValue('exposure', expo)
+        # self.om.thocam.set_exposure(expo)
+        # self.om.hacam.setPropertyValue('', )
+        self.om.hacam.setPropertyValue('exposure_time', expo)
+
+    def set_wfs(self):
+        parameters = self.ao_controller.getparameters()
+        self.p.shwfsr.update_parameters(parameters)
+        print('SHWFS parameter updated')
+
+    def initiate_wfs(self):
+        self.set_shcam()
+        self.set_wfs()
+        # self.om.tiscam.prepare_live()
+        # self.om.tiscam.start_live()
+        # self.p.shwfsr.base = self.om.tiscam.grabFrame()
+        # self.p.shwfsr.base = self.om.thocam.snap_image()
+        self.om.hacam.startAcquisition()
+        time.sleep(0.2)
+        self.p.shwfsr.base = self.om.hacam.getFrames(verbose=True, avg=True)
+        self.view_controller.plot_sh(self.p.shwfsr.base)
+        print('wfs base set')
+        # self.om.tiscam.stop_live()
+        self.om.hacam.stopAcquisition()
+
+    def imshow_wfs(self):
+        # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
+        # self.p.shwfsr.offset = self.om.thocam.get_last_image()
+        self.view_controller.plot_sh(self.om.hacam.getLastFrame())
+
+    def start_wfs(self):
+        # self.om.tiscam.prepare_live()
+        # self.om.tiscam.start_live()
+        # self.om.thocam.start_acquire()
+        self.om.hacam.startAcquisition()
+        time.sleep(0.05)
+        self.thread_wfs.start()
+
+    def stop_wfs(self):
+        self.thread_wfs.quit()
+        self.thread_wfs.wait()
+        # self.om.tiscam.stop_live()
+        # self.om.thocam.stop_acquire()
+        self.om.hacam.stopAcquisition()
+
+    def run_wfr(self):
+        self.p.shwfsr.wavefront_reconstruction(self.p.shwfsr.base, self.om.hacam.getLastFrame())
+        self.view_controller.plot_wf(self.p.shwfsr.wf)
+
+    def save_wf(self):
+        t = time.strftime("%Y%m%d_%H%M%S_")
+        slideName = self.ao_controller.get_file_name()
+        try:
+            # tf.imwrite(self.path + '/' + t + slideName + '_shimg_raw.tif', self.om.tiscam.grabFrame())
+            # tf.imwrite(self.path + '/' + t + slideName + '_shimg_raw.tif', self.om.thocam.img)
+            tf.imwrite(self.path + '/' + t + slideName + '_shimg_base_raw.tif', self.p.shwfsr.base)
+        except ValueError:
+            print("NO SH Image")
+        # try:
+        #     tf.imwrite(self.path + '/' + t + slideName + '_shimg_processed.tif', self.p.shwfsr.im)
+        # except ValueError:
+        #     print("NO SH Image")
+        # try:
+        #     tf.imwrite(self.path + '/' + t + slideName + '_reconstruted_wf.tif', self.p.shwfsr.wf)
+        # except ValueError:
+        #     print("NO WF Image")
+        # print('Data saved')
+
+    def correct_wf(self):
+        self.set_shcam()
+        self.set_wfs()
+        # self.om.tiscam.prepare_live()
+        # self.om.tiscam.start_live()
+        # self.p.shwfsr.base = self.om.tiscam.grabFrame()
+        # self.p.shwfsr.base = self.om.thocam.snap_image()
+        self.om.hacam.startAcquisition()
+        time.sleep(0.2)
+        self.p.shwfsr.get_correction(self.om.hacam.getLastFrame())
+        self.p.shwfsr.correct_cmd()
+        self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
+        self.ao_controller.update_cmd_index()
+        self.p.shwfsr.wavefront_reconstruction(self.p.shwfsr.base, self.om.hacam.getLastFrame())
+        self.view_controller.plot_wf(self.p.shwfsr.wf)
+        self.om.hacam.stopAcquisition()
+
+    def influence_function(self):
+        t = time.strftime("%Y%m%d_%H%M%S")
+        newfold = self.path + '/' + t + '_influence_function' + '/'
+        try:
+            os.mkdir(newfold)
+        except:
+            print('Directory already exists')
+        n, amp = self.ao_controller.getacturator()
+        self.set_shcam()
+        # self.om.tiscam.start_live()
+        self.om.hacam.startAcquisition()
+        for i in range(self.om.dm.nbAct):
+            shimg = []
+            print(i)
+            values = [0.] * self.om.dm.nbAct
+            self.om.dm.SetDM(values)
+            time.sleep(0.05)
+            # self.p.shwfsr.base = self.om.tiscam.grabFrame()
+            # self.p.shwfsr.base = self.om.thocam.snap_image()
+            shimg.append(self.om.hacam.getLastFrame())
+            values[i] = amp
+            self.om.dm.SetDM(values)
+            time.sleep(0.05)
+            # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
+            # self.p.shwfsr.offset = self.om.thocam.snap_image()
+            shimg.append(self.om.hacam.getLastFrame())
+            values = [0.] * self.om.dm.nbAct
+            self.om.dm.SetDM(values)
+            time.sleep(0.05)
+            # self.p.shwfsr.base = self.om.tiscam.grabFrame()
+            # self.p.shwfsr.base = self.om.thocam.snap_image()
+            shimg.append(self.om.hacam.getLastFrame())
+            values[i] = - amp
+            self.om.dm.SetDM(values)
+            time.sleep(0.05)
+            # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
+            # self.p.shwfsr.offset = self.om.thocam.snap_image()
+            shimg.append(self.om.hacam.getLastFrame())
+            tf.imwrite(newfold + t + '_actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
+        self.om.hacam.stopAcquisition()
+        # self.om.tiscam.stop_live()
+        influfunc = self.p.shwfsr._generate_influence_matrix(newfold)
+        ctrlmat = self.p.shwfsr._get_control_matrix(influfunc)
+        tf.imwrite(newfold + t + '_control_matrix.tif', ctrlmat)
 
     def generate_digital_trigger_ao(self):
         sample_rate = 100000
@@ -531,118 +660,6 @@ class MainController:
         tf.imwrite(fn, self.om.cam.data)
         # self.om.dm.writeDMfile(newfold, t, self.p.shwfsr.cmd_best, self.p.shwfsr.mod, self.p.shwfsr.zmv, results)
         self.stop_ao_iteration()
-
-    def set_shcam(self):
-        expo = self.ao_controller.getexposuretime()
-        # self.om.tiscam.setPropertyValue('exposure', expo)
-        # self.om.thocam.set_exposure(expo)
-        # self.om.hacam.setPropertyValue('', )
-        self.om.hacam.setPropertyValue('exposure_time', expo)
-
-    def set_wfs(self):
-        parameters = self.ao_controller.getparameters()
-        self.p.shwfsr._update_parameters(parameters)
-        print('SHWFS parameter updated')
-
-    def initiate_wfs(self):
-        self.set_shcam()
-        self.set_wfs()
-        # self.om.tiscam.prepare_live()
-        # self.om.tiscam.start_live()
-        # self.p.shwfsr.base = self.om.tiscam.grabFrame()
-        # self.p.shwfsr.base = self.om.thocam.snap_image()
-        self.om.hacam.startAcquisition()
-        time.sleep(0.2)
-        self.p.shwfsr.base = self.om.hacam.getFrames(verbose=True, avg=True)
-        self.view_controller.plot_sh(self.p.shwfsr.base)
-        print('wfs base set')
-        # self.om.tiscam.stop_live()
-        self.om.hacam.stopAcquisition()
-
-    def save_wf(self):
-        t = time.strftime("%Y%m%d_%H%M%S_")
-        slideName = self.ao_controller.get_file_name()
-        try:
-            # tf.imwrite(self.path + '/' + t + slideName + '_shimg_raw.tif', self.om.tiscam.grabFrame())
-            # tf.imwrite(self.path + '/' + t + slideName + '_shimg_raw.tif', self.om.thocam.img)
-            tf.imwrite(self.path + '/' + t + slideName + '_shimg_base_raw.tif', self.p.shwfsr.base)
-        except ValueError:
-            print("NO SH Image")
-        try:
-            tf.imwrite(self.path + '/' + t + slideName + '_shimg_processed.tif', self.p.shwfsr.im)
-        except ValueError:
-            print("NO SH Image")
-        try:
-            tf.imwrite(self.path + '/' + t + slideName + '_reconstruted_wf.tif', self.p.shwfsr.wf)
-        except ValueError:
-            print("NO WF Image")
-        print('Data saved')
-
-    def imshow_wfs(self):
-        # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
-        # self.p.shwfsr.offset = self.om.thocam.get_last_image()
-        self.view_controller.plot_sh(self.om.hacam.getLastFrame())
-
-    def run_wfr(self):
-        self.p.shwfsr._wavefront_reconstruction(self.p.shwfsr.base, self.om.hacam.getLastFrame())
-        self.view_controller.plot_wf(self.p.shwfsr.wf)
-
-    def start_wfs(self):
-        # self.om.tiscam.prepare_live()
-        # self.om.tiscam.start_live()
-        # self.om.thocam.start_acquire()
-        self.om.hacam.startAcquisition()
-        time.sleep(0.05)
-        self.thread_wfs.start()
-
-    def stop_wfs(self):
-        self.thread_wfs.quit()
-        self.thread_wfs.wait()
-        # self.om.tiscam.stop_live()
-        # self.om.thocam.stop_acquire()
-        self.om.hacam.stopAcquisition()
-
-    def influence_function(self):
-        t = time.strftime("%Y%m%d_%H%M%S")
-        newfold = self.path + '/' + t + '_influence_function' + '/'
-        try:
-            os.mkdir(newfold)
-        except:
-            print('Directory already exists')
-        n, amp = self.ao_controller.getacturator()
-        self.set_shcam()
-        # self.om.tiscam.start_live()
-        self.om.hacam.startAcquisition()
-        for i in range(self.om.dm.nbAct):
-            shimg = []
-            print(i)
-            values = [0.] * self.om.dm.nbAct
-            self.om.dm.SetDM(values)
-            time.sleep(0.05)
-            # self.p.shwfsr.base = self.om.tiscam.grabFrame()
-            # self.p.shwfsr.base = self.om.thocam.snap_image()
-            shimg.append(self.om.hacam.getLastFrame())
-            values[i] = amp
-            self.om.dm.SetDM(values)
-            time.sleep(0.05)
-            # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
-            # self.p.shwfsr.offset = self.om.thocam.snap_image()
-            shimg.append(self.om.hacam.getLastFrame())
-            values = [0.] * self.om.dm.nbAct
-            self.om.dm.SetDM(values)
-            time.sleep(0.05)
-            # self.p.shwfsr.base = self.om.tiscam.grabFrame()
-            # self.p.shwfsr.base = self.om.thocam.snap_image()
-            shimg.append(self.om.hacam.getLastFrame())
-            values[i] = - amp
-            self.om.dm.SetDM(values)
-            time.sleep(0.05)
-            # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
-            # self.p.shwfsr.offset = self.om.thocam.snap_image()
-            shimg.append(self.om.hacam.getLastFrame())
-            tf.imwrite(newfold + t + '_actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
-        self.om.hacam.stopAcquisition()
-        # self.om.tiscam.stop_live()
 
 
 class VideoWorker(QtCore.QObject):
