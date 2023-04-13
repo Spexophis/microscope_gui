@@ -107,7 +107,6 @@ class MainController:
         self.view.getAOWidget().Signal_shwfs_correctwf.connect(self.correct_wf)
         self.view.getAOWidget().Signal_sensorlessAO_run.connect(self.ao_optimize)
 
-
         temperature = self.om.cam.get_ccd_temperature()
         self.con_controller.display_camera_temperature(temperature)
         p = self.om.md.getPositionStepsTakenAxis(3)
@@ -486,7 +485,8 @@ class MainController:
 
     def run_wfr(self):
         self.p.shwfsr.offset = self.om.hacam.getLastFrame()
-        self.p.shwfsr.wavefront_reconstruction(self.p.shwfsr.base, self.p.shwfsr.offset, self.ao_controller.get_gradient_method())
+        self.p.shwfsr.wavefront_reconstruction(self.p.shwfsr.base, self.p.shwfsr.offset,
+                                               self.ao_controller.get_gradient_method())
         self.view_controller.plot_wf(self.p.shwfsr.wf)
         self.ao_controller.display_wf_properties(self.p.imgprocess.wf_properties(self.p.shwfsr.wf))
 
@@ -523,6 +523,8 @@ class MainController:
         self.p.shwfsr.correct_cmd()
         self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
         self.ao_controller.update_cmd_index()
+        i = int(self.ao_controller.get_cmd_index())
+        self.p.shwfsr.current_cmd = i
         self.run_wfr()
         self.om.hacam.stopAcquisition()
 
@@ -609,12 +611,13 @@ class MainController:
         results = [('Mode', 'Amp', 'Metric')]
         dt = []
         amprange = []
+        self.p.shwfsr._dm_cmd.append(self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
         self.start_ao_iteration()
         self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
         time.sleep(0.1)
         self.om.cam.single_acquisition()
         self.om.daq.Trig_run()
-        time.sleep(0.04)
+        time.sleep(0.1)
         self.om.cam.get_acquired_image()
         fn = os.path.join(newfold, 'original.tif')
         tf.imwrite(fn, self.om.cam.data)
@@ -623,12 +626,12 @@ class MainController:
             for stnm in range(amp_step_number):
                 amp = amp_start + stnm * amp_step
                 amprange.append(amp)
-                values = 0 # self.p.shwfsr.get_zernike(mode, amp)
-                self.om.dm.SetDM(values + self.p.shwfsr._dm_cmd[-1])
+                self.om.dm.SetDM(
+                    self.p.shwfsr.get_zernike_cmd(mode, amp) + self.p.shwfsr._dm_cmd[-1])
                 time.sleep(0.1)
                 self.om.cam.single_acquisition()
                 self.om.daq.Trig_run()
-                time.sleep(0.04)
+                time.sleep(0.1)
                 self.om.cam.get_acquired_image()
                 fn = "zm%0.2d_amp%.4f" % (mode, amp)
                 fn1 = os.path.join(newfold, fn + '.tif')
@@ -640,15 +643,13 @@ class MainController:
                 if mindex == 2:
                     dt.append(self.p.imgprocess.hpf(self.om.cam.data, hpr))
                 results.append((mode, amp, dt[stnm]))
-                print('----------------', stnm, amp, dt[stnm])
+                print('--', stnm, amp, dt[stnm])
                 self.om.daq.Trig_stop()
             pmax = self.p.imgprocess.peak(amprange, dt)
             if pmax != 0.0:
                 self.p.shwfsr.zmv[mode] += pmax
-                print('----------------setting mode %d at value of %.4f----' % (mode, pmax))
-                values = 0. # self.p.shwfsr.get_zernike(mode, pmax)
-                for i in range(97):
-                    self.p.shwfsr._dm_cmd[-1][i] = self.p.shwfsr._dm_cmd[-1][i] + values[i]
+                print('--setting mode %d at value of %.4f--' % (mode, pmax))
+                self.p.shwfsr.get_zernike_cmd(mode, pmax) + self.p.shwfsr._dm_cmd[-1]
                 self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
             else:
                 print('----------------mode %d value equals %.4f----' % (mode, pmax))
@@ -656,7 +657,7 @@ class MainController:
         time.sleep(0.1)
         self.om.cam.single_acquisition()
         self.om.daq.Trig_run()
-        time.sleep(0.04)
+        time.sleep(0.1)
         self.om.cam.get_acquired_image()
         fn = os.path.join(newfold, 'final.tif')
         tf.imwrite(fn, self.om.cam.data)
