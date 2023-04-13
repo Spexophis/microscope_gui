@@ -299,6 +299,10 @@ class WavefrontSensing:
         _c = np.asarray(self._dm_cmd[self.current_cmd]) + np.asarray(self._correction[-1])
         self._dm_cmd.append(list(_c))
 
+    def get_zernike_cmd(self, j, a):
+        zerphs = a * self.zernike[j]
+        return list(np.dot(control_matrix_wavefront, zerphs.reshape(self._n_lenslets)))
+
     def _read_cmd(self, fnd):
         df = pd.read_excel(fnd)
         return df['Push'].tolist()

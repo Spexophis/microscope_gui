@@ -93,7 +93,7 @@ class MainController:
         # DM
         self.view.getAOWidget().Signal_push_actuator.connect(self.push_actuator)
         self.view.getAOWidget().Signal_influence_function.connect(self.influence_function)
-        # self.view.getAOWidget().Signal_set_zernike.connect(self.set_zernike)
+        self.view.getAOWidget().Signal_set_zernike.connect(self.set_zernike)
         self.view.getAOWidget().Signal_set_dm.connect(self.set_dm)
         self.view.getAOWidget().Signal_load_dm.connect(self.load_dm)
         self.view.getAOWidget().Signal_update_cmd.connect(self.update_dm)
@@ -414,8 +414,7 @@ class MainController:
 
     def set_zernike(self):
         indz, amp = self.ao_controller.get_zernike_mode()
-        values = 0
-        self.om.dm.SetDM(values + self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
+        self.om.dm.SetDM(self.p.shwfsr.get_zernike_cmd(indz, amp) + self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
 
     def set_dm(self):
         i = int(self.ao_controller.get_cmd_index())
