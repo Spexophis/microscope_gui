@@ -90,7 +90,7 @@ class WavefrontSensing:
         msk = self._elliptical_mask((self._n_lenslets_y / 2, self._n_lenslets_x / 2),
                                     (self._n_lenslets_y + 2, self._n_lenslets_x + 2))
         phicorr = phicorr * msk
-        self.wf = phicorr[1:1 + self._n_lenslets_y, 1:1 + self._n_lenslets_x]
+        return phicorr[1:1 + self._n_lenslets_y, 1:1 + self._n_lenslets_x]
 
     def _get_gradient_xy(self, base, offset):
         """ Determines Gradients by Correlating each section with its base reference section"""
@@ -227,8 +227,10 @@ class WavefrontSensing:
             grady = self.CorrCenter[1]
         return grady, gradx
 
-    def generate_influence_matrix(self, data_folder, method='zonal'):
-        if method == 'zonal':
+    def generate_influence_matrix(self, data_folder, method='wavefront'):
+        if method == 'wavefront':
+            _influence_matrix = np.zeros((self._n_lenslets, self._n_actuators))
+        elif method == 'zonal':
             _influence_matrix = np.zeros((2 * self._n_lenslets, self._n_actuators))
         elif method == 'modal':
             _influence_matrix = np.zeros((self._n_zernikes, self._n_actuators))
@@ -244,30 +246,39 @@ class WavefrontSensing:
                 n, x, y = data_stack.shape
                 if n != 4:
                     raise "The image number has to be 4"
-                gdxp, gdyp = self._get_gradient_xy(data_stack[0], data_stack[1])
-                gdxn, gdyn = self._get_gradient_xy(data_stack[2], data_stack[3])
-                if method == 'zonal':
-                    _influence_matrix[:self._n_lenslets, ind] = ((gdxp - gdxn) / self.amp).reshape(self._n_lenslets)
-                    _influence_matrix[self._n_lenslets:, ind] = ((gdyp - gdyn) / self.amp).reshape(self._n_lenslets)
-                if method == 'modal':
-                    a1 = self._zernike_coefficients(np.concatenate((gdxp.flatten(), gdyp.flatten())), self.zslopes)
-                    a2 = self._zernike_coefficients(np.concatenate((gdxn.flatten(), gdyn.flatten())), self.zslopes)
-                    _influence_matrix[:, ind] = ((a1 - a2) / self.amp).flatten()
+                if method == 'wavefront':
+                    wfp = self.wavefront_reconstruction(data_stack[0], data_stack[1])
+                    wfn = self.wavefront_reconstruction(data_stack[2], data_stack[3])
+                    _influence_matrix[:, ind] = ((wfp - wfn) / self.amp).reshape(self._n_lenslets)
+                else:
+                    gdxp, gdyp = self._get_gradient_xy(data_stack[0], data_stack[1])
+                    gdxn, gdyn = self._get_gradient_xy(data_stack[2], data_stack[3])
+                    if method == 'zonal':
+                        _influence_matrix[:self._n_lenslets, ind] = ((gdxp - gdxn) / self.amp).reshape(self._n_lenslets)
+                        _influence_matrix[self._n_lenslets:, ind] = ((gdyp - gdyn) / self.amp).reshape(self._n_lenslets)
+                    if method == 'modal':
+                        a1 = self._zernike_coefficients(np.concatenate((gdxp.flatten(), gdyp.flatten())), self.zslopes)
+                        a2 = self._zernike_coefficients(np.concatenate((gdxn.flatten(), gdyn.flatten())), self.zslopes)
+                        _influence_matrix[:, ind] = ((a1 - a2) / self.amp).flatten()
         return _influence_matrix
 
-    def get_control_matrix(self, influence_matrix, n=52):
+    def get_control_matrix(self, influence_matrix, n=51):
         return self._pseudo_inverse(influence_matrix, n=n)
 
-    def get_correction(self, measurement, method='zonal'):
-        gradx, grady = self._get_gradient_xy(self.base, measurement)
-        _measurement = np.concatenate((gradx.reshape(self._n_lenslets), grady.reshape(self._n_lenslets)))
-        if method == 'zonal':
-            self._correction.append(list(np.dot(control_matrix_zonal, _measurement)))
-        elif method == 'modal':
-            a = self._zernike_coefficients(_measurement, self.zslopes)
-            self._correction.append(list(np.dot(control_matrix_modal, a)))
+    def get_correction(self, measurement, method='wavefront'):
+        if method == 'wavefront':
+            mwf = self.wavefront_reconstruction(self.base, measurement)
+            self._correction.append(list(np.dot(control_matrix_zonal, mwf.reshape(self._n_lenslets))))
         else:
-            raise ValueError("Invalid method")
+            gradx, grady = self._get_gradient_xy(self.base, measurement)
+            _measurement = np.concatenate((gradx.reshape(self._n_lenslets), grady.reshape(self._n_lenslets)))
+            if method == 'zonal':
+                self._correction.append(list(np.dot(control_matrix_zonal, _measurement)))
+            elif method == 'modal':
+                a = self._zernike_coefficients(_measurement, self.zslopes)
+                self._correction.append(list(np.dot(control_matrix_modal, a)))
+            else:
+                raise ValueError("Invalid method")
 
     def correct_cmd(self):
         _c = np.asarray(self._dm_cmd[self.current_cmd]) + np.asarray(self._correction[-1])
