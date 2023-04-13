@@ -6,15 +6,17 @@ import pandas as pd
 import tifffile as tf
 from scipy.signal import fftconvolve as corr
 from scipy.special import factorial
+from skimage.filters import threshold_otsu
 
 fft2 = np.fft.fft2
 ifft2 = np.fft.ifft2
 fftshift = np.fft.fftshift
 pi = np.pi
 
+control_matrix_wavefront = tf.imread(
+    r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_wavefront_20230413_1125.tif')
 control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_20230413_1125.tif')
 control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230407_2027.tif')
-
 initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\20230411_2047_flatfile.xlsx'
 
 
@@ -80,7 +82,7 @@ class WavefrontSensing:
             zernike[j, :, :] = msk * self._zernike(n, m, rho, phi)
         return self._gs_orthogonalisation(zernike)
 
-    def wavefront_reconstruction(self, base, offset):
+    def wavefront_reconstruction(self, base, offset, rt=False):
         gradx, grady = self._get_gradient_xy(base, offset)
         gradx = np.pad(gradx, ((1, 1), (1, 1)), 'constant')
         grady = np.pad(grady, ((1, 1), (1, 1)), 'constant')
@@ -90,9 +92,11 @@ class WavefrontSensing:
         msk = self._elliptical_mask((self._n_lenslets_y / 2, self._n_lenslets_x / 2),
                                     (self._n_lenslets_y + 2, self._n_lenslets_x + 2))
         phicorr = phicorr * msk
-        return phicorr[1:1 + self._n_lenslets_y, 1:1 + self._n_lenslets_x]
+        self.wf = phicorr[1:1 + self._n_lenslets_y, 1:1 + self._n_lenslets_x]
+        if rt:
+            return self.wf
 
-    def _get_gradient_xy(self, base, offset):
+    def _get_gradient_xy(self, base, offset, md='correlation'):
         """ Determines Gradients by Correlating each section with its base reference section"""
         nx = self._n_lenslets_x
         ny = self._n_lenslets_y
@@ -103,8 +107,8 @@ class WavefrontSensing:
         left_base = self.x_center_base - rx * self._lenslet_spacing
         bot_offset = self.y_center_offset - ry * self._lenslet_spacing
         left_offset = self.x_center_offset - rx * self._lenslet_spacing
-        base = base - base.min()
-        offset = offset - offset.min()
+        base = self._sub_back(base, 1.)
+        offset = self._sub_back(offset, 1.)
         self.im = np.zeros((2, 2 * self.hsp * ny, 2 * self.hsp * nx))
         gradx = np.zeros((ny, nx))
         grady = np.zeros((ny, nx))
@@ -118,12 +122,12 @@ class WavefrontSensing:
                 sec = offset[(vert_offset - hsp):(vert_offset + hsp), (horiz_offset - hsp):(horiz_offset + hsp)]
                 self.im[0, iy * 2 * hsp: (iy + 1) * 2 * hsp, ix * 2 * hsp: (ix + 1) * 2 * hsp] = secbase
                 self.im[1, iy * 2 * hsp: (iy + 1) * 2 * hsp, ix * 2 * hsp: (ix + 1) * 2 * hsp] = sec
-                if self.md == 'correlation':
+                if md == 'correlation':
                     seccorr = corr(1.0 * secbase, 1.0 * sec[::-1, ::-1], mode='full')
                     py, px = self._parabolicfit(seccorr)
                     gradx[iy, ix] = (self.CorrCenter[1] - px) * self.calfactor
                     grady[iy, ix] = (self.CorrCenter[0] - py) * self.calfactor
-                elif self.md == 'centerofmass':
+                elif md == 'centerofmass':
                     sy, sx = self._center_of_mass(secbase)
                     py, px = self._center_of_mass(sec)
                     gradx[iy, ix] = (px - sx) * self.calfactor
@@ -227,6 +231,12 @@ class WavefrontSensing:
             grady = self.CorrCenter[1]
         return grady, gradx
 
+    @staticmethod
+    def _sub_back(img, factor):
+        thresh = factor * threshold_otsu(img)
+        binary = img > thresh
+        return (img - thresh) * binary
+
     def generate_influence_matrix(self, data_folder, method='wavefront'):
         if method == 'wavefront':
             _influence_matrix = np.zeros((self._n_lenslets, self._n_actuators))
@@ -247,9 +257,13 @@ class WavefrontSensing:
                 if n != 4:
                     raise "The image number has to be 4"
                 if method == 'wavefront':
-                    wfp = self.wavefront_reconstruction(data_stack[0], data_stack[1])
-                    wfn = self.wavefront_reconstruction(data_stack[2], data_stack[3])
-                    _influence_matrix[:, ind] = ((wfp - wfn) / self.amp).reshape(self._n_lenslets)
+                    wfp = self.wavefront_reconstruction(data_stack[0], data_stack[1], rt=True)
+                    # wfn = self.wavefront_reconstruction(data_stack[2], data_stack[3], rt=True)
+                    # _influence_matrix[:, ind] = ((wfp - wfn) / self.amp).reshape(self._n_lenslets)
+                    msk = (wfp != 0.0).astype(np.float32)
+                    mn = wfp.sum() / msk.sum()
+                    wfp = msk * (wfp - mn)
+                    _influence_matrix[:, ind] = (wfp / (0.5 * self.amp)).reshape(self._n_lenslets)
                 else:
                     gdxp, gdyp = self._get_gradient_xy(data_stack[0], data_stack[1])
                     gdxn, gdyn = self._get_gradient_xy(data_stack[2], data_stack[3])
@@ -262,13 +276,14 @@ class WavefrontSensing:
                         _influence_matrix[:, ind] = ((a1 - a2) / self.amp).flatten()
         return _influence_matrix
 
-    def get_control_matrix(self, influence_matrix, n=51):
+    def get_control_matrix(self, influence_matrix, n=81):
         return self._pseudo_inverse(influence_matrix, n=n)
 
     def get_correction(self, measurement, method='wavefront'):
         if method == 'wavefront':
-            mwf = self.wavefront_reconstruction(self.base, measurement)
-            self._correction.append(list(np.dot(control_matrix_zonal, mwf.reshape(self._n_lenslets))))
+            mwf = self.wavefront_reconstruction(self.base, measurement, rt=True)
+            self._correction.append(
+                list(0.5 * self.amp * np.dot(control_matrix_wavefront, mwf.reshape(self._n_lenslets))))
         else:
             gradx, grady = self._get_gradient_xy(self.base, measurement)
             _measurement = np.concatenate((gradx.reshape(self._n_lenslets), grady.reshape(self._n_lenslets)))

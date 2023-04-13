@@ -14,6 +14,9 @@ class ImageProcessing:
         # self.dp = 1/(self.nx*self.dx) # pixel size in frequency space (pupil)
         # self.radius = (self.na/self.wl)/self.dp
 
+    def wf_properties(self, wf):
+        return wf.min(), wf.max(), self.rms(wf)
+
     def fourier_transform(self, data):
         return np.log(np.abs(np.fft.fftshift(np.fft.fft2(data))))
 
