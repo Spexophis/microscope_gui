@@ -1,9 +1,10 @@
 from PyQt5 import QtWidgets, QtCore
+
 from utilities import customized_widgets as cw
-from widgets import widget_con
-from widgets import widget_view
-from widgets import widget_plot
 from widgets import widget_ao
+from widgets import widget_con
+from widgets import widget_plot
+from widgets import widget_view
 
 
 class MainWidget(QtWidgets.QMainWindow):
@@ -24,11 +25,11 @@ class MainWidget(QtWidgets.QMainWindow):
         self.ao_view = widget_ao.AOWidget()
         self.plot_view = widget_plot.PlotWidget()
 
-        self.dock_con = QtWidgets.QDockWidget('Dockable', self)
+        self.dock_con = cw.dock_widget()
         self.dock_con.setWidget(self.con_view)
-        self.dock_plot = QtWidgets.QDockWidget('Dockable', self)
+        self.dock_plot = cw.dock_widget()
         self.dock_plot.setWidget(self.plot_view)
-        self.dock_ao = QtWidgets.QDockWidget('Dockable', self)
+        self.dock_ao = cw.dock_widget()
         self.dock_ao.setWidget(self.ao_view)
 
         # set the view for the main window
@@ -53,10 +54,10 @@ class MainWidget(QtWidgets.QMainWindow):
         return self.plot_view
 
 
-# import sys
-#
-# if __name__ == '__main__':
-#     app = QtWidgets.QApplication(sys.argv)
-#     gui = MainWidget()
-#     gui.show()
-#     sys.exit(app.exec_())
+import sys
+
+if __name__ == '__main__':
+    app = QtWidgets.QApplication(sys.argv)
+    gui = MainWidget()
+    gui.show()
+    sys.exit(app.exec_())

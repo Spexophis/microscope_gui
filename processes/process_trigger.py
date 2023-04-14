@@ -13,13 +13,13 @@ class TriggerSequence:
         self.return_time = 0.002
         self.convFactors = [10., 10., 10.]
         self.analog_start = 0.03
-        self.ttl_starts = [0.002, 0.007, 0.007, 0.012, 0.012]
-        self.ttl_ends = [0.004, 0.01, 0.01, 0.015, 0.015]
+        self.digital_starts = [0.002, 0.007, 0.007, 0.012]
+        self.digital_ends = [0.004, 0.01, 0.01, 0.015]
         self.bp_increase = BPoly.from_derivatives([0, 1], [[0., 0., 0.], [1., 0., 0.]])
         self.bp_decrease = BPoly.from_derivatives([0, 1], [[1., 0., 0.], [0., 0., 0.]])
 
     def updata_parameters(self, sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos, return_time,
-                          convFactors, analog_start, ttl_starts, ttl_ends):
+                          convFactors, analog_start, digital_starts, digital_ends):
         self.sequence_time = sequence_time
         self.sample_rate = sample_rate
         self.axis_lengths = axis_lengths
@@ -28,15 +28,15 @@ class TriggerSequence:
         self.return_time = return_time
         self.convFactors = convFactors
         self.analog_start = analog_start
-        self.ttl_starts = ttl_starts
-        self.ttl_ends = ttl_ends
+        self.digital_starts = digital_starts
+        self.digital_ends = digital_ends
 
     def generate_digital_triggers(self, l):
         cycle_samples = self.sequence_time * self.sample_rate
         cycle_samples = int(np.ceil(cycle_samples))
-        startSamp = int(np.round(self.ttl_starts[2] * self.sample_rate))
-        endSamp = int(np.round(self.ttl_ends[2] * self.sample_rate))
-        digital_trigger = np.zeros((len(self.ttl_starts), cycle_samples))
+        startSamp = int(np.round(self.digital_starts[2] * self.sample_rate))
+        endSamp = int(np.round(self.digital_ends[2] * self.sample_rate))
+        digital_trigger = np.zeros((len(self.digital_starts), cycle_samples))
         digital_trigger[l, startSamp:endSamp] = 1
         digital_trigger[4, startSamp:endSamp] = 1
         return digital_trigger
@@ -44,26 +44,26 @@ class TriggerSequence:
     def generate_digital_triggers_sw(self, l):
         cycle_samples = self.sequence_time * self.sample_rate
         cycle_samples = int(np.ceil(cycle_samples))
-        startSamp = int(np.round(self.ttl_starts[2] * self.sample_rate))
-        endSamp = int(np.round(self.ttl_ends[2] * self.sample_rate))
-        digital_trigger = np.zeros((len(self.ttl_starts), cycle_samples))
+        startSamp = int(np.round(self.digital_starts[2] * self.sample_rate))
+        endSamp = int(np.round(self.digital_ends[2] * self.sample_rate))
+        digital_trigger = np.zeros((len(self.digital_starts), cycle_samples))
         digital_trigger[l, startSamp:endSamp] = 1
         digital_trigger[4, startSamp:endSamp] = 1
-        startSamp = int(np.round(self.ttl_starts[0] * self.sample_rate))
-        endSamp = int(np.round(self.ttl_ends[0] * self.sample_rate))
+        startSamp = int(np.round(self.digital_starts[0] * self.sample_rate))
+        endSamp = int(np.round(self.digital_ends[0] * self.sample_rate))
         digital_trigger[0, startSamp:endSamp] = 1
         return digital_trigger
 
     def generate_digital_triggers_ao(self, l):
         cycle_samples = self.sequence_time * self.sample_rate
         cycle_samples = int(np.ceil(cycle_samples))
-        startSamp = int(np.round(self.ttl_starts[2] * self.sample_rate))
-        endSamp = int(np.round(self.ttl_ends[2] * self.sample_rate))
-        digital_trigger = np.zeros((len(self.ttl_starts), cycle_samples))
+        startSamp = int(np.round(self.digital_starts[2] * self.sample_rate))
+        endSamp = int(np.round(self.digital_ends[2] * self.sample_rate))
+        digital_trigger = np.zeros((len(self.digital_starts), cycle_samples))
         digital_trigger[l, startSamp:endSamp] = 1
         digital_trigger[4, startSamp:endSamp] = 1
-        startSamp = int(np.round(self.ttl_starts[0] * self.sample_rate))
-        endSamp = int(np.round(self.ttl_ends[0] * self.sample_rate))
+        startSamp = int(np.round(self.digital_starts[0] * self.sample_rate))
+        endSamp = int(np.round(self.digital_ends[0] * self.sample_rate))
         digital_trigger[0, startSamp:endSamp] = 1
         return digital_trigger
 
@@ -82,10 +82,10 @@ class TriggerSequence:
         positions = fast_axis_positions * middle_axis_positions
         # total_samples = ((cycle_samples * fast_axis_positions) + return_samples) * middle_axis_positions
 
-        for i, start in enumerate(self.ttl_starts):
+        for i, start in enumerate(self.digital_starts):
             temp = np.zeros(cycle_samples)
             startSamp = int(np.round(start * self.sample_rate))
-            endSamp = int(np.round(self.ttl_ends[i] * self.sample_rate))
+            endSamp = int(np.round(self.digital_ends[i] * self.sample_rate))
             temp[startSamp:endSamp] = 1
             digital_trigger_sequences.append(np.tile(temp, fast_axis_positions))
             digital_trigger_sequences[i] = np.append(digital_trigger_sequences[i], np.zeros(return_samples))
@@ -140,10 +140,10 @@ class TriggerSequence:
         slow_axis_positions = 1 + int(np.ceil(slow_axis_size / slow_axis_step_size))
         positions = fast_axis_positions * middle_axis_positions * slow_axis_positions
 
-        for i, start in enumerate(self.ttl_starts):
+        for i, start in enumerate(self.digital_starts):
             temp = np.zeros(cycle_samples)
             startSamp = int(np.round(start * self.sample_rate))
-            endSamp = int(np.round(self.ttl_ends[i] * self.sample_rate))
+            endSamp = int(np.round(self.digital_ends[i] * self.sample_rate))
             temp[startSamp:endSamp] = 1
             digital_trigger_sequences.append(np.tile(temp, fast_axis_positions))
             digital_trigger_sequences[i] = np.append(digital_trigger_sequences[i], np.zeros(return_samples))
@@ -204,10 +204,10 @@ class TriggerSequence:
         positions = fast_axis_positions * middle_axis_positions
         # total_samples = ((cycle_samples * fast_axis_positions) + return_samples) * middle_axis_positions
 
-        for i, start in enumerate(self.ttl_starts):
+        for i, start in enumerate(self.digital_starts):
             temp = np.zeros(cycle_samples)
             startSamp = int(np.round(start * self.sample_rate))
-            endSamp = int(np.round(self.ttl_ends[i] * self.sample_rate))
+            endSamp = int(np.round(self.digital_ends[i] * self.sample_rate))
             temp[startSamp:endSamp] = 1
             digital_trigger_sequences.append(np.tile(temp, fast_axis_positions))
             digital_trigger_sequences[i] = np.append(digital_trigger_sequences[i], np.zeros(return_samples))
@@ -263,10 +263,10 @@ class TriggerSequence:
         slow_axis_positions = 1 + int(np.ceil(slow_axis_size / slow_axis_step_size))
         positions = fast_axis_positions * middle_axis_positions * slow_axis_positions
 
-        for i, start in enumerate(self.ttl_starts):
+        for i, start in enumerate(self.digital_starts):
             temp = np.zeros(cycle_samples)
             startSamp = int(np.round(start * self.sample_rate))
-            endSamp = int(np.round(self.ttl_ends[i] * self.sample_rate))
+            endSamp = int(np.round(self.digital_ends[i] * self.sample_rate))
             temp[startSamp:endSamp] = 1
             digital_trigger_sequences.append(np.tile(temp, fast_axis_positions))
             digital_trigger_sequences[i] = np.append(digital_trigger_sequences[i], np.zeros(return_samples))

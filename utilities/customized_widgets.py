@@ -7,15 +7,44 @@ def toolbar_widget():
     toolbar.setStyleSheet('QToolBar {background-color: #2E2E2E; color: white;}')
     return toolbar
 
+
+def dock_widget(name=''):
+    dock = QtWidgets.QDockWidget(name)
+    dock.setStyleSheet('''
+        QDockWidget {
+            background-color: #222222;
+            font-weight: bold;
+            font-size: 12px;
+            color: #CCCCCC;
+        }
+        QDockWidget::title {
+            text-align: center;
+            background-color: #444444;
+            padding: 2px;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+        }
+        QDockWidget::close-button {
+            background-color: #666666;
+            icon-size: 12px;
+        }
+        QDockWidget::close-button:hover {
+            background-color: #ff5555;
+        }
+    ''')
+    return dock
+
+
 def group_widget(name=''):
     group = QtWidgets.QGroupBox(name)
     group.setStyleSheet('''
         QGroupBox {
             background-color: #444444;
             border: 0px solid #444444;
-            border-radius: 4px;
-            margin-top: 1ex;
-            margin-bottom: 1ex;
+            border-bottom-left-radius: 4px;
+            border-bottom-right-radius: 4px;
+            margin-top: 0ex;
+            margin-bottom: 0ex;
             font-weight: bold;
             font-size: 12px;
             color: #CCCCCC;
@@ -28,6 +57,12 @@ def group_widget(name=''):
     ''')
     return group
 
+
+def create_dock(name=''):
+    dock = dock_widget(name)
+    group = group_widget()
+    dock.setWidget(group)
+    return dock, group
 
 def label_widget(name=''):
     label = QtWidgets.QLabel(name)
@@ -76,12 +111,16 @@ def spinbox_widget(range_min, range_max, step, value):
     dark_palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
     dark_palette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
     spinbox.setPalette(dark_palette)
-    spinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
-    spinbox.setMinimumWidth(spinbox.sizeHint().width())
-    spinbox.setMinimumHeight(spinbox.sizeHint().height())
     spinbox.setRange(range_min, range_max)
     spinbox.setSingleStep(step)
     spinbox.setValue(value)
+    spinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+    spinbox.setMinimumWidth(spinbox.sizeHint().width())
+    spinbox.setMinimumHeight(spinbox.sizeHint().height())
+    max_value_width = spinbox.fontMetrics().width(str(spinbox.maximum()))
+    max_value_height = spinbox.fontMetrics().height()
+    spinbox.setMaximumWidth(max_value_width + 32)
+    spinbox.setMaximumHeight(max_value_height + 16)
     return spinbox
 
 
@@ -103,12 +142,17 @@ def doublespinbox_widget(range_min, range_max, step, decimals, value):
     dark_palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
     dark_palette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
     doublespinbox.setPalette(dark_palette)
-    doublespinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
-    doublespinbox.setMinimumWidth(doublespinbox.sizeHint().width())
     doublespinbox.setRange(range_min, range_max)
     doublespinbox.setSingleStep(step)
     doublespinbox.setDecimals(decimals)
     doublespinbox.setValue(value)
+    doublespinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+    doublespinbox.setMinimumWidth(doublespinbox.sizeHint().width())
+    doublespinbox.setMinimumHeight(doublespinbox.sizeHint().height())
+    max_value_width = doublespinbox.fontMetrics().width(str(doublespinbox.maximum()))
+    max_value_height = doublespinbox.fontMetrics().height()
+    doublespinbox.setMaximumWidth(max_value_width + 32)
+    doublespinbox.setMaximumHeight(max_value_height + 16)
     return doublespinbox
 
 
@@ -234,7 +278,44 @@ def lineedit_widget():
     return lineedit
 
 
-def toolbar_widget():
-    toolbar = QtWidgets.QToolBar()
-    toolbar.setStyleSheet("background-color: dark; color: white; font: bold Arial 12px; width: 36px; height: 18px")
-    return toolbar
+def slider_widget(min, max, value):
+    slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+    slider.setMinimum(min)
+    slider.setMaximum(max)
+    slider.setValue(value)
+    slider.setStyleSheet('''
+                QSlider::groove:vertical {
+                    background-color: #222222;  /* Set the background color */
+                    width: 10px;  /* Set the width */
+                }
+                QSlider::handle:vertical {
+                    background-color: #888888;  /* Set the handle color */
+                    width: 20px;  /* Set the handle width */
+                    margin: -5px 0px -5px 0px;  /* Set the margin */
+                }
+            ''')
+    return slider
+
+
+def dia_widget(min, max, value):
+    dial = QtWidgets.QDial()
+    dial.setMinimum(min)
+    dial.setMaximum(max)
+    dial.setValue(value)
+    dial.setStyleSheet('''
+        QDial {
+            background-color: #303030;
+            border: none;
+        }
+        QDial::handle {
+            background-color: #777777;
+            border-radius: 6px;
+        }
+        QDial::handle:hover {
+            background-color: #999999;
+        }
+        QDial::handle:pressed {
+            background-color: #555555;
+        }
+    ''')
+    return dial
