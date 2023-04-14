@@ -409,11 +409,12 @@ class MainController:
         n, a = self.ao_controller.get_acturator()
         values = [0.] * self.om.dm.nbAct
         values[n] = a
-        self.om.dm.SetDM(values + self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
+        self.om.dm.SetDM(self.p.shwfsr._cmd_add(values, self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
 
     def set_zernike(self):
         indz, amp = self.ao_controller.get_zernike_mode()
-        self.om.dm.SetDM(self.p.shwfsr.get_zernike_cmd(indz, amp) + self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
+        self.om.dm.SetDM(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(indz, amp),
+                                                self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
 
     def set_dm(self):
         i = int(self.ao_controller.get_cmd_index())
@@ -609,11 +610,12 @@ class MainController:
         except:
             print('Directory already exists')
         results = [('Mode', 'Amp', 'Metric')]
-        dt = []
-        amprange = []
-        self.p.shwfsr._dm_cmd.append(self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
+        za = []
+        mv = []
+        zp = [0] * self.p.shwfsr._n_zernikes
+        cmd = self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]
         self.start_ao_iteration()
-        self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
+        self.om.dm.SetDM(cmd)
         time.sleep(0.1)
         self.om.cam.single_acquisition()
         self.om.daq.Trig_run()
@@ -623,11 +625,12 @@ class MainController:
         tf.imwrite(fn, self.om.cam.data)
         self.om.daq.Trig_stop()
         for mode in range(mode_start, mode_stop):
+            amprange = []
+            dt = []
             for stnm in range(amp_step_number):
                 amp = amp_start + stnm * amp_step
                 amprange.append(amp)
-                self.om.dm.SetDM(
-                    self.p.shwfsr.get_zernike_cmd(mode, amp) + self.p.shwfsr._dm_cmd[-1])
+                self.om.dm.SetDM(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
                 time.sleep(0.1)
                 self.om.cam.single_acquisition()
                 self.om.daq.Trig_run()
@@ -646,14 +649,16 @@ class MainController:
                 print('--', stnm, amp, dt[stnm])
                 self.om.daq.Trig_stop()
             pmax = self.p.imgprocess.peak(amprange, dt)
+            za.extend(amprange)
+            mv.extend(dt)
             if pmax != 0.0:
-                self.p.shwfsr.zmv[mode] += pmax
+                zp[mode] = pmax
                 print('--setting mode %d at value of %.4f--' % (mode, pmax))
-                self.p.shwfsr.get_zernike_cmd(mode, pmax) + self.p.shwfsr._dm_cmd[-1]
-                self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
+                cmd = self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, pmax), cmd)
+                self.om.dm.SetDM(cmd)
             else:
                 print('----------------mode %d value equals %.4f----' % (mode, pmax))
-        self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
+        self.om.dm.SetDM(cmd)
         time.sleep(0.1)
         self.om.cam.single_acquisition()
         self.om.daq.Trig_run()
@@ -661,8 +666,13 @@ class MainController:
         self.om.cam.get_acquired_image()
         fn = os.path.join(newfold, 'final.tif')
         tf.imwrite(fn, self.om.cam.data)
-        # self.om.dm.writeDMfile(newfold, t, self.p.shwfsr.cmd_best, self.p.shwfsr.mod, self.p.shwfsr.zmv, results)
         self.stop_ao_iteration()
+        self.p.shwfsr._dm_cmd.append(cmd)
+        self.ao_controller.update_cmd_index()
+        i = int(self.ao_controller.get_cmd_index())
+        self.p.shwfsr.current_cmd = i
+        self.p.shwfsr._write_cmd(newfold, '_')
+        self.p.shwfsr._save_sensorless_results(os.path.join(newfold, 'results.xlsx'), za, mv, zp)
 
 
 class VideoWorker(QtCore.QObject):

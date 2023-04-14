@@ -296,12 +296,15 @@ class WavefrontSensing:
                 raise ValueError("Invalid method")
 
     def correct_cmd(self):
-        _c = np.asarray(self._dm_cmd[self.current_cmd]) + np.asarray(self._correction[-1])
+        _c = self._cmd_add(self._dm_cmd[self.current_cmd], self._correction[-1])
         self._dm_cmd.append(list(_c))
 
     def get_zernike_cmd(self, j, a):
         zerphs = a * self.zernike[j]
         return list(np.dot(control_matrix_wavefront, zerphs.reshape(self._n_lenslets)))
+
+    def _cmd_add(self, cmd_0, cmd_1):
+        return list(np.asarray(cmd_0) + np.asarray(cmd_1))
 
     def _read_cmd(self, fnd):
         df = pd.read_excel(fnd)
@@ -309,18 +312,23 @@ class WavefrontSensing:
 
     def _write_cmd(self, path, t, flatfile=False):
         if flatfile:
-            filename = t + '_flat_file.csv'
+            filename = t + '_flat_file.xlsx'
             df = pd.DataFrame(self._dm_cmd[-1], index=np.arange(97), columns=['Push'])
             df.to_excel(os.path.join(path, filename), index_label='Actuator')
         else:
-            filename = t + '_cmd_file.csv'
+            filename = t + '_cmd_file.xlsx'
             data = {f'cmd{i}': cmd for i, cmd in enumerate(self._dm_cmd)}
-            writer = pd.ExcelWriter(os.path.join(path, filename), engine='xlsxwriter')
-            workbook = writer.book
-            for sheet_name, list_data in data.items():
-                df = pd.DataFrame(list_data, index=np.arange(97), columns=['Push'])
-                df.to_excel(writer, sheet_name=sheet_name, index_label='Actuator')
-            writer.close()
+            with pd.ExcelWriter(os.path.join(path, filename), engine='xlsxwriter') as writer:
+                for sheet_name, list_data in data.items():
+                    df = pd.DataFrame(list_data, index=np.arange(97), columns=['Push'])
+                    df.to_excel(writer, sheet_name=sheet_name, index_label='Actuator')
+
+    def _save_sensorless_results(self, fd, a, v, p):
+        df1 = pd.DataFrame(v, index=a, columns=['Values'])
+        df2 = pd.DataFrame(p, index=np.arange(self._n_zernikes), columns=['Amplitudes'])
+        with pd.ExcelWriter(fd, engine='xlsxwriter') as writer:
+            df1.to_excel(writer, sheet_name='Metric Values')
+            df2.to_excel(writer, sheet_name='Peaks')
 
     @staticmethod
     def _elliptical_mask(radius, size):
