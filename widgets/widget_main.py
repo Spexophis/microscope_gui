@@ -20,13 +20,11 @@ class MainWidget(QtWidgets.QMainWindow):
         self.dock_con.setWidget(self.con_view)
         title_bar_widget_con = QtWidgets.QWidget()
         title_bar_widget_con.setFixedHeight(0)
-        self.dock_con.setFeatures(QtWidgets.QDockWidget.NoDockWidgetFeatures)
         self.dock_con.setTitleBarWidget(title_bar_widget_con)
         self.dock_ao = cw.dock_widget()
         self.dock_ao.setWidget(self.ao_view)
         title_bar_widget_ao = QtWidgets.QWidget()
         title_bar_widget_ao.setFixedHeight(0)
-        self.dock_ao.setFeatures(QtWidgets.QDockWidget.NoDockWidgetFeatures)
         self.dock_ao.setTitleBarWidget(title_bar_widget_ao)
 
         self.setCentralWidget(self.view_view)

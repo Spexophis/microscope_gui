@@ -32,6 +32,7 @@ def dock_widget(name=''):
             background-color: #ff5555;
         }
     ''')
+    dock.setFeatures(QtWidgets.QDockWidget.NoDockWidgetFeatures)
     return dock
 
 

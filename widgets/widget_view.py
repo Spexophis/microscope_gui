@@ -24,7 +24,6 @@ class MplCanvas(FigureCanvas):
 
 
 class ViewWidget(QtWidgets.QWidget):
-    """ Widget containing viewbox that displays the new detector frames. """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -32,10 +31,12 @@ class ViewWidget(QtWidgets.QWidget):
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnTopHint)
 
         layout = QtWidgets.QVBoxLayout()
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         Dock_view, Group_view = cw.create_dock('Camera View')
         Dock_plot, Group_plot = cw.create_dock('Plot')
-        layout.addWidget(Dock_view)
-        layout.addWidget(Dock_plot)
+        splitter.addWidget(Dock_view)
+        splitter.addWidget(Dock_plot)
+        layout.addWidget(splitter)
         self.setLayout(layout)
 
         layout_view = QtWidgets.QVBoxLayout()
