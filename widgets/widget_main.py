@@ -13,13 +13,6 @@ class MainWidget(QtWidgets.QMainWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        toolbar = cw.toolbar_widget()
-        self.addToolBar(toolbar)
-
-        button_exit = QtWidgets.QAction("Exit", self)
-        button_exit.triggered.connect(self.Signal_quit.emit)
-        toolbar.addAction(button_exit)
-
         self.con_view = widget_con.ConWidget()
         self.view_view = widget_view.ViewWidget()
         self.ao_view = widget_ao.AOWidget()
@@ -41,16 +34,21 @@ class MainWidget(QtWidgets.QMainWindow):
         self.setWindowTitle("Microscope Control")
         self.setStyleSheet("background-color: #242424")
 
-    def getControlWidget(self):
+    def closeEvent(self, event):
+        self.Signal_quit.emit()
+        print("Turning off the microscope")
+        super().closeEvent(event)
+
+    def get_control_widget(self):
         return self.con_view
 
-    def getViewWidget(self):
+    def get_view_widget(self):
         return self.view_view
 
-    def getAOWidget(self):
+    def get_ao_widget(self):
         return self.ao_view
 
-    def getPlotWidget(self):
+    def get_plot_widget(self):
         return self.plot_view
 
 

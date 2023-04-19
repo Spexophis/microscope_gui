@@ -59,7 +59,7 @@ class ConController():
         self.view.plot_canvas.axes.cla()
         for i in range(size[0]):
             self.view.plot_canvas.axes.plot(sequences[i]+i)
-        self.view.plot_canvas.axes.legend(legend)
+        # self.view.plot_canvas.axes.legend(legend)
         self.view.plot_canvas.draw()
 
     def display_camera_temperature(self, temperature):
