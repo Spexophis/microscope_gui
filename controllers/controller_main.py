@@ -298,8 +298,8 @@ class MainController:
         laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
                                          return_time, convFactors, analog_start, digital_starts, digital_ends)
-        dgtr = self.p.trigger.generate_digital_triggers_sw(laser, camera)
-        self.con_controller.plot_digital_sequences(dgtr)
+        self.con_controller.plot_digital_sequences(self.p.trigger.generate_digital_triggers_sw(laser, camera))
+
 
     def generate_digital_trigger(self, l):
         sample_rate = 100000

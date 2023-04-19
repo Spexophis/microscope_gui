@@ -10,8 +10,8 @@ from widgets import widget_view
 class MainWidget(QtWidgets.QMainWindow):
     Signal_quit = QtCore.pyqtSignal()
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         toolbar = cw.toolbar_widget()
         self.addToolBar(toolbar)

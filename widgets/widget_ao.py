@@ -1,4 +1,5 @@
 from PyQt5 import QtWidgets, QtCore
+
 from utilities import customized_widgets as cw
 
 
@@ -20,9 +21,8 @@ class AOWidget(QtWidgets.QWidget):
     Signal_sensorlessAO_run = QtCore.pyqtSignal()
     Signal_sensorlessAO_save = QtCore.pyqtSignal()
 
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         layout = QtWidgets.QVBoxLayout(self)
         Dock_exposuretime, Group_exposuretime = cw.create_dock('SH Camera')
