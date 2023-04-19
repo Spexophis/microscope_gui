@@ -2,18 +2,19 @@ import matplotlib
 
 matplotlib.use('Qt5Agg')
 from PyQt5 import QtWidgets, QtCore
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
+
 import matplotlib.pyplot as plt
 
 plt.style.use('dark_background')
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from utilities import customized_widgets as cw
 
 
 class MplCanvas(FigureCanvas):
 
-    def __init__(self, parent=None, dpi=256):
+    def __init__(self, parent=None, dpi=512):
         fig = Figure(dpi=dpi)
         self.axes = fig.add_subplot(111)
         fig.set_facecolor("none")

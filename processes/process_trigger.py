@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.interpolate import BPoly
 
 
 class TriggerSequence:
@@ -13,10 +12,8 @@ class TriggerSequence:
         self.return_time = 0.002
         self.convFactors = [10., 10., 10.]
         self.analog_start = 0.03
-        self.digital_starts = [0.002, 0.007, 0.007, 0.012]
-        self.digital_ends = [0.004, 0.01, 0.01, 0.015]
-        self.bp_increase = BPoly.from_derivatives([0, 1], [[0., 0., 0.], [1., 0., 0.]])
-        self.bp_decrease = BPoly.from_derivatives([0, 1], [[1., 0., 0.], [0., 0., 0.]])
+        self.digital_starts = [0.002, 0.007, 0.007, 0.012, 0.012, 0.012]
+        self.digital_ends = [0.004, 0.01, 0.01, 0.015, 0.015, 0.015]
 
     def updata_parameters(self, sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos, return_time,
                           convFactors, analog_start, digital_starts, digital_ends):
@@ -41,13 +38,13 @@ class TriggerSequence:
         digital_trigger[4, startSamp:endSamp] = 1
         return digital_trigger
 
-    def generate_digital_triggers_sw(self, l):
+    def generate_digital_triggers_sw(self, laser, camera):
         cycle_samples = self.sequence_time * self.sample_rate
         cycle_samples = int(np.ceil(cycle_samples))
         startSamp = int(np.round(self.digital_starts[2] * self.sample_rate))
         endSamp = int(np.round(self.digital_ends[2] * self.sample_rate))
         digital_trigger = np.zeros((len(self.digital_starts), cycle_samples))
-        digital_trigger[l, startSamp:endSamp] = 1
+        digital_trigger[laser, startSamp:endSamp] = 1
         digital_trigger[4, startSamp:endSamp] = 1
         startSamp = int(np.round(self.digital_starts[0] * self.sample_rate))
         endSamp = int(np.round(self.digital_ends[0] * self.sample_rate))

@@ -38,6 +38,7 @@ class ConController():
         return l
 
     def get_trigger_parameters(self):
+        illumination_source = self.view.QComboBox_laser_selection.currentT
         sequence_time = self.view.QDoubleSpinBox_cycle_period.value()
         axis_lengths = [self.view.QDoubleSpinBox_range_x.value(), self.view.QDoubleSpinBox_range_y.value(),
                         self.view.QDoubleSpinBox_range_z.value()]

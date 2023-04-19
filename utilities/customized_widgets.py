@@ -183,13 +183,14 @@ def pushbutton_widget(name='', checkable=False):
             border-style: inset;
         }
     ''')
+    button.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
     button_size = button.fontMetrics().boundingRect(button.text()).size()
-    if button_size.width() < 100:
-        button_size.setWidth(100)
+    if button_size.width() < 108:
+        button_size.setWidth(108)
     else:
         button_size.setWidth(button_size.width() + 24)
-    if button_size.height() < 30:
-        button_size.setHeight(30)
+    if button_size.height() < 32:
+        button_size.setHeight(32)
     else:
         button_size.setHeight(button_size.height() + 16)
     button.setFixedSize(button_size.width(), button_size.height())

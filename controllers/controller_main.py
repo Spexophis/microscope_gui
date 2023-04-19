@@ -80,6 +80,7 @@ class MainController:
         self.view.getControlWidget().Signal_setlaseroff_488_1.connect(self.set_laseroff_488_1)
         self.view.getControlWidget().Signal_setlaseroff_488_2.connect(self.set_laseroff_488_2)
         self.view.getControlWidget().Signal_setlaseroff_405.connect(self.set_laseroff_405)
+        self.view.getControlWidget().Signal_generate_trigger.connect(self.generate_trigger)
         self.view.getControlWidget().Signal_start_video.connect(self.start_video)
         self.view.getControlWidget().Signal_stop_video.connect(self.stop_video)
         self.view.getControlWidget().Signal_run_fft.connect(self.run_fft)
@@ -185,6 +186,9 @@ class MainController:
 
     def set_laseroff_405(self):
         self.om.laser.laserOFF_405()
+
+    def generate_trigger(self):
+        self.view_controller.get_trigger
 
     def imshow_main(self):
         if self.om.cam.getImage_live():

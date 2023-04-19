@@ -1,5 +1,26 @@
+import matplotlib
 from PyQt5 import QtWidgets, QtCore
+
 from utilities import customized_widgets as cw
+
+matplotlib.use('Qt5Agg')
+
+import matplotlib.pyplot as plt
+
+plt.style.use('dark_background')
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+
+
+class MplCanvas(FigureCanvas):
+
+    def __init__(self, parent=None, dpi=512):
+        fig = Figure(dpi=dpi)
+        self.axes = fig.add_subplot(111)
+        fig.set_facecolor("none")
+        super(MplCanvas, self).__init__(fig)
+        self.setStyleSheet("background-color: #242424")
 
 
 class ConWidget(QtWidgets.QWidget):
@@ -19,6 +40,7 @@ class ConWidget(QtWidgets.QWidget):
     Signal_setlaseroff_488_1 = QtCore.pyqtSignal()
     Signal_setlaseroff_488_2 = QtCore.pyqtSignal()
     Signal_setlaseroff_405 = QtCore.pyqtSignal()
+    Signal_generate_trigger = QtCore.pyqtSignal()
     Signal_start_video = QtCore.pyqtSignal()
     Signal_stop_video = QtCore.pyqtSignal()
     Signal_run_fft = QtCore.pyqtSignal()
@@ -34,7 +56,7 @@ class ConWidget(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout()
         Dock_CCDCamera, Group_CCDCamera = cw.create_dock('CCD Camera')
         Dock_PiezoStage, Group_PiezoStage = cw.create_dock('Piezo Stage')
-        Dock_MadDeck, Group_MadDeck= cw.create_dock('Mad Deck')
+        Dock_MadDeck, Group_MadDeck = cw.create_dock('Mad Deck')
         Dock_Illumination, Group_Illumination = cw.create_dock('Laser')
         Dock_DataAquisition, Group_DataAquisition = cw.create_dock('Image Acquisition')
         Dock_Triggers, Group_Triggers = cw.create_dock('Triggers')
@@ -44,8 +66,8 @@ class ConWidget(QtWidgets.QWidget):
         layout.addWidget(Dock_PiezoStage)
         layout.addWidget(Dock_MadDeck)
         layout.addWidget(Dock_Illumination)
-        layout.addWidget(Dock_DataAquisition)
         layout.addWidget(Dock_Triggers)
+        layout.addWidget(Dock_DataAquisition)
         layout.addWidget(Dock_File)
         layout.addStretch()
         self.setLayout(layout)
@@ -116,48 +138,34 @@ class ConWidget(QtWidgets.QWidget):
         Group_PiezoStage.setLayout(Layout_piezo_stage)
 
         Layout_Illumination = QtWidgets.QGridLayout()
-        self.QRadioButton_laser_488_0 = cw.radiobutton_widget('Laser 488 nm #0')
+        self.QLabel_laser_488_0 = cw.label_widget('Laser 488 nm #0')
         self.QDoubleSpinBox_laserpower_488_0 = cw.doublespinbox_widget(0, 200, 0.1, 1, 0.0)
         self.QPushButton_laser_488_0 = cw.pushbutton_widget('ON', checkable=True)
-        self.QRadioButton_laser_488_1 = cw.radiobutton_widget('Laser 488 nm #1')
+        self.QLabel_laser_488_1 = cw.label_widget('Laser 488 nm #1')
         self.QDoubleSpinBox_laserpower_488_1 = cw.doublespinbox_widget(0, 200, 0.1, 1, 0.0)
         self.QPushButton_laser_488_1 = cw.pushbutton_widget('ON', checkable=True)
-        self.QRadioButton_laser_488_2 = cw.radiobutton_widget('Laser 488 nm #2')
+        self.QLabel_laser_488_2 = cw.label_widget('Laser 488 nm #2')
         self.QDoubleSpinBox_laserpower_488_2 = cw.doublespinbox_widget(0, 200, 0.1, 1, 0.0)
         self.QPushButton_laser_488_2 = cw.pushbutton_widget('ON', checkable=True)
-        self.QRadioButton_laser_405 = cw.radiobutton_widget('Laser 405 nm')
+        self.QLabel_laser_405 = cw.label_widget('Laser 405 nm')
         self.QDoubleSpinBox_laserpower_405 = cw.doublespinbox_widget(0, 200, 0.1, 1, 0.0)
         self.QPushButton_laser_405 = cw.pushbutton_widget('ON', checkable=True)
-        Layout_Illumination.addWidget(self.QRadioButton_laser_488_0, 0, 0, 1, 1)
+        Layout_Illumination.addWidget(self.QLabel_laser_488_0, 0, 0, 1, 1)
         Layout_Illumination.addWidget(self.QDoubleSpinBox_laserpower_488_0, 0, 1, 1, 1)
         Layout_Illumination.addWidget(self.QPushButton_laser_488_0, 0, 2, 1, 1)
-        Layout_Illumination.addWidget(self.QRadioButton_laser_488_1, 1, 0, 1, 1)
+        Layout_Illumination.addWidget(self.QLabel_laser_488_1, 1, 0, 1, 1)
         Layout_Illumination.addWidget(self.QDoubleSpinBox_laserpower_488_1, 1, 1, 1, 1)
         Layout_Illumination.addWidget(self.QPushButton_laser_488_1, 1, 2, 1, 1)
-        Layout_Illumination.addWidget(self.QRadioButton_laser_488_2, 2, 0, 1, 1)
+        Layout_Illumination.addWidget(self.QLabel_laser_488_2, 2, 0, 1, 1)
         Layout_Illumination.addWidget(self.QDoubleSpinBox_laserpower_488_2, 2, 1, 1, 1)
         Layout_Illumination.addWidget(self.QPushButton_laser_488_2, 2, 2, 1, 1)
-        Layout_Illumination.addWidget(self.QRadioButton_laser_405, 3, 0, 1, 1)
+        Layout_Illumination.addWidget(self.QLabel_laser_405, 3, 0, 1, 1)
         Layout_Illumination.addWidget(self.QDoubleSpinBox_laserpower_405, 3, 1, 1, 1)
         Layout_Illumination.addWidget(self.QPushButton_laser_405, 3, 2, 1, 1)
         Group_Illumination.setLayout(Layout_Illumination)
 
-        Layout_DataAquisition = QtWidgets.QGridLayout()
-        self.QLabel_exposure_time = cw.label_widget(str('Exposure Time (s)'))
-        self.QDoubleSpinBox_exposure_time = cw.doublespinbox_widget(0, 10, 0.005, 3, 0.02)
-        self.QLabel_emccd_gain = cw.label_widget(str('EMCCD Gain'))
-        self.QSpinBox_emccd_gain = cw.spinbox_widget(0, 300, 1, 0)
-        self.QPushButton_video = cw.pushbutton_widget('Video', checkable=True)
-        self.QPushButton_fft = cw.pushbutton_widget('FFT', checkable=True)
-        Layout_DataAquisition.addWidget(self.QLabel_exposure_time, 0, 0, 1, 1)
-        Layout_DataAquisition.addWidget(self.QDoubleSpinBox_exposure_time, 0, 1, 1, 1)
-        Layout_DataAquisition.addWidget(self.QLabel_emccd_gain, 1, 0, 1, 1)
-        Layout_DataAquisition.addWidget(self.QSpinBox_emccd_gain, 1, 1, 1, 1)
-        Layout_DataAquisition.addWidget(self.QPushButton_video, 2, 0, 1, 1)
-        Layout_DataAquisition.addWidget(self.QPushButton_fft, 2, 1, 1, 1)
-        Group_DataAquisition.setLayout(Layout_DataAquisition)
-
         Layout_Triggers = QtWidgets.QGridLayout()
+        self.QPushButton_generate_trigger = cw.pushbutton_widget('Generate\nTrigger')
         self.QLabel_cycle_period = cw.label_widget(str('Cycle period / s'))
         self.QDoubleSpinBox_cycle_period = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.1)
         self.QLabel_piezo_start = cw.label_widget(str('Piezo_start / s'))
@@ -196,15 +204,23 @@ class ConWidget(QtWidgets.QWidget):
         self.QDoubleSpinBox_ttl_stop_camera = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.060)
         self.QLabel_trigger_parameter = cw.label_widget(str('Pre-sets'))
         self.QComboBox_trigger_parameter = cw.combobox_widget(list_items=['Default', 'UseDefined_1', 'UseDefined_2'])
-        self.QPushButton_2d_resolft = cw.pushbutton_widget('2D RESOLFT')
-        self.QPushButton_3d_resolft = cw.pushbutton_widget('3D RESOLFT')
-        self.QPushButton_2d_beadscan = cw.pushbutton_widget('2D BeadScan')
+        self.QLabel_laser_selection = cw.label_widget(str('Select Laser'))
+        self.QComboBox_laser_selection = cw.combobox_widget(list_items=['405_ON', '488_OFF', '488_Read'])
+        self.QLabel_camera_selection = cw.label_widget(str('Select Camera'))
+        self.QComboBox_camera_selection = cw.combobox_widget(list_items=['Main', 'SHCamera'])
+        self.plot_canvas = MplCanvas(self, dpi=256)
+        self.toolbar = NavigationToolbar(self.plot_canvas, self)
+        Layout_Triggers.addWidget(self.QPushButton_generate_trigger, 0, 4, 2, 1)
         Layout_Triggers.addWidget(self.QLabel_cycle_period, 0, 0, 1, 2)
         Layout_Triggers.addWidget(self.QDoubleSpinBox_cycle_period, 1, 0, 1, 1)
         Layout_Triggers.addWidget(self.QLabel_piezo_start, 0, 2, 1, 2)
         Layout_Triggers.addWidget(self.QDoubleSpinBox_piezo_start, 1, 2, 1, 1)
-        Layout_Triggers.addWidget(self.QLabel_trigger_parameter, 0, 4, 1, 2)
-        Layout_Triggers.addWidget(self.QComboBox_trigger_parameter, 1, 4, 1, 2)
+        Layout_Triggers.addWidget(self.QLabel_trigger_parameter, 0, 5, 1, 2)
+        Layout_Triggers.addWidget(self.QComboBox_trigger_parameter, 1, 5, 1, 2)
+        Layout_Triggers.addWidget(self.QLabel_laser_selection, 2, 5, 1, 2)
+        Layout_Triggers.addWidget(self.QComboBox_laser_selection, 3, 5, 1, 2)
+        Layout_Triggers.addWidget(self.QLabel_camera_selection, 4, 5, 1, 2)
+        Layout_Triggers.addWidget(self.QComboBox_camera_selection, 5, 5, 1, 2)
         Layout_Triggers.addWidget(self.QLabel_start_positions, 3, 0, 1, 2)
         Layout_Triggers.addWidget(self.QLabel_step_sizes, 4, 0, 1, 2)
         Layout_Triggers.addWidget(self.QLabel_scan_ranges, 5, 0, 1, 2)
@@ -237,10 +253,30 @@ class ConWidget(QtWidgets.QWidget):
         Layout_Triggers.addWidget(self.QDoubleSpinBox_ttl_stop_off_488_1, 8, 4, 1, 1)
         Layout_Triggers.addWidget(self.QDoubleSpinBox_ttl_stop_read_488_2, 8, 5, 1, 1)
         Layout_Triggers.addWidget(self.QDoubleSpinBox_ttl_stop_camera, 8, 6, 1, 1)
-        Layout_Triggers.addWidget(self.QPushButton_2d_beadscan, 9, 0, 1, 2)
-        Layout_Triggers.addWidget(self.QPushButton_2d_resolft, 9, 2, 1, 2)
-        Layout_Triggers.addWidget(self.QPushButton_3d_resolft, 9, 4, 1, 2)
+        Layout_Triggers.addWidget(self.toolbar, 9, 0)
+        Layout_Triggers.addWidget(self.plot_canvas, 10, 0)
         Group_Triggers.setLayout(Layout_Triggers)
+
+        Layout_DataAquisition = QtWidgets.QGridLayout()
+        self.QLabel_exposure_time = cw.label_widget(str('Exposure Time (s)'))
+        self.QDoubleSpinBox_exposure_time = cw.doublespinbox_widget(0, 10, 0.005, 3, 0.02)
+        self.QLabel_emccd_gain = cw.label_widget(str('EMCCD Gain'))
+        self.QSpinBox_emccd_gain = cw.spinbox_widget(0, 300, 1, 0)
+        self.QPushButton_video = cw.pushbutton_widget('Video', checkable=True)
+        self.QPushButton_fft = cw.pushbutton_widget('FFT', checkable=True)
+        self.QPushButton_2d_resolft = cw.pushbutton_widget('2D RESOLFT')
+        self.QPushButton_3d_resolft = cw.pushbutton_widget('3D RESOLFT')
+        self.QPushButton_2d_beadscan = cw.pushbutton_widget('2D BeadScan')
+        Layout_DataAquisition.addWidget(self.QLabel_exposure_time, 0, 0, 1, 1)
+        Layout_DataAquisition.addWidget(self.QDoubleSpinBox_exposure_time, 0, 1, 1, 1)
+        Layout_DataAquisition.addWidget(self.QLabel_emccd_gain, 1, 0, 1, 1)
+        Layout_DataAquisition.addWidget(self.QSpinBox_emccd_gain, 1, 1, 1, 1)
+        Layout_DataAquisition.addWidget(self.QPushButton_video, 2, 0, 1, 1)
+        Layout_DataAquisition.addWidget(self.QPushButton_fft, 2, 1, 1, 1)
+        Layout_DataAquisition.addWidget(self.QPushButton_2d_beadscan, 0, 2, 1, 1)
+        Layout_DataAquisition.addWidget(self.QPushButton_2d_resolft, 1, 2, 1, 1)
+        Layout_DataAquisition.addWidget(self.QPushButton_3d_resolft, 2, 2, 1, 1)
+        Group_DataAquisition.setLayout(Layout_DataAquisition)
 
         Layout_File = QtWidgets.QGridLayout()
         self.QLabel_file_name = cw.label_widget(str('File name'))
@@ -269,6 +305,24 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_2d_beadscan.clicked.connect(self.beadscan_2d)
         self.QComboBox_trigger_parameter.currentIndexChanged.connect(self.update_trigger_parameter_sets)
 
+    def deck_move_up(self):
+        self.Signal_deck_up.emit()
+
+    def deck_move_down(self):
+        self.Signal_deck_down.emit()
+
+    def deck_move(self):
+        if self.QPushButton_move_deck.isChecked():
+            self.Signal_deck_move.emit()
+        else:
+            self.Signal_deck_move_stop.emit()
+
+    def deck_move_stop(self):
+        self.Signal_deck_move_stop.emit()
+
+    def piezo_move(self):
+        self.Signal_piezo_move.emit()
+
     def set_laser_488_0(self):
         if self.QPushButton_laser_488_0.isChecked():
             self.Signal_setlaseron_488_0.emit()
@@ -293,33 +347,8 @@ class ConWidget(QtWidgets.QWidget):
         else:
             self.Signal_setlaseroff_405.emit()
 
-    def set_coordinates(self):
-        self.Signal_setcoordinates.emit()
-
-    def reset_coordinates(self):
-        self.Signal_resetcoordinates.emit()
-        self.QSpinBox_coordinate_x.setValue(1)
-        self.QSpinBox_coordinate_y.setValue(1)
-        self.QSpinBox_coordinate_n.setValue(1024)
-        self.QSpinBox_coordinate_bin.setValue(1)
-
-    def deck_move_up(self):
-        self.Signal_deck_up.emit()
-
-    def deck_move_down(self):
-        self.Signal_deck_down.emit()
-
-    def deck_move(self):
-        if self.QPushButton_move_deck.isChecked():
-            self.Signal_deck_move.emit()
-        else:
-            self.Signal_deck_move_stop.emit()
-
-    def deck_move_stop(self):
-        self.Signal_deck_move_stop.emit()
-
-    def piezo_move(self):
-        self.Signal_piezo_move.emit()
+    def generate_trigger_sequence(self):
+        self.Signal_generate_trigger.emit()
 
     def video(self):
         if self.QPushButton_video.isChecked():
