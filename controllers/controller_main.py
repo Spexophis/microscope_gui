@@ -80,7 +80,7 @@ class MainController:
         self.view.getControlWidget().Signal_setlaseroff_488_1.connect(self.set_laseroff_488_1)
         self.view.getControlWidget().Signal_setlaseroff_488_2.connect(self.set_laseroff_488_2)
         self.view.getControlWidget().Signal_setlaseroff_405.connect(self.set_laseroff_405)
-        self.view.getControlWidget().Signal_generate_trigger.connect(self.generate_trigger)
+        self.view.getControlWidget().Signal_plot_trigger.connect(self.plot_trigger)
         self.view.getControlWidget().Signal_start_video.connect(self.start_video)
         self.view.getControlWidget().Signal_stop_video.connect(self.stop_video)
         self.view.getControlWidget().Signal_run_fft.connect(self.run_fft)
@@ -187,9 +187,6 @@ class MainController:
     def set_laseroff_405(self):
         self.om.laser.laserOFF_405()
 
-    def generate_trigger(self):
-        self.view_controller.get_trigger
-
     def imshow_main(self):
         if self.om.cam.getImage_live():
             self.view_controller.plot_main(self.om.cam.data)
@@ -294,11 +291,21 @@ class MainController:
         self.thread_impro.quit()
         self.thread_impro.wait()
 
+    def plot_trigger(self):
+        sample_rate = 100000
+        return_time = 0.001
+        convFactors = [10, 10, 10.]
+        laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
+        self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
+                                         return_time, convFactors, analog_start, digital_starts, digital_ends)
+        dgtr = self.p.trigger.generate_digital_triggers_sw(laser, camera)
+        self.con_controller.plot_digital_sequences(dgtr)
+
     def generate_digital_trigger(self, l):
         sample_rate = 100000
         return_time = 0.001
         convFactors = [10, 10, 10.]
-        sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
+        laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
                                          return_time, convFactors, analog_start, digital_starts, digital_ends)
         dgtr = self.p.trigger.generate_digital_triggers(l)
@@ -308,18 +315,17 @@ class MainController:
         sample_rate = 100000
         return_time = 0.001
         convFactors = [10, 10, 10.]
-        l = self.con_controller.select_laser()
-        sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
+        laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
                                          return_time, convFactors, analog_start, digital_starts, digital_ends)
-        dgtr = self.p.trigger.generate_digital_triggers_sw(l)
+        dgtr = self.p.trigger.generate_digital_triggers_sw(laser, camera)
         return dgtr
 
     def write_trigger_2d(self):
         sample_rate = 100000
         return_time = 0.05
         convFactors = [10, 10, 10.]
-        sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
+        laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
                                          return_time, convFactors, analog_start, digital_starts, digital_ends)
         atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_2d()
@@ -329,7 +335,7 @@ class MainController:
         sample_rate = 100000
         return_time = 0.05
         convFactors = [10, 10, 10.]
-        sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
+        laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
                                          return_time, convFactors, analog_start, digital_starts, digital_ends)
         atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_3d()
@@ -340,7 +346,7 @@ class MainController:
         return_time = 0.05
         convFactors = [10, 10, 10.]
         l = self.con_controller.select_laser()
-        sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
+        laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
                                          return_time, convFactors, analog_start, digital_starts, digital_ends)
         atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_beadscan_2d(l)
@@ -396,7 +402,7 @@ class MainController:
         self.reconstruct_beadscan_2d()
 
     def reconstruct_beadscan_2d(self):
-        sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
+        laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         stepsize = step_sizes[0]
         self.p.bsrecon.reconstruct_all_beads(self.om.cam.data, stepsize)
         t = time.strftime("%Y%m%d_%H%M%S_")
@@ -581,7 +587,7 @@ class MainController:
         return_time = 0.001
         convFactors = [10, 10, 10.]
         l = self.con_controller.select_laser()
-        sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
+        laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
                                          return_time, convFactors, analog_start, digital_starts, digital_ends)
         dgtr = self.p.trigger.generate_digital_triggers_ao(l)

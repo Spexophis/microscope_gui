@@ -4,7 +4,8 @@ class ConController():
         self.view = view
 
     def get_camera_coordinates(self):
-        return self.view.QSpinBox_coordinate_x.value(), self.view.QSpinBox_coordinate_y.value(), self.view.QSpinBox_coordinate_n.value()
+        return self.view.QSpinBox_coordinate_x.value(), self.view.QSpinBox_coordinate_y.value(), \
+            self.view.QSpinBox_coordinate_n.value()
 
     def get_camera_bin(self):
         return self.view.QSpinBox_coordinate_bin.value()
@@ -13,7 +14,8 @@ class ConController():
         return self.view.QDoubleSpinBox_deck_movement.value()
 
     def get_piezo_positions(self):
-        return self.view.QDoubleSpinBox_stage_x.value(), self.view.QDoubleSpinBox_stage_y.value(), self.view.QDoubleSpinBox_stage_z.value()
+        return self.view.QDoubleSpinBox_stage_x.value(), self.view.QDoubleSpinBox_stage_y.value(), \
+            self.view.QDoubleSpinBox_stage_z.value()
 
     def get_exposure_time(self):
         return self.view.QDoubleSpinBox_exposure_time.value()
@@ -22,23 +24,12 @@ class ConController():
         return self.view.QSpinBox_emccd_gain.value()
 
     def get_cobolt_laser_power(self):
-        return self.view.QDoubleSpinBox_laserpower_405.value(), self.view.QDoubleSpinBox_laserpower_488_0.value(), self.view.QDoubleSpinBox_laserpower_488_1.value(), self.view.QDoubleSpinBox_laserpower_488_2.value()
-
-    def select_laser(self):
-        if self.view.QRadioButton_laser_405.isChecked():
-            l = 0
-        elif self.view.QRadioButton_laser_488_0.isChecked():
-            l = 1
-        elif self.view.QRadioButton_laser_488_1.isChecked():
-            l = 2
-        elif self.view.QRadioButton_laser_488_2.isChecked():
-            l = 3
-        else:
-            l = 3
-        return l
+        return self.view.QDoubleSpinBox_laserpower_405.value(), self.view.QDoubleSpinBox_laserpower_488_0.value(), \
+            self.view.QDoubleSpinBox_laserpower_488_1.value(), self.view.QDoubleSpinBox_laserpower_488_2.value()
 
     def get_trigger_parameters(self):
-        illumination_source = self.view.QComboBox_laser_selection.currentT
+        illumination_source = self.view.QComboBox_laser_selection.currentIndex()
+        detection_device = self.view.QComboBox_camera_selection.currentIndex()
         sequence_time = self.view.QDoubleSpinBox_cycle_period.value()
         axis_lengths = [self.view.QDoubleSpinBox_range_x.value(), self.view.QDoubleSpinBox_range_y.value(),
                         self.view.QDoubleSpinBox_range_z.value()]
@@ -57,7 +48,17 @@ class ConController():
                         self.view.QDoubleSpinBox_ttl_stop_off_488_1.value(),
                         self.view.QDoubleSpinBox_ttl_stop_read_488_2.value(),
                         self.view.QDoubleSpinBox_ttl_stop_camera.value()]
-        return sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends
+        return illumination_source, detection_device, sequence_time, axis_lengths, step_sizes, axis_start_pos, \
+            analog_start, digital_starts, digital_ends
+
+    def plot_digital_sequences(self, sequences):
+        size = sequences.shape
+        legend = [i for i in range(size[0])]
+        self.view.plot_canvas.axes.cla()
+        for i in range(size[0]):
+            self.view.plot_canvas.axes.plot(sequences[i]+i)
+        self.view.plot_canvas.axes.legend(legend)
+        self.view.plot_canvas.draw()
 
     def display_camera_temperature(self, temperature):
         self.view.QLCDNumber_ccd_tempetature.display(temperature)
