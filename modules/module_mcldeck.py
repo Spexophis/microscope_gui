@@ -33,41 +33,39 @@ class MCLMicroDrive:
         self.mcl = ct.cdll.LoadLibrary(mcl_lib)
         # Release existing handles
         self.mcl.MCL_ReleaseAllHandles()
-        # Connect to the instrument and creat a handle
+        # Connect to the instrument and create a handle
         self.handle = self.mcl.MCL_InitHandle()  # Handle number is assigned, which is a positive integer
         # Check if connection was successful
         if self.handle > 0:
             print(
                 'Connected to MadDeck SN: ' + str(self.mcl.MCL_GetSerialNumber(self.handle)) + '\nWith handle: ' + str(
                     self.handle))
+            encoderResolution_temp = ct.pointer(ct.c_double())
+            stepSize_temp = ct.pointer(ct.c_double())
+            maxVelocity_temp = ct.pointer(ct.c_double())
+            maxVelocityTwoAxis_temp = ct.pointer(ct.c_double())
+            maxVelocityThreeAxis_temp = ct.pointer(ct.c_double())
+            minVelocity_temp = ct.pointer(ct.c_double())
+            self.mcl.MCL_MDInformation(encoderResolution_temp, stepSize_temp, maxVelocity_temp, maxVelocityTwoAxis_temp,
+                                       maxVelocityThreeAxis_temp, minVelocity_temp, self.handle)
+            self.encoderResolution = encoderResolution_temp.contents.value
+            self.stepSize = stepSize_temp.contents.value
+            self.maxVelocity = maxVelocity_temp.contents.value
+            self.maxVelocityTwoAxis = maxVelocityTwoAxis_temp.contents.value
+            self.maxVelocityThreeAxis = maxVelocityThreeAxis_temp.contents.value
+            self.minVelocity = minVelocity_temp.contents.value
+            del encoderResolution_temp
+            del stepSize_temp
+            del maxVelocity_temp
+            del maxVelocityTwoAxis_temp
+            del maxVelocityThreeAxis_temp
+            del minVelocity_temp
+            # Set standard minimum and maximum velocity
+            self.velocityMin = self.minVelocity  # mm/s
+            self.velocityMax = self.maxVelocity  # mm/s
+            self.totalScanRange = 23  # mm
         else:
-            print('Connection failed. Maybe the device is turned off?')
-
-        encoderResolution_temp = ct.pointer(ct.c_double())
-        stepSize_temp = ct.pointer(ct.c_double())
-        maxVelocity_temp = ct.pointer(ct.c_double())
-        maxVelocityTwoAxis_temp = ct.pointer(ct.c_double())
-        maxVelocityThreeAxis_temp = ct.pointer(ct.c_double())
-        minVelocity_temp = ct.pointer(ct.c_double())
-        self.mcl.MCL_MDInformation(encoderResolution_temp, stepSize_temp, maxVelocity_temp, maxVelocityTwoAxis_temp,
-                                   maxVelocityThreeAxis_temp, minVelocity_temp, self.handle)
-        self.encoderResolution = encoderResolution_temp.contents.value
-        self.stepSize = stepSize_temp.contents.value
-        self.maxVelocity = maxVelocity_temp.contents.value
-        self.maxVelocityTwoAxis = maxVelocityTwoAxis_temp.contents.value
-        self.maxVelocityThreeAxis = maxVelocityThreeAxis_temp.contents.value
-        self.minVelocity = minVelocity_temp.contents.value
-        del encoderResolution_temp
-        del stepSize_temp
-        del maxVelocity_temp
-        del maxVelocityTwoAxis_temp
-        del maxVelocityThreeAxis_temp
-        del minVelocity_temp
-
-        # Set standard minimum and maximum velocity
-        self.velocityMin = self.minVelocity  # mm/s
-        self.velocityMax = self.maxVelocity  # mm/s
-        self.totalScanRange = 23  # mm
+            print('MadDeck Connection failed.')
 
     def close(self):
         """
