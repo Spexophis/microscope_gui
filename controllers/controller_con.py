@@ -27,11 +27,11 @@ class ConController():
     def select_laser(self):
         if self.view.QRadioButton_laser_405.isChecked():
             l = 0
-        if self.view.QRadioButton_laser_488_0.isChecked():
+        elif self.view.QRadioButton_laser_488_0.isChecked():
             l = 1
-        if self.view.QRadioButton_laser_488_1.isChecked():
+        elif self.view.QRadioButton_laser_488_1.isChecked():
             l = 2
-        if self.view.QRadioButton_laser_488_2.isChecked():
+        elif self.view.QRadioButton_laser_488_2.isChecked():
             l = 3
         else:
             l = 3

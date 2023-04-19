@@ -10,9 +10,9 @@ from widgets import widget_main
 
 class MicroscopeGUI(QtWidgets.QMainWindow):
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, *args, **kwargs):
 
+        super().__init__(*args, **kwargs)
         self.view = widget_main.MainWidget()
         self.process = process_main.MainProcess()
         self.module = module_main.MainModule()
