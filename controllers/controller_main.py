@@ -439,11 +439,15 @@ class MainController:
         print('DM cmd saved')
 
     def set_shcam(self):
+        self.setlasers()
         expo = self.ao_controller.get_exposuretime()
         # self.om.tiscam.setPropertyValue('exposure', expo)
         # self.om.thocam.set_exposure(expo)
         # self.om.hacam.setPropertyValue('', )
-        self.om.hacam.setPropertyValue('exposure_time', expo)
+        # self.om.hacam.setPropertyValue('exposure_time', expo)
+        self.om.hacam.setPropertyValue('trigger_mode', expo)
+        dgtr = self.generate_digital_trigger_sw()
+        self.om.daq.Trig_open(dgtr)
 
     def set_wfs(self):
         parameters = self.ao_controller.get_parameters()
@@ -458,12 +462,15 @@ class MainController:
         # self.p.shwfsr.base = self.om.tiscam.grabFrame()
         # self.p.shwfsr.base = self.om.thocam.snap_image()
         self.om.hacam.startAcquisition()
+        self.om.daq.Trig_run()
         time.sleep(0.2)
         self.p.shwfsr.base = self.om.hacam.getFrames(verbose=True, avg=True)
         self.view_controller.plot_sh(self.p.shwfsr.base)
         print('wfs base set')
         # self.om.tiscam.stop_live()
+        self.om.daq.Trig_stop()
         self.om.hacam.stopAcquisition()
+        self.lasersoff()
 
     def imshow_wfs(self):
         # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
@@ -476,6 +483,7 @@ class MainController:
         # self.om.tiscam.start_live()
         # self.om.thocam.start_acquire()
         self.om.hacam.startAcquisition()
+        self.om.daq.Trig_run()
         time.sleep(0.05)
         self.thread_wfs.start()
 
@@ -484,6 +492,8 @@ class MainController:
         self.thread_wfs.wait()
         # self.om.tiscam.stop_live()
         # self.om.thocam.stop_acquire()
+        self.om.daq.Trig_stop()
+        self.lasersoff()
         self.om.hacam.stopAcquisition()
 
     def run_wfr(self):
