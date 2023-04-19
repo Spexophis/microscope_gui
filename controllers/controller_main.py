@@ -49,12 +49,12 @@ class MainController:
         self.thread_impro.finished.connect(self.improWorker.stop)
         self.improWorker.signal_fft.connect(self.imshow_fft)
         # plot thread
-        # self.thread_plot = QtCore.QThread()
-        # self.plotWorker = PlotWorker(parent=None)
-        # self.plotWorker.moveToThread(self.thread_plot)
-        # self.thread_plot.started.connect(self.plotWorker.run)
-        # self.thread_plot.finished.connect(self.plotWorker.stop)
-        # self.plotWorker.signal_plot.connect(self.profile_update)
+        self.thread_plot = QtCore.QThread()
+        self.plotWorker = PlotWorker(parent=None)
+        self.plotWorker.moveToThread(self.thread_plot)
+        self.thread_plot.started.connect(self.plotWorker.run)
+        self.thread_plot.finished.connect(self.plotWorker.stop)
+        self.plotWorker.signal_plot.connect(self.profile_update)
         # wavefront sensor thread
         self.thread_wfs = QtCore.QThread()
         self.wfsWorker = WFSWorker(parent=None)
@@ -193,12 +193,8 @@ class MainController:
         self.view_controller.plot_fft(self.p.imgprocess.fourier_transform(self.om.cam.data))
 
     def profile_plot(self):
-        h, v = self.plot_controller.get_plot_axis()
-        self.plot_controller.plot_profile(self.om.cam.data, h=h, v=v)
-
-    def profile_update(self):
-        h, v = self.plot_controller.get_plot_axis()
-        self.plot_controller.updata_plot(self.om.cam.data, h=h, v=v)
+        h, v = self.con_controller.get_profile_axis()
+        self.view_controller.plot(self.p.imgprocess.get_profile(self.om.cam.data, h=h, v=v))
 
     def start_plot_live(self):
         self.thread_plot.start()
@@ -733,19 +729,20 @@ class WFSWorker(QtCore.QObject):
         if self.timer is not None:
             self.timer.stop()
 
-# class PlotWorker(QtCore.QObject):
-#     signal_plot = QtCore.pyqtSignal()
-#
-#     def __init__(self, parent=None):
-#         super().__init__()
-#         self.timer = None
-#
-#     def run(self):
-#         self.timer = QtCore.QTimer()
-#         self.timer.setInterval(100)
-#         self.timer.timeout.connect(self.signal_plot.emit)
-#         self.timer.start()
-#
-#     def stop(self):
-#         if self.timer is not None:
-#             self.timer.stop()
+
+class PlotWorker(QtCore.QObject):
+    signal_plot = QtCore.pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__()
+        self.timer = None
+
+    def run(self):
+        self.timer = QtCore.QTimer()
+        self.timer.setInterval(100)
+        self.timer.timeout.connect(self.signal_plot.emit)
+        self.timer.start()
+
+    def stop(self):
+        if self.timer is not None:
+            self.timer.stop()

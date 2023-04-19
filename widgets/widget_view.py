@@ -28,29 +28,27 @@ class ViewWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnTopHint)
-
         layout = QtWidgets.QVBoxLayout()
         splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
-        Dock_view, Group_view = cw.create_dock('Camera View')
-        Dock_plot, Group_plot = cw.create_dock('Plot')
-        splitter.addWidget(Dock_view)
-        splitter.addWidget(Dock_plot)
-        layout.addWidget(splitter)
+        dock_view, group_view = cw.create_dock('Camera View')
+        dock_plot, group_plot = cw.create_dock('Plot')
+        splitter.addWidget(dock_view)
+        splitter.addWidget(dock_plot)
+        layout.addWidget(splitter, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
         self.setLayout(layout)
 
         layout_view = QtWidgets.QVBoxLayout()
         napari_tools.addNapariGrayclipColormap()
         self.napariViewer = napari_tools.EmbeddedNapari()
-        layout_view.addWidget(self.napariViewer.get_widget())
-        Group_view.setLayout(layout_view)
+        layout_view.addWidget(self.napariViewer.get_widget(), alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
+        group_view.setLayout(layout_view)
 
         layout_plot = QtWidgets.QVBoxLayout()
         self.canvas = MplCanvas(self, dpi=100)
         toolbar = NavigationToolbar(self.canvas)
-        layout_plot.addWidget(toolbar)
-        layout_plot.addWidget(self.canvas)
-        Group_plot.setLayout(layout_plot)
+        layout_plot.addWidget(toolbar, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
+        layout_plot.addWidget(self.canvas, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
+        group_plot.setLayout(layout_plot)
 
         self.imgLayers = {}
 
@@ -74,17 +72,8 @@ class ViewWidget(QtWidgets.QWidget):
             np.zeros((1024, 1024)), rgb=False, name=self.name_m, blending='additive',
             colormap=None, protected=True)
 
-    def getImage(self, name):
-        return self.imgLayers[name].data
-
-    def setImage(self, name, im):
+    def show_image(self, name, im):
         self.imgLayers[name].data = im
-
-    def clearImage(self, name):
-        self.setImage(name, np.zeros((512, 512)))
-
-    def resetView(self):
-        self.napariViewer.reset_view()
 
     def plot(self, data):
         self.canvas.axes.plot(data)
