@@ -22,3 +22,11 @@ class ViewController:
     @pyqtSlot(np.ndarray)
     def plot_wf(self, data):
         self.view.setImage('Wavefront', data)
+
+    @pyqtSlot(np.ndarray)
+    def plot(self, data):
+        self.view.plot(data)
+
+    @pyqtSlot(np.ndarray)
+    def plot_update(self, data):
+        self.view.update_plot(data)

@@ -1,26 +1,6 @@
-import matplotlib
 from PyQt5 import QtWidgets, QtCore
 
 from utilities import customized_widgets as cw
-
-matplotlib.use('Qt5Agg')
-
-import matplotlib.pyplot as plt
-
-plt.style.use('dark_background')
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-
-
-class MplCanvas(FigureCanvas):
-
-    def __init__(self, parent=None, dpi=512):
-        fig = Figure(dpi=dpi)
-        self.axes = fig.add_subplot(111)
-        fig.set_facecolor("none")
-        super(MplCanvas, self).__init__(fig)
-        self.setStyleSheet("background-color: #242424")
 
 
 class ConWidget(QtWidgets.QWidget):
@@ -53,6 +33,8 @@ class ConWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
+
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnTopHint)
 
         layout = QtWidgets.QVBoxLayout()
         Dock_CCDCamera, Group_CCDCamera = cw.create_dock('CCD Camera')
@@ -210,11 +192,9 @@ class ConWidget(QtWidgets.QWidget):
         self.QComboBox_trigger_parameter = cw.combobox_widget(list_items=['Default', 'Video', 'WFS',
                                                                           'UseDefined_1', 'UseDefined_2'])
         self.QLabel_laser_selection = cw.label_widget(str('Select Laser'))
-        self.QComboBox_laser_selection = cw.combobox_widget(list_items=['405_ON', '488_OFF', '488_Read'])
+        self.QComboBox_laser_selection = cw.combobox_widget(list_items=['405_ON', '488_OFF', '488_OFF', '488_Read'])
         self.QLabel_camera_selection = cw.label_widget(str('Select Camera'))
         self.QComboBox_camera_selection = cw.combobox_widget(list_items=['MainCam', 'WFSCam'])
-        self.plot_canvas = MplCanvas(self, dpi=256)
-        self.toolbar = NavigationToolbar(self.plot_canvas, self)
         Layout_Triggers.addWidget(self.QPushButton_plot_trigger, 0, 6, 2, 2)
         Layout_Triggers.addWidget(self.QLabel_cycle_period, 2, 6, 1, 2)
         Layout_Triggers.addWidget(self.QDoubleSpinBox_cycle_period, 3, 6, 1, 1)
@@ -261,8 +241,6 @@ class ConWidget(QtWidgets.QWidget):
         Layout_Triggers.addWidget(self.QDoubleSpinBox_ttl_stop_read_488_2, 8, 5, 1, 1)
         Layout_Triggers.addWidget(self.QDoubleSpinBox_ttl_stop_camera_main, 8, 6, 1, 1)
         Layout_Triggers.addWidget(self.QDoubleSpinBox_ttl_stop_camera_wfs, 8, 7, 1, 1)
-        Layout_Triggers.addWidget(self.toolbar, 9, 0)
-        Layout_Triggers.addWidget(self.plot_canvas, 10, 0)
         Group_Triggers.setLayout(Layout_Triggers)
 
         Layout_DataAquisition = QtWidgets.QGridLayout()

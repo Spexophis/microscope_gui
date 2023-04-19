@@ -8,7 +8,6 @@ from PyQt5 import QtCore
 
 from controllers import controller_ao
 from controllers import controller_con
-from controllers import controller_plot
 from controllers import controller_view
 
 datapath = r'C:\Users\ruizhe.lin\Documents\data'
@@ -21,9 +20,8 @@ class MainController:
         self.view = view
         self.om = module
         self.p = process
-        self.con_controller = controller_con.ConController(self.view.get_control_widget())
         self.view_controller = controller_view.ViewController(self.view.get_view_widget())
-        self.plot_controller = controller_plot.PlotController(self.view.get_plot_widget())
+        self.con_controller = controller_con.ConController(self.view.get_control_widget())
         self.ao_controller = controller_ao.AOController(self.view.get_ao_widget())
 
         t = time.strftime("%Y%m%d")
@@ -51,12 +49,12 @@ class MainController:
         self.thread_impro.finished.connect(self.improWorker.stop)
         self.improWorker.signal_fft.connect(self.imshow_fft)
         # plot thread
-        self.thread_plot = QtCore.QThread()
-        self.plotWorker = PlotWorker(parent=None)
-        self.plotWorker.moveToThread(self.thread_plot)
-        self.thread_plot.started.connect(self.plotWorker.run)
-        self.thread_plot.finished.connect(self.plotWorker.stop)
-        self.plotWorker.signal_plot.connect(self.profile_update)
+        # self.thread_plot = QtCore.QThread()
+        # self.plotWorker = PlotWorker(parent=None)
+        # self.plotWorker.moveToThread(self.thread_plot)
+        # self.thread_plot.started.connect(self.plotWorker.run)
+        # self.thread_plot.finished.connect(self.plotWorker.stop)
+        # self.plotWorker.signal_plot.connect(self.profile_update)
         # wavefront sensor thread
         self.thread_wfs = QtCore.QThread()
         self.wfsWorker = WFSWorker(parent=None)
@@ -89,8 +87,6 @@ class MainController:
         self.view.get_control_widget().Signal_2d_resolft.connect(self.record_2d_resolft)
         self.view.get_control_widget().Signal_beadscan_2d.connect(self.record_beadscan_2d)
         self.view.get_control_widget().Signal_save_file.connect(self.save_data)
-        self.view.get_plot_widget().Signal_plot_static.connect(self.profile_plot)
-        self.view.get_plot_widget().Signal_plot_update.connect(self.profile_update)
         # DM
         self.view.get_ao_widget().Signal_push_actuator.connect(self.push_actuator)
         self.view.get_ao_widget().Signal_influence_function.connect(self.influence_function)
@@ -298,17 +294,19 @@ class MainController:
         laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
                                          return_time, convFactors, analog_start, digital_starts, digital_ends)
-        self.con_controller.plot_digital_sequences(self.p.trigger.generate_digital_triggers_sw(laser, camera))
+        dgtr = self.p.trigger.generate_digital_triggers_sw(laser, camera)
+        self.view_controller.plot_update(dgtr[0])
+        for i in range(len(digital_starts) - 1):
+            self.view_controller.plot(dgtr[i + 1] + i + 1)
 
-
-    def generate_digital_trigger(self, l):
+    def generate_digital_trigger(self):
         sample_rate = 100000
         return_time = 0.001
         convFactors = [10, 10, 10.]
         laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
                                          return_time, convFactors, analog_start, digital_starts, digital_ends)
-        dgtr = self.p.trigger.generate_digital_triggers(l)
+        dgtr = self.p.trigger.generate_digital_triggers(laser, camera)
         return dgtr
 
     def generate_digital_trigger_sw(self):
@@ -735,20 +733,19 @@ class WFSWorker(QtCore.QObject):
         if self.timer is not None:
             self.timer.stop()
 
-
-class PlotWorker(QtCore.QObject):
-    signal_plot = QtCore.pyqtSignal()
-
-    def __init__(self, parent=None):
-        super().__init__()
-        self.timer = None
-
-    def run(self):
-        self.timer = QtCore.QTimer()
-        self.timer.setInterval(100)
-        self.timer.timeout.connect(self.signal_plot.emit)
-        self.timer.start()
-
-    def stop(self):
-        if self.timer is not None:
-            self.timer.stop()
+# class PlotWorker(QtCore.QObject):
+#     signal_plot = QtCore.pyqtSignal()
+#
+#     def __init__(self, parent=None):
+#         super().__init__()
+#         self.timer = None
+#
+#     def run(self):
+#         self.timer = QtCore.QTimer()
+#         self.timer.setInterval(100)
+#         self.timer.timeout.connect(self.signal_plot.emit)
+#         self.timer.start()
+#
+#     def stop(self):
+#         if self.timer is not None:
+#             self.timer.stop()

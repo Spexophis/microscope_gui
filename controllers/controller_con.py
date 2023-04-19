@@ -53,15 +53,6 @@ class ConController():
         return illumination_source, detection_device, sequence_time, axis_lengths, step_sizes, axis_start_pos, \
             analog_start, digital_starts, digital_ends
 
-    def plot_digital_sequences(self, sequences):
-        size = sequences.shape
-        legend = [i for i in range(size[0])]
-        self.view.plot_canvas.axes.cla()
-        for i in range(size[0]):
-            self.view.plot_canvas.axes.plot(sequences[i]+i)
-        # self.view.plot_canvas.axes.legend(legend)
-        self.view.plot_canvas.draw()
-
     def display_camera_temperature(self, temperature):
         self.view.QLCDNumber_ccd_tempetature.display(temperature)
 

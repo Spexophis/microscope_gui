@@ -24,6 +24,8 @@ class AOWidget(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnTopHint)
+
         layout = QtWidgets.QVBoxLayout(self)
         Dock_exposuretime, Group_exposuretime = cw.create_dock('SH Camera')
         Dock_parameters, Group_parameters = cw.create_dock('SH Parameters')

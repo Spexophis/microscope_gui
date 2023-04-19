@@ -3,7 +3,6 @@ from PyQt5 import QtWidgets, QtCore
 from utilities import customized_widgets as cw
 from widgets import widget_ao
 from widgets import widget_con
-from widgets import widget_plot
 from widgets import widget_view
 
 
@@ -16,19 +15,22 @@ class MainWidget(QtWidgets.QMainWindow):
         self.con_view = widget_con.ConWidget()
         self.view_view = widget_view.ViewWidget()
         self.ao_view = widget_ao.AOWidget()
-        self.plot_view = widget_plot.PlotWidget()
 
         self.dock_con = cw.dock_widget()
         self.dock_con.setWidget(self.con_view)
-        self.dock_plot = cw.dock_widget()
-        self.dock_plot.setWidget(self.plot_view)
+        title_bar_widget_con = QtWidgets.QWidget()
+        title_bar_widget_con.setFixedHeight(0)
+        self.dock_con.setFeatures(QtWidgets.QDockWidget.NoDockWidgetFeatures)
+        self.dock_con.setTitleBarWidget(title_bar_widget_con)
         self.dock_ao = cw.dock_widget()
         self.dock_ao.setWidget(self.ao_view)
+        title_bar_widget_ao = QtWidgets.QWidget()
+        title_bar_widget_ao.setFixedHeight(0)
+        self.dock_ao.setFeatures(QtWidgets.QDockWidget.NoDockWidgetFeatures)
+        self.dock_ao.setTitleBarWidget(title_bar_widget_ao)
 
-        # set the view for the main window
         self.setCentralWidget(self.view_view)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock_con)
-        self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.dock_plot)
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock_ao)
 
         self.setWindowTitle("Microscope Control")
@@ -47,9 +49,6 @@ class MainWidget(QtWidgets.QMainWindow):
 
     def get_ao_widget(self):
         return self.ao_view
-
-    def get_plot_widget(self):
-        return self.plot_view
 
 
 import sys
