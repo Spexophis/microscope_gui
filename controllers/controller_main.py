@@ -510,15 +510,15 @@ class MainController:
             # tf.imwrite(self.path + '/' + t + slideName + '_shimg_raw.tif', self.om.tiscam.grabFrame())
             # tf.imwrite(self.path + '/' + t + slideName + '_shimg_raw.tif', self.om.thocam.img)
             tf.imwrite(self.path + '/' + t + slideName + '_shimg_base_raw.tif', self.p.shwfsr.base)
-        except ValueError:
+        except:
             print("NO SH Image")
         try:
             tf.imwrite(self.path + '/' + t + slideName + '_shimg_processed.tif', self.p.shwfsr.im)
-        except ValueError:
+        except:
             print("NO SH Image")
         try:
             tf.imwrite(self.path + '/' + t + slideName + '_reconstruted_wf.tif', self.p.shwfsr.wf)
-        except ValueError:
+        except:
             print("NO WF Image")
         print('WF Data saved')
 
