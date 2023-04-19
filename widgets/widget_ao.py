@@ -48,10 +48,6 @@ class AOWidget(QtWidgets.QWidget):
         Layout_exposuretime = QtWidgets.QGridLayout()
         self.Label_exposuretime = cw.label_widget(str('Exposure time'))
         self.QDoubleSpinBox_exposuretime = cw.doublespinbox_widget(0, 10, 0.005, 3, 0.01)
-        # self.Label_shimgmax = cw.label_widget(str('SHImage MAX'))
-        # self.lcdNumber_shimgmax = cw.lcdnumber_widget()
-        # self.Label_shimgmin = cw.label_widget(str('SHImage MIN'))
-        # self.lcdNumber_shimgmin = cw.lcdnumber_widget()
         self.Label_wfmax = cw.label_widget(str('Wavefront MAX'))
         self.lcdNumber_wfmax = cw.lcdnumber_widget()
         self.Label_wfmin = cw.label_widget(str('Wavefront MIN'))
@@ -109,19 +105,17 @@ class AOWidget(QtWidgets.QWidget):
 
         Layout_shwfs = QtWidgets.QGridLayout()
         self.button_shwfs_initiate = cw.pushbutton_widget('Initiate WFS')
-        self.button_wfsstart = cw.pushbutton_widget('SHStart')
-        self.button_wfsstop = cw.pushbutton_widget('SHStop')
-        self.button_run_wfr = cw.pushbutton_widget('RunWFR')
-        self.button_shwfs_computewf = cw.pushbutton_widget('ComputeWF')
-        self.button_shwfs_savewf = cw.pushbutton_widget('SaveWF')
+        self.button_run_wfs = cw.pushbutton_widget('RunWFS', checkable=True, enable=False)
+        self.button_run_wfr = cw.pushbutton_widget('RunWFR', enable=False)
+        self.button_shwfs_compute_wf = cw.pushbutton_widget('ComputeWF', enable=False)
+        self.button_shwfs_save_wf = cw.pushbutton_widget('SaveWF', enable=False)
         self.radioButton_exclude_zm = cw.radiobutton_widget("Exclude", f"rgb(220, 20, 60)")
         Layout_shwfs.addWidget(self.button_shwfs_initiate, 0, 0, 1, 1)
-        Layout_shwfs.addWidget(self.button_wfsstart, 0, 1, 1, 1)
-        Layout_shwfs.addWidget(self.button_wfsstop, 0, 2, 1, 1)
-        Layout_shwfs.addWidget(self.button_run_wfr, 0, 3, 1, 1)
+        Layout_shwfs.addWidget(self.button_run_wfs, 0, 1, 1, 1)
+        Layout_shwfs.addWidget(self.button_run_wfr, 0, 2, 1, 1)
         Layout_shwfs.addWidget(self.radioButton_exclude_zm, 2, 0, 1, 1)
-        Layout_shwfs.addWidget(self.button_shwfs_computewf, 2, 1, 1, 1)
-        Layout_shwfs.addWidget(self.button_shwfs_savewf, 2, 3, 1, 1)
+        Layout_shwfs.addWidget(self.button_shwfs_compute_wf, 2, 1, 1, 1)
+        Layout_shwfs.addWidget(self.button_shwfs_save_wf, 2, 2, 1, 1)
         Group_commands.setLayout(Layout_shwfs)
 
         Layout_deformablemirror = QtWidgets.QGridLayout()
@@ -219,12 +213,11 @@ class AOWidget(QtWidgets.QWidget):
         Layout_File.addWidget(self.QLineEdit_filename, 0, 1, 1, 5)
         Group_File.setLayout(Layout_File)
 
-        self.button_shwfs_initiate.clicked.connect(self.Signal_shwfs_initiate.emit)
-        self.button_wfsstart.clicked.connect(self.Signal_wfs_start.emit)
-        self.button_wfsstop.clicked.connect(self.Signal_wfs_stop.emit)
-        self.button_run_wfr.clicked.connect(self.Signal_shwfs_run.emit)
-        self.button_shwfs_computewf.clicked.connect(self.Signal_shwfs_computewf.emit)
-        self.button_shwfs_savewf.clicked.connect(self.Signal_shwfs_savewf.emit)
+        self.button_shwfs_initiate.clicked.connect(self.initiate_wfs)
+        self.button_run_wfs.clicked.connect(self.run_wfs)
+        self.button_run_wfr.clicked.connect(self.run_wfr)
+        self.button_shwfs_compute_wf.clicked.connect(self.Signal_shwfs_computewf.emit)
+        self.button_shwfs_save_wf.clicked.connect(self.Signal_shwfs_savewf.emit)
         self.button_push_actuator.clicked.connect(self.Signal_push_actuator.emit)
         self.button_influence_fuction_laser.clicked.connect(self.Signal_influence_function.emit)
         self.button_set_zernike_mode.clicked.connect(self.Signal_set_zernike.emit)
@@ -244,6 +237,27 @@ class AOWidget(QtWidgets.QWidget):
         self.QSpinBox_n_lenslets_y.setValue(18)
         self.QSpinBox_spacing.setValue(61)
         self.QSpinBox_radius.setValue(24)
+
+    def initiate_wfs(self):
+        self.Signal_shwfs_initiate.emit()
+        self.button_run_wfs.setEnabled(True)
+
+    def run_wfs(self):
+        if self.button_run_wfs.isChecked():
+            self.Signal_wfs_start.emit()
+            self.button_run_wfr.setEnabled(True)
+            self.button_shwfs_initiate.setEnabled(False)
+            self.button_shwfs_compute_wf.setEnabled(False)
+            self.button_shwfs_save_wf.setEnabled(False)
+        else:
+            self.Signal_wfs_stop.emit()
+            self.button_run_wfr.setEnabled(False)
+            self.button_shwfs_initiate.setEnabled(True)
+
+    def run_wfr(self):
+        self.Signal_shwfs_run.emit()
+        self.button_shwfs_compute_wf.setEnabled(True)
+        self.button_shwfs_save_wf.setEnabled(True)
 
     def dialog(self):
         file, check = QtWidgets.QFileDialog.getOpenFileName(None, "QtWidgets.QFileDialog.getOpenFileName()", "",

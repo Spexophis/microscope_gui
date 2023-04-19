@@ -249,10 +249,10 @@ class ConWidget(QtWidgets.QWidget):
         self.QLabel_emccd_gain = cw.label_widget(str('EMCCD Gain'))
         self.QSpinBox_emccd_gain = cw.spinbox_widget(0, 300, 1, 0)
         self.QPushButton_video = cw.pushbutton_widget('Video', checkable=True)
-        self.QPushButton_fft = cw.pushbutton_widget('FFT', checkable=True)
-        self.QPushButton_2d_resolft = cw.pushbutton_widget('2D RESOLFT')
-        self.QPushButton_3d_resolft = cw.pushbutton_widget('3D RESOLFT')
-        self.QPushButton_2d_beadscan = cw.pushbutton_widget('2D BeadScan')
+        self.QPushButton_fft = cw.pushbutton_widget('FFT', checkable=True, enable=False)
+        self.QPushButton_2d_resolft = cw.pushbutton_widget('2D RESOLFT', enable=False)
+        self.QPushButton_3d_resolft = cw.pushbutton_widget('3D RESOLFT', enable=False)
+        self.QPushButton_2d_beadscan = cw.pushbutton_widget('2D BeadScan', enable=False)
         Layout_DataAquisition.addWidget(self.QLabel_exposure_time, 0, 0, 1, 1)
         Layout_DataAquisition.addWidget(self.QDoubleSpinBox_exposure_time, 0, 1, 1, 1)
         Layout_DataAquisition.addWidget(self.QLabel_emccd_gain, 1, 0, 1, 1)
@@ -340,8 +340,18 @@ class ConWidget(QtWidgets.QWidget):
     def video(self):
         if self.QPushButton_video.isChecked():
             self.Signal_start_video.emit()
+            self.QPushButton_fft.setEnabled(True)
+            self.QPushButton_2d_resolft.setEnabled(False)
+            self.QPushButton_3d_resolft.setEnabled(False)
+            self.QPushButton_2d_beadscan.setEnabled(False)
         else:
             self.Signal_stop_video.emit()
+            self.Signal_stop_fft.emit()
+            self.QPushButton_fft.setEnabled(False)
+            self.QPushButton_fft.setChecked(False)
+            self.QPushButton_2d_resolft.setEnabled(True)
+            self.QPushButton_3d_resolft.setEnabled(True)
+            self.QPushButton_2d_beadscan.setEnabled(True)
 
     def run_fft(self):
         if self.QPushButton_fft.isChecked():
