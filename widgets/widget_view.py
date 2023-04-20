@@ -34,20 +34,20 @@ class ViewWidget(QtWidgets.QWidget):
         dock_plot, group_plot = cw.create_dock('Plot')
         splitter.addWidget(dock_view)
         splitter.addWidget(dock_plot)
-        layout.addWidget(splitter, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(splitter)
         self.setLayout(layout)
 
         layout_view = QtWidgets.QVBoxLayout()
         napari_tools.addNapariGrayclipColormap()
         self.napariViewer = napari_tools.EmbeddedNapari()
-        layout_view.addWidget(self.napariViewer.get_widget(), alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
+        layout_view.addWidget(self.napariViewer.get_widget())
         group_view.setLayout(layout_view)
 
         layout_plot = QtWidgets.QVBoxLayout()
         self.canvas = MplCanvas(self, dpi=100)
         toolbar = NavigationToolbar(self.canvas)
-        layout_plot.addWidget(toolbar, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
-        layout_plot.addWidget(self.canvas, alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
+        layout_plot.addWidget(toolbar)
+        layout_plot.addWidget(self.canvas)
         group_plot.setLayout(layout_plot)
 
         self.imgLayers = {}

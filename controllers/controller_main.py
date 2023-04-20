@@ -31,7 +31,7 @@ class MainController:
             os.mkdir(self.path)
         except:
             print('Directory already exists')
-        self.stackparams = {'Date/Time': 0, 'User': '', 'X': 0, 'Y': 0, 'Z': 0, 'Xstep': 0, 'Ystep': 0, 'Zstep': 0,
+        self.stack_params = {'Date/Time': 0, 'User': '', 'X': 0, 'Y': 0, 'Z': 0, 'Xstep': 0, 'Ystep': 0, 'Zstep': 0,
                             'Exposure(s)': 0, 'CCD Temperature': 0, 'Pixel Size(nm)': 13 / (3 * 63), 'CCD setting': ''}
 
         # video thread    
@@ -42,12 +42,12 @@ class MainController:
         self.thread_video.finished.connect(self.videoWorker.stop)
         self.videoWorker.signal_imshow.connect(self.imshow_main)
         # image process thread
-        self.thread_impro = QtCore.QThread()
-        self.improWorker = ImgProcessWorker(parent=None)
-        self.improWorker.moveToThread(self.thread_impro)
-        self.thread_impro.started.connect(self.improWorker.run)
-        self.thread_impro.finished.connect(self.improWorker.stop)
-        self.improWorker.signal_fft.connect(self.imshow_fft)
+        self.thread_fft = QtCore.QThread()
+        self.fftWorker = FFTWorker(parent=None)
+        self.fftWorker.moveToThread(self.thread_fft)
+        self.thread_fft.started.connect(self.fftWorker.run)
+        self.thread_fft.finished.connect(self.fftWorker.stop)
+        self.fftWorker.signal_fft.connect(self.imshow_fft)
         # plot thread
         self.thread_plot = QtCore.QThread()
         self.plotWorker = PlotWorker(parent=None)
@@ -146,11 +146,11 @@ class MainController:
             self.con_controller.display_deck_position(p)
 
     def set_piezo_positions(self):
-        convFactors = [10, 10, 10.]
+        conv_factors = [10, 10, 10.]
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        value_x = pos_x * convFactors[0]
-        value_y = pos_y * convFactors[1]
-        value_z = pos_z * convFactors[2]
+        value_x = pos_x * conv_factors[0]
+        value_y = pos_y * conv_factors[1]
+        value_z = pos_z * conv_factors[2]
         self.om.daq.set_xyz(value_x, value_y, value_z)
 
     def set_laseron_488_0(self):
@@ -185,6 +185,12 @@ class MainController:
     def set_laseroff_405(self):
         self.om.laser.laserOFF_405()
 
+    def lasers_off(self):
+        self.om.laser.laserOFF_488_0()
+        self.om.laser.laserOFF_488_1()
+        self.om.laser.laserOFF_488_2()
+        self.om.laser.laserOFF_405()
+
     def imshow_main(self):
         if self.om.cam.getImage_live():
             self.view_controller.plot_main(self.om.cam.data)
@@ -207,39 +213,39 @@ class MainController:
 
     def save_data(self):
         t = time.strftime("%Y%m%d_%H%M%S_")
-        slideName = self.con_controller.get_file_name()
-        tf.imwrite(self.path + '/' + t + slideName + '.tif', self.om.cam.data)
-        self.stackparams['Slide Name'] = slideName
-        fnt = self.path + '/' + t + slideName + '_info.txt'
-        self._save_text(fnt)
+        slide_name = self.con_controller.get_file_name()
+        tf.imwrite(self.path + '/' + t + slide_name + '.tif', self.om.cam.data)
+        self.stack_params['Slide Name'] = slide_name
+        fnt = self.path + '/' + t + slide_name + '_info.txt'
+        self.save_text(fnt)
         print('Data saved')
 
-    def _save_text(self, fn=None):
-        if fn == None:
+    def save_text(self, fn=None):
+        if fn is None:
             return False
         s = []
-        for parts in self.stackparams:
-            s.append('%s : %s \n' % (parts, self.stackparams[parts]))
+        for parts in self.stack_params:
+            s.append('%s : %s \n' % (parts, self.stack_params[parts]))
         s.sort()
         fid = open(fn, 'w')
         fid.writelines(s)
         fid.close()
 
-    def stackTags(self, function):
-        self.stackparams.clear()
-        self.stackparams['00 User'] = getuser()
-        self.stackparams['01 Date/Time'] = time.asctime()
-        self.stackparams['02 function'] = function
-        self.stackparams['03 CCD Temperature'] = self.om.cam.get_ccd_temperature()
-        self.stackparams['04 EMCCDGain'] = self.om.cam.get_emccdgain()
-        self.stackparams['05 Pixel size'] = 13 / (63 * 2.8)
-        self.stackparams['06 Camera Coordinates'] = self.om.cam.G
-        # self.stackparams['07 X'] = xx
-        # self.stackparams['08 Y'] = yy
-        # self.stackparams['09 Z'] = zz
-        # self.stackparams['10 Xstep'] = zs
-        # self.stackparams['11 Ystep'] = zs
-        # self.stackparams['12 Zstep'] = zs
+    def stack_tags(self, function):
+        self.stack_params.clear()
+        self.stack_params['00 User'] = getuser()
+        self.stack_params['01 Date/Time'] = time.asctime()
+        self.stack_params['02 function'] = function
+        self.stack_params['03 CCD Temperature'] = self.om.cam.get_ccd_temperature()
+        self.stack_params['04 EMCCDGain'] = self.om.cam.get_emccdgain()
+        self.stack_params['05 Pixel size'] = 13 / (63 * 2.8)
+        self.stack_params['06 Camera Coordinates'] = self.om.cam.G
+        # self.stack_params['07 X'] = xx
+        # self.stack_params['08 Y'] = yy
+        # self.stack_params['09 Z'] = zz
+        # self.stack_params['10 Xstep'] = zs
+        # self.stack_params['11 Ystep'] = zs
+        # self.stack_params['12 Zstep'] = zs
 
     def set_camera(self):
         self.set_camera_coordinates()
@@ -267,31 +273,25 @@ class MainController:
         self.thread_video.quit()
         self.thread_video.wait()
         self.om.daq.Trig_stop()
-        self.lasersoff()
+        self.lasers_off()
         self.om.cam.stop_live()
         temperature = self.om.cam.get_ccd_temperature()
         self.con_controller.display_camera_temperature(temperature)
 
-    def lasersoff(self):
-        self.om.laser.laserOFF_488_0()
-        self.om.laser.laserOFF_488_1()
-        self.om.laser.laserOFF_488_2()
-        self.om.laser.laserOFF_405()
-
     def run_fft(self):
-        self.thread_impro.start()
+        self.thread_fft.start()
 
     def stop_fft(self):
-        self.thread_impro.quit()
-        self.thread_impro.wait()
+        self.thread_fft.quit()
+        self.thread_fft.wait()
 
     def plot_trigger(self):
         sample_rate = 100000
         return_time = 0.001
-        convFactors = [10, 10, 10.]
+        conv_factors = [10, 10, 10.]
         laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
-                                         return_time, convFactors, analog_start, digital_starts, digital_ends)
+                                         return_time, conv_factors, analog_start, digital_starts, digital_ends)
         dgtr = self.p.trigger.generate_digital_triggers_sw(laser, camera)
         self.view_controller.plot_update(dgtr[0])
         for i in range(len(digital_starts) - 1):
@@ -300,51 +300,51 @@ class MainController:
     def generate_digital_trigger(self):
         sample_rate = 100000
         return_time = 0.001
-        convFactors = [10, 10, 10.]
+        conv_factors = [10, 10, 10.]
         laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
-                                         return_time, convFactors, analog_start, digital_starts, digital_ends)
+                                         return_time, conv_factors, analog_start, digital_starts, digital_ends)
         dgtr = self.p.trigger.generate_digital_triggers(laser, camera)
         return dgtr
 
     def generate_digital_trigger_sw(self):
         sample_rate = 100000
         return_time = 0.001
-        convFactors = [10, 10, 10.]
+        conv_factors = [10, 10, 10.]
         laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
-                                         return_time, convFactors, analog_start, digital_starts, digital_ends)
+                                         return_time, conv_factors, analog_start, digital_starts, digital_ends)
         dgtr = self.p.trigger.generate_digital_triggers_sw(laser, camera)
         return dgtr
 
     def write_trigger_2d(self):
         sample_rate = 100000
         return_time = 0.05
-        convFactors = [10, 10, 10.]
+        conv_factors = [10, 10, 10.]
         laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
-                                         return_time, convFactors, analog_start, digital_starts, digital_ends)
+                                         return_time, conv_factors, analog_start, digital_starts, digital_ends)
         atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_2d()
         self.om.daq.Trigger_sequence(atr, dtr)
 
     def write_trigger_3d(self):
         sample_rate = 100000
         return_time = 0.05
-        convFactors = [10, 10, 10.]
+        conv_factors = [10, 10, 10.]
         laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
-                                         return_time, convFactors, analog_start, digital_starts, digital_ends)
+                                         return_time, conv_factors, analog_start, digital_starts, digital_ends)
         atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_3d()
         self.om.daq.Trigger_sequence(atr, dtr)
 
     def write_trigger_beadscan_2d(self):
         sample_rate = 100000
         return_time = 0.05
-        convFactors = [10, 10, 10.]
+        conv_factors = [10, 10, 10.]
         l = self.con_controller.select_laser()
         laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
-                                         return_time, convFactors, analog_start, digital_starts, digital_ends)
+                                         return_time, conv_factors, analog_start, digital_starts, digital_ends)
         atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_beadscan_2d(l)
         self.om.daq.Trigger_sequence(atr, dtr)
 
@@ -376,7 +376,7 @@ class MainController:
         self.om.daq.Run_sequence()
         self.om.cam.get_data(self.npos)
         print('Acquisition Done')
-        self.lasersoff()
+        self.lasers_off()
 
     def record_3d_resolft(self):
         self.write_trigger_3d()
@@ -385,7 +385,7 @@ class MainController:
         self.om.daq.Run_sequence()
         self.om.cam.get_data(self.npos)
         print('Acquisition Done')
-        self.lasersoff()
+        self.lasers_off()
 
     def record_beadscan_2d(self):
         self.write_trigger_beadscan_2d()
@@ -394,13 +394,13 @@ class MainController:
         self.om.daq.Run_sequence()
         self.om.cam.get_data(self.npos)
         print('Acquisition Done')
-        self.lasersoff()
+        self.lasers_off()
         self.reconstruct_beadscan_2d()
 
     def reconstruct_beadscan_2d(self):
         laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
-        stepsize = step_sizes[0]
-        self.p.bsrecon.reconstruct_all_beads(self.om.cam.data, stepsize)
+        step_size = step_sizes[0]
+        self.p.bsrecon.reconstruct_all_beads(self.om.cam.data, step_size)
         t = time.strftime("%Y%m%d_%H%M%S_")
         fn = self.con_controller.get_file_name()
         tf.imwrite(self.path + '/' + t + fn + '.tif', self.om.cam.data)
@@ -472,7 +472,7 @@ class MainController:
         # self.om.tiscam.stop_live()
         self.om.daq.Trig_stop()
         self.om.hacam.stopAcquisition()
-        self.lasersoff()
+        self.lasers_off()
 
     def imshow_wfs(self):
         # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
@@ -495,7 +495,7 @@ class MainController:
         # self.om.tiscam.stop_live()
         # self.om.thocam.stop_acquire()
         self.om.daq.Trig_stop()
-        self.lasersoff()
+        self.lasers_off()
         self.om.hacam.stopAcquisition()
 
     def run_wfr(self):
@@ -591,11 +591,11 @@ class MainController:
     def generate_digital_trigger_ao(self):
         sample_rate = 100000
         return_time = 0.001
-        convFactors = [10, 10, 10.]
+        conv_factors = [10, 10, 10.]
         l = self.con_controller.select_laser()
         laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
-                                         return_time, convFactors, analog_start, digital_starts, digital_ends)
+                                         return_time, conv_factors, analog_start, digital_starts, digital_ends)
         dgtr = self.p.trigger.generate_digital_triggers_ao(l)
         return dgtr
 
@@ -609,7 +609,7 @@ class MainController:
 
     def stop_ao_iteration(self):
         self.om.daq.Trig_stop()
-        self.lasersoff()
+        self.lasers_off()
         temperature = self.om.cam.get_ccd_temperature()
         self.con_controller.display_camera_temperature(temperature)
 
@@ -706,7 +706,7 @@ class VideoWorker(QtCore.QObject):
             self.timer.stop()
 
 
-class ImgProcessWorker(QtCore.QObject):
+class FFTWorker(QtCore.QObject):
     signal_fft = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
