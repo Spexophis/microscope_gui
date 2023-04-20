@@ -185,6 +185,21 @@ class MainController:
     def set_laseroff_405(self):
         self.om.laser.laserOFF_405()
 
+    def set_lasers(self):
+        p405, p488_0, p488_1, p488_2 = self.con_controller.get_cobolt_laser_power()
+        self.om.laser.modulation_mode_488_0(0)
+        self.om.laser.laserON_488_0()
+        self.om.laser.modulation_mode_488_1(0)
+        self.om.laser.laserON_488_1()
+        self.om.laser.modulation_mode_488_2(0)
+        self.om.laser.laserON_488_2()
+        self.om.laser.modulation_mode_405(0)
+        self.om.laser.laserON_405()
+        self.om.laser.modulation_mode_488_1(p488_1)
+        self.om.laser.modulation_mode_488_2(p488_2)
+        self.om.laser.modulation_mode_488_0(p488_0)
+        self.om.laser.modulation_mode_405(p405)
+
     def lasers_off(self):
         self.om.laser.laserOFF_488_0()
         self.om.laser.laserOFF_488_1()
@@ -354,21 +369,6 @@ class MainController:
         self.om.cam.prepare_kinetic_acquisition(self.npos)
         self.set_lasers()
 
-    def set_lasers(self):
-        p405, p488_0, p488_1, p488_2 = self.con_controller.get_cobolt_laser_power()
-        self.om.laser.modulation_mode_488_0(0)
-        self.om.laser.laserON_488_0()
-        self.om.laser.modulation_mode_488_1(0)
-        self.om.laser.laserON_488_1()
-        self.om.laser.modulation_mode_488_2(0)
-        self.om.laser.laserON_488_2()
-        self.om.laser.modulation_mode_405(0)
-        self.om.laser.laserON_405()
-        self.om.laser.modulation_mode_488_1(p488_1)
-        self.om.laser.modulation_mode_488_2(p488_2)
-        self.om.laser.modulation_mode_488_0(p488_0)
-        self.om.laser.modulation_mode_405(p405)
-
     def record_2d_resolft(self):
         self.write_trigger_2d()
         self.prepare_resolft_recording()
@@ -442,15 +442,16 @@ class MainController:
 
     def set_shcam(self):
         self.set_lasers()
-        expo = self.ao_controller.get_exposuretime()
-        # self.om.tiscam.setPropertyValue('exposure', expo)
-        # self.om.thocam.set_exposure(expo)
-        # self.om.hacam.setPropertyValue('', )
-        # self.om.hacam.setPropertyValue('exposure_time', expo)
-        self.om.hacam.setPropertyValue('trigger_source', 2)
-        self.om.hacam.setPropertyValue('trigger_mode', 3)
         dgtr = self.generate_digital_trigger_sw()
         self.om.daq.Trig_open(dgtr)
+        # expo = self.ao_controller.get_exposuretime()
+        # self.om.tiscam.setPropertyValue('exposure', expo)
+        # self.om.thocam.set_exposure(expo)
+        # self.om.hacam.setPropertyValue('exposure_time', expo)
+        self.om.hacam.setPropertyValue('trigger_mode', 1)
+        self.om.hacam.setPropertyValue('trigger_source', 2)
+        self.om.hacam.setPropertyValue('trigger_active', 2)
+        self.om.hacam.setPropertyValue('trigger_global_exposure', 5)
 
     def set_wfs(self):
         parameters = self.ao_controller.get_parameters()
@@ -482,12 +483,13 @@ class MainController:
         self.view_controller.plot_sh(self.p.shwfsr.offset)
 
     def start_wfs(self):
+        self.set_shcam()
         # self.om.tiscam.prepare_live()
         # self.om.tiscam.start_live()
         # self.om.thocam.start_acquire()
         self.om.hacam.startAcquisition()
         self.om.daq.Trig_run()
-        time.sleep(0.05)
+        time.sleep(0.1)
         self.thread_wfs.start()
 
     def stop_wfs(self):
@@ -496,8 +498,8 @@ class MainController:
         # self.om.tiscam.stop_live()
         # self.om.thocam.stop_acquire()
         self.om.daq.Trig_stop()
-        self.lasers_off()
         self.om.hacam.stopAcquisition()
+        self.lasers_off()
 
     def run_wfr(self):
         self.p.shwfsr.offset = self.om.hacam.getLastFrame()
