@@ -25,9 +25,12 @@ class ConWidget(QtWidgets.QWidget):
     Signal_stop_video = QtCore.pyqtSignal()
     Signal_run_fft = QtCore.pyqtSignal()
     Signal_stop_fft = QtCore.pyqtSignal()
+    Signal_run_plot_profile = QtCore.pyqtSignal()
+    Signal_stop_plot_profile = QtCore.pyqtSignal()
     Signal_2d_resolft = QtCore.pyqtSignal()
     Signal_3d_resolft = QtCore.pyqtSignal()
     Signal_beadscan_2d = QtCore.pyqtSignal()
+    Signal_beadscan_3d = QtCore.pyqtSignal()
     Signal_save_file = QtCore.pyqtSignal()
 
     def __init__(self, *args, **kwargs):
@@ -249,15 +252,21 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_2d_resolft = cw.pushbutton_widget('2D RESOLFT', enable=False)
         self.QPushButton_3d_resolft = cw.pushbutton_widget('3D RESOLFT', enable=False)
         self.QPushButton_2d_beadscan = cw.pushbutton_widget('2D BeadScan', enable=False)
+        self.QPushButton_3d_beadscan = cw.pushbutton_widget('3D BeadScan', enable=False)
+        self.QComboBox_profile_axis = cw.combobox_widget(list_items=['X', 'Y'])
+        self.QPushButton_plot_profile = cw.pushbutton_widget('Plot Profile', checkable=True, enable=False)
         Layout_DataAquisition.addWidget(self.QLabel_exposure_time, 0, 0, 1, 1)
         Layout_DataAquisition.addWidget(self.QDoubleSpinBox_exposure_time, 0, 1, 1, 1)
         Layout_DataAquisition.addWidget(self.QLabel_emccd_gain, 1, 0, 1, 1)
         Layout_DataAquisition.addWidget(self.QSpinBox_emccd_gain, 1, 1, 1, 1)
         Layout_DataAquisition.addWidget(self.QPushButton_video, 2, 0, 1, 1)
         Layout_DataAquisition.addWidget(self.QPushButton_fft, 2, 1, 1, 1)
-        Layout_DataAquisition.addWidget(self.QPushButton_2d_beadscan, 0, 2, 1, 1)
-        Layout_DataAquisition.addWidget(self.QPushButton_2d_resolft, 1, 2, 1, 1)
-        Layout_DataAquisition.addWidget(self.QPushButton_3d_resolft, 2, 2, 1, 1)
+        Layout_DataAquisition.addWidget(self.QPushButton_2d_resolft, 0, 2, 1, 1)
+        Layout_DataAquisition.addWidget(self.QPushButton_3d_resolft, 0, 3, 1, 1)
+        Layout_DataAquisition.addWidget(self.QPushButton_2d_beadscan, 1, 2, 1, 1)
+        Layout_DataAquisition.addWidget(self.QPushButton_3d_beadscan, 1, 3, 1, 1)
+        Layout_DataAquisition.addWidget(self.QComboBox_profile_axis, 2, 2, 1, 1)
+        Layout_DataAquisition.addWidget(self.QPushButton_plot_profile, 2, 3, 1, 1)
         group_DataAquisition.setLayout(Layout_DataAquisition)
 
         Layout_File = QtWidgets.QGridLayout()
@@ -337,21 +346,35 @@ class ConWidget(QtWidgets.QWidget):
         if self.QPushButton_video.isChecked():
             self.Signal_start_video.emit()
             self.QPushButton_fft.setEnabled(True)
+            self.QPushButton_plot_profile.setEnabled(True)
             self.QPushButton_2d_resolft.setEnabled(False)
             self.QPushButton_3d_resolft.setEnabled(False)
             self.QPushButton_2d_beadscan.setEnabled(False)
+            self.QPushButton_3d_beadscan.setEnabled(False)
         else:
             self.Signal_stop_video.emit()
-            self.Signal_stop_fft.emit()
-            self.QPushButton_fft.setEnabled(False)
-            self.QPushButton_fft.setChecked(False)
+            if self.QPushButton_fft.isChecked():
+                self.Signal_stop_plot_profile.emit()
+                self.QPushButton_fft.setEnabled(False)
+                self.QPushButton_fft.setChecked(False)
+            if self.QPushButton_plot_profile.isChecked():
+                self.Signal_stop_plot_profile.emit()
+                self.QPushButton_plot_profile.setEnabled(False)
+                self.QPushButton_plot_profile.setChecked(False)
             self.QPushButton_2d_resolft.setEnabled(True)
             self.QPushButton_3d_resolft.setEnabled(True)
             self.QPushButton_2d_beadscan.setEnabled(True)
+            self.QPushButton_3d_beadscan.setEnabled(True)
 
     def run_fft(self):
         if self.QPushButton_fft.isChecked():
-            self.Signal_run_fft.emit()
+            self.Signal_run_plot_profile.emit()
+        else:
+            self.Signal_stop_plot_profile.emit()
+
+    def run_plot_profile(self):
+        if self.QPushButton_plot_profile.isChecked():
+            self.Signal_plot.emit()
         else:
             self.Signal_stop_fft.emit()
 
@@ -366,6 +389,9 @@ class ConWidget(QtWidgets.QWidget):
 
     def beadscan_2d(self):
         self.Signal_beadscan_2d.emit()
+
+    def beadscan_3d(self):
+        self.Signal_beadscan_3d.emit()
 
     def update_trigger_parameter_sets(self):
         presets = self.QComboBox_trigger_parameter.currentText()

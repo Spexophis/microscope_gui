@@ -6,7 +6,7 @@ class ImageProcessing:
     def __init__(self):
         self.wl = 0.505  # wavelength in microns
         self.na = 1.4  # numerical aperture
-        self.dx = 13 / (2.8 * 63)  # pixel size in microns
+        self.dx = 13 / (2.5 * 63)  # pixel size in microns
         self.nx = 1024  # size of region
         self.fs = 1 / self.dx  # Spatial sampling frequency, inverse microns
         self.df = self.fs / self.nx  # Spacing between discrete frequency coordinates, inverse microns
@@ -103,18 +103,10 @@ class ImageProcessing:
             disc = np.roll(np.roll(disc, int(s0), 0), int(s1), 1)
         return disc
 
-    def circle(self, radius, size, circle_centre=(0, 0), origin="middle"):
-        C = np.zeros((size, size))
-        coords = np.arange(0.5, size, 1.0)
-        if len(coords) != size:
-            raise ("len(coords) = {0}, ".format(len(coords)) + "size = {0}. They must be equal.".format(
-                size) + "\n Debug the line \"coords = ...\".")
-        x, y = np.meshgrid(coords, coords)
-        if origin == "middle":
-            x -= size / 2.
-            y -= size / 2.
-        x -= circle_centre[0]
-        y -= circle_centre[1]
-        mask = x * x + y * y <= radius * radius
-        C[mask] = 1
-        return C
+    def get_profile(self, data, ax):
+        data = data - data.min()
+        data = data / data.max()
+        if ax == 'X':
+            return data.mean(0)
+        if ax == 'Y':
+            return data.mean(1)

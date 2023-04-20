@@ -65,6 +65,7 @@ def create_dock(name=''):
     dock.setWidget(group)
     return dock, group
 
+
 def label_widget(name=''):
     label = QtWidgets.QLabel(name)
     label.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
@@ -281,10 +282,10 @@ def lineedit_widget():
     return lineedit
 
 
-def slider_widget(min, max, value):
+def slider_widget(mi, ma, value):
     slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-    slider.setMinimum(min)
-    slider.setMaximum(max)
+    slider.setMinimum(mi)
+    slider.setMaximum(ma)
     slider.setValue(value)
     slider.setStyleSheet('''
                 QSlider::groove:vertical {
@@ -300,10 +301,10 @@ def slider_widget(min, max, value):
     return slider
 
 
-def dia_widget(min, max, value):
+def dia_widget(mi, ma, value):
     dial = QtWidgets.QDial()
-    dial.setMinimum(min)
-    dial.setMaximum(max)
+    dial.setMinimum(mi)
+    dial.setMaximum(ma)
     dial.setValue(value)
     dial.setStyleSheet('''
         QDial {

@@ -53,6 +53,9 @@ class ConController():
         return illumination_source, detection_device, sequence_time, axis_lengths, step_sizes, axis_start_pos, \
             analog_start, digital_starts, digital_ends
 
+    def get_profile_axis(self):
+        return self.view.QComboBox_profile_axis.currentText()
+
     def display_camera_temperature(self, temperature):
         self.view.QLCDNumber_ccd_tempetature.display(temperature)
 

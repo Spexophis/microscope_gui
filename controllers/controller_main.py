@@ -54,7 +54,7 @@ class MainController:
         self.plotWorker.moveToThread(self.thread_plot)
         self.thread_plot.started.connect(self.plotWorker.run)
         self.thread_plot.finished.connect(self.plotWorker.stop)
-        self.plotWorker.signal_plot.connect(self.profile_update)
+        self.plotWorker.signal_plot.connect(self.profile_plot)
         # wavefront sensor thread
         self.thread_wfs = QtCore.QThread()
         self.wfsWorker = WFSWorker(parent=None)
@@ -83,6 +83,8 @@ class MainController:
         self.view.get_control_widget().Signal_stop_video.connect(self.stop_video)
         self.view.get_control_widget().Signal_run_fft.connect(self.run_fft)
         self.view.get_control_widget().Signal_stop_fft.connect(self.stop_fft)
+        self.view.get_control_widget().Signal_run_plot_profile.connect(self.start_plot_live)
+        self.view.get_control_widget().Signal_stop_plot_profile.connect(self.stop_plot_live)
         self.view.get_control_widget().Signal_3d_resolft.connect(self.record_3d_resolft)
         self.view.get_control_widget().Signal_2d_resolft.connect(self.record_2d_resolft)
         self.view.get_control_widget().Signal_beadscan_2d.connect(self.record_beadscan_2d)
@@ -193,8 +195,8 @@ class MainController:
         self.view_controller.plot_fft(self.p.imgprocess.fourier_transform(self.om.cam.data))
 
     def profile_plot(self):
-        h, v = self.con_controller.get_profile_axis()
-        self.view_controller.plot(self.p.imgprocess.get_profile(self.om.cam.data, h=h, v=v))
+        ax = self.con_controller.get_profile_axis()
+        self.view_controller.plot(self.p.imgprocess.get_profile(self.om.cam.data, ax))
 
     def start_plot_live(self):
         self.thread_plot.start()
