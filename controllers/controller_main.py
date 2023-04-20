@@ -202,7 +202,7 @@ class MainController:
 
     def profile_plot(self):
         ax = self.con_controller.get_profile_axis()
-        self.view_controller.plot(self.p.imgprocess.get_profile(self.om.cam.data, ax))
+        self.view_controller.plot_update(self.p.imgprocess.get_profile(self.om.cam.data, ax))
 
     def start_plot_live(self):
         self.thread_plot.start()
@@ -255,7 +255,7 @@ class MainController:
         self.om.cam.set_emccd_gain(gain)
 
     def prepare_video(self):
-        self.setlasers()
+        self.set_lasers()
         dgtr = self.generate_digital_trigger_sw()
         self.om.daq.Trig_open(dgtr)
         self.om.cam.set_trigger_mode(7)
@@ -352,9 +352,9 @@ class MainController:
         self.set_camera()
         self.om.cam.set_trigger_mode(7)
         self.om.cam.prepare_kinetic_acquisition(self.npos)
-        self.setlasers()
+        self.set_lasers()
 
-    def setlasers(self):
+    def set_lasers(self):
         p405, p488_0, p488_1, p488_2 = self.con_controller.get_cobolt_laser_power()
         self.om.laser.modulation_mode_488_0(0)
         self.om.laser.laserON_488_0()
@@ -441,7 +441,7 @@ class MainController:
         print('DM cmd saved')
 
     def set_shcam(self):
-        self.setlasers()
+        self.set_lasers()
         expo = self.ao_controller.get_exposuretime()
         # self.om.tiscam.setPropertyValue('exposure', expo)
         # self.om.thocam.set_exposure(expo)
@@ -600,7 +600,7 @@ class MainController:
         return dgtr
 
     def start_ao_iteration(self):
-        self.setlasers()
+        self.set_lasers()
         dgtr = self.generate_digital_trigger_ao()
         self.om.daq.Trig_open_ao(dgtr)
         self.om.cam.set_trigger_mode(7)
@@ -715,7 +715,7 @@ class FFTWorker(QtCore.QObject):
 
     def run(self):
         self.timer = QtCore.QTimer()
-        self.timer.setInterval(150)
+        self.timer.setInterval(200)
         self.timer.timeout.connect(self.signal_fft.emit)
         self.timer.start()
 
@@ -751,7 +751,7 @@ class PlotWorker(QtCore.QObject):
 
     def run(self):
         self.timer = QtCore.QTimer()
-        self.timer.setInterval(100)
+        self.timer.setInterval(200)
         self.timer.timeout.connect(self.signal_plot.emit)
         self.timer.start()
 
