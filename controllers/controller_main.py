@@ -447,7 +447,8 @@ class MainController:
         # self.om.thocam.set_exposure(expo)
         # self.om.hacam.setPropertyValue('', )
         # self.om.hacam.setPropertyValue('exposure_time', expo)
-        self.om.hacam.setPropertyValue('trigger_mode', expo)
+        self.om.hacam.setPropertyValue('trigger_source', 2)
+        self.om.hacam.setPropertyValue('trigger_mode', 3)
         dgtr = self.generate_digital_trigger_sw()
         self.om.daq.Trig_open(dgtr)
 

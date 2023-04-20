@@ -287,6 +287,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_plot_trigger.clicked.connect(self.plot_trigger_sequence)
         self.QPushButton_video.clicked.connect(self.video)
         self.QPushButton_fft.clicked.connect(self.run_fft)
+        self.QPushButton_plot_profile.clicked.connect(self.run_plot_profile)
         self.QPushButton_save.clicked.connect(self.save)
         self.QPushButton_laser_488_0.clicked.connect(self.set_laser_488_0)
         self.QPushButton_laser_488_1.clicked.connect(self.set_laser_488_1)
@@ -355,12 +356,12 @@ class ConWidget(QtWidgets.QWidget):
             self.Signal_stop_video.emit()
             if self.QPushButton_fft.isChecked():
                 self.Signal_stop_plot_profile.emit()
-                self.QPushButton_fft.setEnabled(False)
-                self.QPushButton_fft.setChecked(False)
+            self.QPushButton_fft.setEnabled(False)
+            self.QPushButton_fft.setChecked(False)
             if self.QPushButton_plot_profile.isChecked():
                 self.Signal_stop_plot_profile.emit()
-                self.QPushButton_plot_profile.setEnabled(False)
-                self.QPushButton_plot_profile.setChecked(False)
+            self.QPushButton_plot_profile.setEnabled(False)
+            self.QPushButton_plot_profile.setChecked(False)
             self.QPushButton_2d_resolft.setEnabled(True)
             self.QPushButton_3d_resolft.setEnabled(True)
             self.QPushButton_2d_beadscan.setEnabled(True)
@@ -368,15 +369,15 @@ class ConWidget(QtWidgets.QWidget):
 
     def run_fft(self):
         if self.QPushButton_fft.isChecked():
-            self.Signal_run_plot_profile.emit()
+            self.Signal_run_fft.emit()
         else:
-            self.Signal_stop_plot_profile.emit()
+            self.Signal_stop_fft.emit()
 
     def run_plot_profile(self):
         if self.QPushButton_plot_profile.isChecked():
-            self.Signal_plot.emit()
+            self.Signal_run_plot_profile.emit()
         else:
-            self.Signal_stop_fft.emit()
+            self.Signal_stop_plot_profile.emit()
 
     def save(self):
         self.Signal_save_file.emit()
