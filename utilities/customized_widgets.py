@@ -173,16 +173,16 @@ def pushbutton_widget(name='', checkable=False, enable=True):
         }
         
         QPushButton:hover {
-            background-color: #3e8e41;
+            background-color: #4169e1;
         }
         
         QPushButton:pressed {
-            background-color: #2e6d3b;
+            background-color: #045c64;
             border-style: inset;
         }
         
         QPushButton:checked {
-            background-color: #2e6d3b;
+            background-color: #a52a2a;
             border-style: inset;
         }
     ''')
@@ -282,22 +282,37 @@ def lineedit_widget():
     return lineedit
 
 
-def slider_widget(mi, ma, value):
+def slider_widget(mi, ma, value, step):
     slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-    slider.setMinimum(mi)
-    slider.setMaximum(ma)
+    slider.setMinimum(mi/step)
+    slider.setMaximum(ma/step)
+    slider.setSingleStep(1)
     slider.setValue(value)
-    slider.setStyleSheet('''
-                QSlider::groove:vertical {
-                    background-color: #222222;  /* Set the background color */
-                    width: 10px;  /* Set the width */
-                }
-                QSlider::handle:vertical {
-                    background-color: #888888;  /* Set the handle color */
-                    width: 20px;  /* Set the handle width */
-                    margin: -5px 0px -5px 0px;  /* Set the margin */
-                }
-            ''')
+    slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
+    slider.setTickInterval(1/step)
+    slider.setStyleSheet("""
+                        QSlider::groove:horizontal {
+                            height: 8px;
+                            background-color: #222222;
+                            border: 1px solid #222222;
+                            border-radius: 2px;
+                        }
+                
+                        QSlider::handle:horizontal {
+                            width: 8px;
+                            background-color: #FFFFFF;
+                            border: 1px solid #222222;
+                            border-radius: 6px;
+                            margin: -5px 0;
+                        }
+                
+                        QSlider::sub-page:horizontal {
+                            height: 8px;
+                            background-color: #222222;
+                            border: 1px solid #222222;
+                            border-radius: 2px;
+                        }
+                        """)
     return slider
 
 

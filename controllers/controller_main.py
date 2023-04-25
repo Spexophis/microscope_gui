@@ -153,6 +153,10 @@ class MainController:
         value_z = pos_z * conv_factors[2]
         self.om.daq.set_xyz(value_x, value_y, value_z)
 
+    def scan_galvo(self, x, y):
+        voltx, volty = self.con_controller.get_galvo_scan()
+        self.om.daq.set_galvo(voltx / 1000, volty / 1000)
+
     def set_laseron_488_0(self):
         p405, p488_0, p488_1, p488_2 = self.con_controller.get_cobolt_laser_power()
         self.om.laser.constant_power_488_0(p488_0)

@@ -106,8 +106,8 @@ class AOWidget(QtWidgets.QWidget):
         self.button_shwfs_compute_wf = cw.pushbutton_widget('ComputeWF', enable=False)
         self.button_shwfs_save_wf = cw.pushbutton_widget('SaveWF', enable=False)
         self.radioButton_exclude_zm = cw.radiobutton_widget("Exclude", f"rgb(220, 20, 60)")
-        layout_shwfs.addWidget(self.button_shwfs_base, 0, 0, 1, 1)
-        layout_shwfs.addWidget(self.button_run_wfs, 0, 1, 1, 1)
+        layout_shwfs.addWidget(self.button_shwfs_base, 0, 1, 1, 1)
+        layout_shwfs.addWidget(self.button_run_wfs, 0, 0, 1, 1)
         layout_shwfs.addWidget(self.button_run_wfr, 0, 2, 1, 1)
         layout_shwfs.addWidget(self.radioButton_exclude_zm, 2, 0, 1, 1)
         layout_shwfs.addWidget(self.button_shwfs_compute_wf, 2, 1, 1, 1)
@@ -209,7 +209,7 @@ class AOWidget(QtWidgets.QWidget):
         layout_File.addWidget(self.QLineEdit_filename, 0, 1, 1, 5)
         group_file.setLayout(layout_File)
 
-        self.button_shwfs_base.clicked.connect(self.initiate_wfs)
+        self.button_shwfs_base.clicked.connect(self.set_wfs_base)
         self.button_run_wfs.clicked.connect(self.run_wfs)
         self.button_run_wfr.clicked.connect(self.run_wfr)
         self.button_shwfs_compute_wf.clicked.connect(self.Signal_shwfs_computewf.emit)
@@ -234,21 +234,21 @@ class AOWidget(QtWidgets.QWidget):
         self.QSpinBox_spacing.setValue(61)
         self.QSpinBox_radius.setValue(24)
 
-    def initiate_wfs(self):
+    def set_wfs_base(self):
         self.Signal_shwfs_initiate.emit()
-        self.button_run_wfs.setEnabled(True)
+        self.button_run_wfr.setEnabled(True)
 
     def run_wfs(self):
         if self.button_run_wfs.isChecked():
             self.Signal_wfs_start.emit()
-            self.button_run_wfr.setEnabled(True)
-            self.button_shwfs_base.setEnabled(False)
+            self.button_shwfs_base.setEnabled(True)
             self.button_shwfs_compute_wf.setEnabled(False)
             self.button_shwfs_save_wf.setEnabled(False)
         else:
             self.Signal_wfs_stop.emit()
+            self.button_shwfs_base.setEnabled(False)
             self.button_run_wfr.setEnabled(False)
-            self.button_shwfs_base.setEnabled(True)
+            self.button_shwfs_base.setEnabled(False)
 
     def run_wfr(self):
         self.Signal_shwfs_run.emit()
