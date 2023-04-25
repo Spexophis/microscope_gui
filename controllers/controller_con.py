@@ -21,7 +21,7 @@ class ConController():
         return self.view.QDoubleSpinBox_exposure_time.value()
 
     def get_galvo_scan(self):
-        return self.view.QSlider_galvo_x.value(), self.view.QSlider_galvo_y.value()
+        return self.view.QDoubleSpinBox_galvo_x.value(), self.view.QDoubleSpinBox_galvo_y.value()
 
     def get_emccd_gain(self):
         return self.view.QSpinBox_emccd_gain.value()

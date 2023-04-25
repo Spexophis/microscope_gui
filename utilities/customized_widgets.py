@@ -278,7 +278,13 @@ def combobox_widget(list_items):
 
 def lineedit_widget():
     lineedit = QtWidgets.QLineEdit()
-    lineedit.setStyleSheet("background-color: dark; color: white; font: bold Arial 12px")
+    lineedit.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+    lineedit.setStyleSheet('''
+                    QLineEdit {
+                        background-color: #444444;
+                        color: white;
+                        }
+                    ''')
     return lineedit
 
 
@@ -300,6 +306,7 @@ def slider_widget(mi, ma, value, step):
                 
                         QSlider::handle:horizontal {
                             width: 8px;
+                            height: 16px;
                             background-color: #FFFFFF;
                             border: 1px solid #222222;
                             border-radius: 6px;

@@ -70,6 +70,8 @@ class MainController:
         self.view.get_control_widget().Signal_deck_down.connect(self.move_deck_down)
         self.view.get_control_widget().Signal_deck_move.connect(self.move_deck)
         self.view.get_control_widget().Signal_deck_move_stop.connect(self.move_deck_stop)
+        self.view.get_control_widget().Signal_galvo_scan.connect(self.scan_galvo)
+        self.view.get_control_widget().Signal_galvo_reset.connect(self.reset_galvo)
         self.view.get_control_widget().Signal_setlaseron_488_0.connect(self.set_laseron_488_0)
         self.view.get_control_widget().Signal_setlaseron_488_1.connect(self.set_laseron_488_1)
         self.view.get_control_widget().Signal_setlaseron_488_2.connect(self.set_laseron_488_2)
@@ -153,9 +155,12 @@ class MainController:
         value_z = pos_z * conv_factors[2]
         self.om.daq.set_xyz(value_x, value_y, value_z)
 
-    def scan_galvo(self, x, y):
+    def reset_galvo(self):
+        self.om.daq.set_galvo(0, 0)
+
+    def scan_galvo(self):
         voltx, volty = self.con_controller.get_galvo_scan()
-        self.om.daq.set_galvo(voltx / 1000, volty / 1000)
+        self.om.daq.set_galvo(voltx, volty)
 
     def set_laseron_488_0(self):
         p405, p488_0, p488_1, p488_2 = self.con_controller.get_cobolt_laser_power()
@@ -421,7 +426,9 @@ class MainController:
 
     def set_zernike(self):
         indz, amp = self.ao_controller.get_zernike_mode()
-        self.om.dm.SetDM(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(indz, amp),
+        # self.om.dm.SetDM(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(indz, amp),
+        #                                         self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
+        self.om.dm.SetDM(self.p.shwfsr._cmd_add([i * amp for i in self.om.dm.z2c[indz]],
                                                 self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
 
     def set_dm(self):
@@ -467,7 +474,7 @@ class MainController:
     def imshow_wfs(self):
         # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
         # self.p.shwfsr.offset = self.om.thocam.get_last_image()
-        self.view_controller.plot_sh(self.om.hacam.getFrames(verbose=True, avg=True))
+        self.view_controller.plot_sh(self.om.hacam.getLastFrame())
 
     def start_wfs(self):
         self.set_shcam()

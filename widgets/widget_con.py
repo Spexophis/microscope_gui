@@ -10,6 +10,7 @@ class ConWidget(QtWidgets.QWidget):
     Signal_deck_move = QtCore.pyqtSignal()
     Signal_deck_move_stop = QtCore.pyqtSignal()
     Signal_galvo_scan = QtCore.pyqtSignal()
+    Signal_galvo_reset = QtCore.pyqtSignal()
     Signal_setcoordinates = QtCore.pyqtSignal()
     Signal_resetcoordinates = QtCore.pyqtSignal()
     Signal_setbin = QtCore.pyqtSignal()
@@ -124,17 +125,13 @@ class ConWidget(QtWidgets.QWidget):
 
         Layout_galvo_mirror = QtWidgets.QGridLayout()
         self.QLabel_galvo_x = cw.label_widget(str('X / v'))
-        self.QSlider_galvo_x = cw.slider_widget(-10, 10, 0, 0.001)
-        self.QLCDNumber_galvo_x = cw.lcdnumber_widget()
+        self.QDoubleSpinBox_galvo_x = cw.doublespinbox_widget(-10, 10, 0.001, 3, 0)
         self.QLabel_galvo_y = cw.label_widget(str('Y / v'))
-        self.QSlider_galvo_y = cw.slider_widget(-10, 10, 0, 0.001)
-        self.QLCDNumber_galvo_y = cw.lcdnumber_widget()
+        self.QDoubleSpinBox_galvo_y = cw.doublespinbox_widget(-10, 10, 0.001, 3, 0)
         Layout_galvo_mirror.addWidget(self.QLabel_galvo_x, 0, 0, 1, 1)
-        Layout_galvo_mirror.addWidget(self.QSlider_galvo_x, 0, 1, 1, 1)
-        Layout_galvo_mirror.addWidget(self.QLCDNumber_galvo_x, 0, 4, 1, 1)
-        Layout_galvo_mirror.addWidget(self.QLabel_galvo_y, 1, 0, 1, 1)
-        Layout_galvo_mirror.addWidget(self.QSlider_galvo_y, 1, 1, 1, 1)
-        Layout_galvo_mirror.addWidget(self.QLCDNumber_galvo_y, 1, 4, 1, 1)
+        Layout_galvo_mirror.addWidget(self.QDoubleSpinBox_galvo_x, 1, 0, 1, 1)
+        Layout_galvo_mirror.addWidget(self.QLabel_galvo_y, 0, 1, 1, 1)
+        Layout_galvo_mirror.addWidget(self.QDoubleSpinBox_galvo_y, 1, 1, 1, 1)
         group_GalvoMirror.setLayout(Layout_galvo_mirror)
 
         Layout_Illumination = QtWidgets.QGridLayout()
@@ -302,10 +299,8 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_move_deck_up.clicked.connect(self.deck_move_up)
         self.QPushButton_move_deck_down.clicked.connect(self.deck_move_down)
         self.QPushButton_move_deck.clicked.connect(self.deck_move)
-        self.QSlider_galvo_x.valueChanged.connect(self.update_galvo_scan)
-        self.QSlider_galvo_x.sliderReleased.connect(self.scan_galvo)
-        self.QSlider_galvo_y.valueChanged.connect(self.update_galvo_scan)
-        self.QSlider_galvo_y.sliderReleased.connect(self.scan_galvo)
+        self.QDoubleSpinBox_galvo_x.valueChanged.connect(self.Signal_galvo_scan.emit)
+        self.QDoubleSpinBox_galvo_y.valueChanged.connect(self.Signal_galvo_scan.emit)
         self.QPushButton_plot_trigger.clicked.connect(self.plot_trigger_sequence)
         self.QPushButton_video.clicked.connect(self.video)
         self.QPushButton_fft.clicked.connect(self.run_fft)
@@ -337,13 +332,6 @@ class ConWidget(QtWidgets.QWidget):
 
     def piezo_move(self):
         self.Signal_piezo_move.emit()
-
-    def scan_galvo(self):
-        self.Signal_galvo_scan.emit()
-
-    def update_galvo_scan(self):
-        self.QLCDNumber_galvo_x.display(self.QSlider_galvo_x.value())
-        self.QLCDNumber_galvo_y.display(self.QSlider_galvo_y.value())
 
     def set_laser_488_0(self):
         if self.QPushButton_laser_488_0.isChecked():
