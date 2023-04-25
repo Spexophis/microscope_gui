@@ -23,6 +23,9 @@ class ViewController:
     def plot_wf(self, data):
         self.view.show_image('Wavefront', data)
 
+    def get_image_data(self, layer):
+        return self.view.get_image(layer)
+
     @pyqtSlot(np.ndarray)
     def plot(self, data):
         self.view.plot(data)

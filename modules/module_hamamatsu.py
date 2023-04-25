@@ -811,11 +811,14 @@ class HamamatsuCameraMR(HamamatsuCamera):
         # self.setPropertyValue("output_trigger_kind[0]", "EXPOSURE")
         # self.setPropertyValue("output_trigger_polarity[0]", "POSITIVE")
         self.setACQMode(self.acquisition_mode)
-
         self.setPropertyValue("defect_correct_mode", 1)
-        self.setPropertyValue("exposure_time", 0.002)
         self.setPropertyValue("binning", "1x1")
         self.setPropertyValue("readout_speed", 2)
+        self.setPropertyValue('trigger_mode', 1)
+        self.setPropertyValue('trigger_source', 2)
+        self.setPropertyValue('trigger_active', 2)
+        self.setPropertyValue('trigger_polarity', 2)
+        self.setPropertyValue('trigger_global_exposure', 5)
 
     def getLastFrame(self):
         """

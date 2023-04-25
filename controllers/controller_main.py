@@ -98,7 +98,7 @@ class MainController:
         self.view.get_ao_widget().Signal_update_cmd.connect(self.update_dm)
         self.view.get_ao_widget().Signal_save_dm.connect(self.save_dm)
         # AO
-        self.view.get_ao_widget().Signal_shwfs_initiate.connect(self.initiate_wfs)
+        self.view.get_ao_widget().Signal_shwfs_initiate.connect(self.set_wfs_base)
         self.view.get_ao_widget().Signal_wfs_start.connect(self.start_wfs)
         self.view.get_ao_widget().Signal_wfs_stop.connect(self.stop_wfs)
         self.view.get_ao_widget().Signal_shwfs_run.connect(self.run_wfr)
@@ -448,39 +448,22 @@ class MainController:
         # self.om.tiscam.setPropertyValue('exposure', expo)
         # self.om.thocam.set_exposure(expo)
         # self.om.hacam.setPropertyValue('exposure_time', expo)
-        self.om.hacam.setPropertyValue('trigger_mode', 1)
-        self.om.hacam.setPropertyValue('trigger_source', 2)
-        self.om.hacam.setPropertyValue('trigger_active', 2)
-        self.om.hacam.setPropertyValue('trigger_global_exposure', 5)
 
     def set_wfs(self):
         parameters = self.ao_controller.get_parameters()
         self.p.shwfsr.update_parameters(parameters)
         print('SHWFS parameter updated')
 
-    def initiate_wfs(self):
-        self.set_shcam()
-        self.set_wfs()
-        # self.om.tiscam.prepare_live()
-        # self.om.tiscam.start_live()
+    def set_wfs_base(self):
         # self.p.shwfsr.base = self.om.tiscam.grabFrame()
         # self.p.shwfsr.base = self.om.thocam.snap_image()
-        self.om.hacam.startAcquisition()
-        self.om.daq.Trig_run()
-        time.sleep(0.2)
-        self.p.shwfsr.base = self.om.hacam.getFrames(verbose=True, avg=True)
-        self.view_controller.plot_sh(self.p.shwfsr.base)
+        self.p.shwfsr.base = self.view_controller.get_image_data('ShackHartmann')
         print('wfs base set')
-        # self.om.tiscam.stop_live()
-        self.om.daq.Trig_stop()
-        self.om.hacam.stopAcquisition()
-        self.lasers_off()
 
     def imshow_wfs(self):
         # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
         # self.p.shwfsr.offset = self.om.thocam.get_last_image()
-        self.p.shwfsr.offset = self.om.hacam.getLastFrame()
-        self.view_controller.plot_sh(self.p.shwfsr.offset)
+        self.view_controller.plot_sh(self.om.hacam.getFrames(verbose=True, avg=True))
 
     def start_wfs(self):
         self.set_shcam()
@@ -502,7 +485,7 @@ class MainController:
         self.lasers_off()
 
     def run_wfr(self):
-        self.p.shwfsr.offset = self.om.hacam.getLastFrame()
+        self.p.shwfsr.offset = self.view_controller.get_image_data('ShackHartmann')
         self.p.shwfsr.wavefront_reconstruction(self.p.shwfsr.base, self.p.shwfsr.offset,
                                                self.ao_controller.get_gradient_method())
         self.view_controller.plot_wf(self.p.shwfsr.wf)

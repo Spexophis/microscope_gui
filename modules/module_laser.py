@@ -7,28 +7,28 @@ class CoboltLaser:
         super().__init__()
 
         try:
-            self.l405 = pycobolt.CoboltLaser(port='COM5')
+            self.l405 = pycobolt.Cobolt06MLD(port='COM5')
             print('405 nm Laser Connected')
             self.l405_handle = True
         except:
             print("405 nm Laser Not Found")
             self.l405_handle = False
         try:
-            self.l488_0 = pycobolt.CoboltLaser(port='COM6')
+            self.l488_0 = pycobolt.Cobolt06MLD(port='COM6')
             print('488 nm Laser Connected')
             self.l488_0_handle = True
         except:
             print("488 nm Laser Not Found")
             self.l488_0_handle = False
         try:
-            self.l488_1 = pycobolt.CoboltLaser(port='COM7')
+            self.l488_1 = pycobolt.Cobolt06MLD(port='COM7')
             print('488 nm Laser #1 Connected')
             self.l488_1_handle = True
         except:
             print("488 nm Laser #1 Not Found")
             self.l488_1_handle = False
         try:
-            self.l488_2 = pycobolt.CoboltLaser(port='COM4')
+            self.l488_2 = pycobolt.Cobolt06MLD(port='COM4')
             print('488 nm Laser #2 Connected')
             self.l488_2_handle = True
         except:
@@ -112,6 +112,22 @@ class CoboltLaser:
     def constant_power_405(self, p405):
         if self.l405_handle:
             self.l405.constant_power(p405)
+
+    def constant_current_488_0(self, i488_0):
+        if self.l488_0_handle:
+            self.l488_0.constant_current(i488_0)
+
+    def constant_current_488_1(self, i488_1):
+        if self.l488_1_handle:
+            self.l488_1.constant_current(i488_1)
+
+    def constant_current_488_2(self, i488_2):
+        if self.l488_2_handle:
+            self.l488_2.constant_current(i488_2)
+
+    def constant_current_405(self, i405):
+        if self.l405_handle:
+            self.l405.constant_current(i405)
 
     def modulation_mode_488_0(self, p488_0):
         if self.l488_0_handle:

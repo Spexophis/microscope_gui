@@ -75,6 +75,9 @@ class ViewWidget(QtWidgets.QWidget):
     def show_image(self, name, im):
         self.imgLayers[name].data = im
 
+    def get_image(self, name):
+        return self.imgLayers[name].data
+
     def plot(self, data):
         self.canvas.axes.plot(data)
         self.canvas.draw()
