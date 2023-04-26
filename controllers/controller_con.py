@@ -26,6 +26,9 @@ class ConController():
     def get_emccd_gain(self):
         return self.view.QSpinBox_emccd_gain.value()
 
+    def get_lasers(self):
+        lasers = []
+
     def get_cobolt_laser_power(self):
         return self.view.QDoubleSpinBox_laserpower_405.value(), self.view.QDoubleSpinBox_laserpower_488_0.value(), \
             self.view.QDoubleSpinBox_laserpower_488_1.value(), self.view.QDoubleSpinBox_laserpower_488_2.value()

@@ -231,9 +231,10 @@ def checkbox_widget(name=''):
     return checkbox
 
 
-def radiobutton_widget(name='', color=f"rgb(192, 255, 62)"):
+def radiobutton_widget(name='', color=f"rgb(192, 255, 62)", autoex=False):
     radiobutton = QtWidgets.QRadioButton(name)
     radiobutton.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+    radiobutton.setAutoExclusive(autoex)
     palette = QtGui.QPalette()
     palette.setColor(QtGui.QPalette.ButtonText, QtGui.QColor(200, 200, 200))  # set text color
     palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))  # set background color
@@ -241,26 +242,26 @@ def radiobutton_widget(name='', color=f"rgb(192, 255, 62)"):
     palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(142, 45, 197))  # set highlight color
     radiobutton.setPalette(palette)
     radiobutton.setStyleSheet('''
-    QRadioButton {
-        background-color: #444444;
-        color: white;
-    }
-    
-    QRadioButton::indicator {
-        width: 8px;
-        height: 8px;
-    }
-
-    QRadioButton::indicator::unchecked {
-        border: 2px solid rgb(200, 200, 200);
-        border-radius: 4px;
-    }
-
-    QRadioButton::indicator::checked {
-        background-color: %s;
-        border: 2px solid %s;
-        border-radius: 4px;
-    }''' % (color, color))
+                    QRadioButton {
+                        background-color: #444444;
+                        color: white;
+                    }
+                    
+                    QRadioButton::indicator {
+                        width: 8px;
+                        height: 8px;
+                    }
+                
+                    QRadioButton::indicator::unchecked {
+                        border: 2px solid rgb(200, 200, 200);
+                        border-radius: 4px;
+                    }
+                
+                    QRadioButton::indicator::checked {
+                        background-color: %s;
+                        border: 2px solid %s;
+                        border-radius: 4px;
+                    }''' % (color, color))
     return radiobutton
 
 
@@ -290,12 +291,12 @@ def lineedit_widget():
 
 def slider_widget(mi, ma, value, step):
     slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-    slider.setMinimum(mi/step)
-    slider.setMaximum(ma/step)
+    slider.setMinimum(mi / step)
+    slider.setMaximum(ma / step)
     slider.setSingleStep(1)
     slider.setValue(value)
     slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
-    slider.setTickInterval(1/step)
+    slider.setTickInterval(1 / step)
     slider.setStyleSheet("""
                         QSlider::groove:horizontal {
                             height: 8px;

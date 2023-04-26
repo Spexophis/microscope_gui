@@ -30,28 +30,26 @@ class TriggerSequence:
         self.digital_starts = digital_starts
         self.digital_ends = digital_ends
 
-    def generate_digital_triggers(self, laser, camera):
-        cycle_samples = self.sequence_time * self.sample_rate
-        cycle_samples = int(np.ceil(cycle_samples))
-        digital_trigger = np.zeros((len(self.digital_starts), cycle_samples))
-        startSamp = int(np.round(self.digital_starts[laser] * self.sample_rate))
-        endSamp = int(np.round(self.digital_ends[laser] * self.sample_rate))
-        digital_trigger[laser, startSamp:endSamp] = 1
-        startSamp = int(np.round(self.digital_starts[camera + 4] * self.sample_rate))
-        endSamp = int(np.round(self.digital_ends[camera + 4] * self.sample_rate))
-        digital_trigger[camera + 4, startSamp:endSamp] = 1
-        return digital_trigger
+    # def generate_digital_triggers(self, laser, camera):
+    #     cycle_samples = self.sequence_time * self.sample_rate
+    #     cycle_samples = int(np.ceil(cycle_samples))
+    #     digital_trigger = np.zeros((len(self.digital_starts), cycle_samples))
+    #     startSamp = int(np.round(self.digital_starts[laser] * self.sample_rate))
+    #     endSamp = int(np.round(self.digital_ends[laser] * self.sample_rate))
+    #     digital_trigger[laser, startSamp:endSamp] = 1
+    #     startSamp = int(np.round(self.digital_starts[camera + 4] * self.sample_rate))
+    #     endSamp = int(np.round(self.digital_ends[camera + 4] * self.sample_rate))
+    #     digital_trigger[camera + 4, startSamp:endSamp] = 1
+    #     return digital_trigger
 
-    def generate_digital_triggers_sw(self, laser, camera):
+    def generate_digital_triggers_sw(self, lasers, camera):
         cycle_samples = self.sequence_time * self.sample_rate
         cycle_samples = int(np.ceil(cycle_samples))
         digital_trigger = np.zeros((len(self.digital_starts), cycle_samples))
-        startSamp = int(np.round(self.digital_starts[0] * self.sample_rate))
-        endSamp = int(np.round(self.digital_ends[0] * self.sample_rate))
-        digital_trigger[0, startSamp:endSamp] = 1
-        startSamp = int(np.round(self.digital_starts[laser] * self.sample_rate))
-        endSamp = int(np.round(self.digital_ends[laser] * self.sample_rate))
-        digital_trigger[laser, startSamp:endSamp] = 1
+        for laser in lasers:
+            startSamp = int(np.round(self.digital_starts[laser] * self.sample_rate))
+            endSamp = int(np.round(self.digital_ends[laser] * self.sample_rate))
+            digital_trigger[laser, startSamp:endSamp] = 1
         startSamp = int(np.round(self.digital_starts[camera + 4] * self.sample_rate))
         endSamp = int(np.round(self.digital_ends[camera + 4] * self.sample_rate))
         digital_trigger[camera + 4, startSamp:endSamp] = 1
