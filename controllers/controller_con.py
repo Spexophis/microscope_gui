@@ -28,13 +28,13 @@ class ConController():
 
     def get_lasers(self):
         lasers = []
-        if self.view.QRadioButton_laser_405.ischecked():
+        if self.view.QRadioButton_laser_405.isChecked():
             lasers.append(0)
-        if self.view.QRadioButton_laser_488_0.ischecked():
+        if self.view.QRadioButton_laser_488_0.isChecked():
             lasers.append(1)
-        if self.view.QRadioButton_laser_488_1.ischecked():
+        if self.view.QRadioButton_laser_488_1.isChecked():
             lasers.append(2)
-        if self.view.QRadioButton_laser_488_2.ischecked():
+        if self.view.QRadioButton_laser_488_2.isChecked():
             lasers.append(3)
         return lasers
 
@@ -64,7 +64,7 @@ class ConController():
                         self.view.QDoubleSpinBox_ttl_stop_read_488_2.value(),
                         self.view.QDoubleSpinBox_ttl_stop_camera_main.value(),
                         self.view.QDoubleSpinBox_ttl_stop_camera_wfs.value()]
-        return illumination_source, detection_device, sequence_time, axis_lengths, step_sizes, axis_start_pos, \
+        return detection_device, sequence_time, axis_lengths, step_sizes, axis_start_pos, \
             analog_start, digital_starts, digital_ends
 
     def get_profile_axis(self):

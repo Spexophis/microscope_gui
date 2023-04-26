@@ -216,7 +216,7 @@ class MainController:
         self.om.laser.laserOFF_405()
 
     def imshow_main(self):
-        if self.om.cam.getImage_live():
+        if self.om.cam.get_image_live():
             self.view_controller.plot_main(self.om.cam.data)
         else:
             print('No Camera Data')
@@ -598,15 +598,16 @@ class MainController:
 
     def start_ao_iteration(self):
         self.set_lasers()
-        dgtr = self.generate_digital_trigger_sw()
-        self.om.daq.trig_open_ao(dgtr)
         self.om.cam.set_trigger_mode(7)
         self.set_camera()
-        self.om.cam.prepare_single_acquisition()
+        dgtr = self.generate_digital_trigger_sw()
+        self.om.daq.trig_open_ao(dgtr)
+        self.om.cam.start_live()
 
     def stop_ao_iteration(self):
         self.om.daq.trig_stop()
         self.lasers_off()
+        self.om.cam.stop_live()
         temperature = self.om.cam.get_ccd_temperature()
         self.con_controller.display_camera_temperature(temperature)
 
@@ -627,10 +628,9 @@ class MainController:
         self.start_ao_iteration()
         self.om.dm.SetDM(cmd)
         time.sleep(0.1)
-        self.om.cam.single_acquisition()
         self.om.daq.trig_run()
         time.sleep(0.1)
-        self.om.cam.get_acquired_image()
+        self.om.cam.get_image_live()
         fn = os.path.join(newfold, 'original.tif')
         tf.imwrite(fn, self.om.cam.data)
         self.om.daq.trig_stop()
@@ -643,10 +643,9 @@ class MainController:
                 # self.om.dm.SetDM(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
                 self.om.dm.SetDM(self.p.shwfsr._cmd_add([i * amp for i in self.om.dm.z2c[mode]], cmd))
                 time.sleep(0.1)
-                self.om.cam.single_acquisition()
                 self.om.daq.trig_run()
                 time.sleep(0.1)
-                self.om.cam.get_acquired_image()
+                self.om.cam.get_image_live()
                 fn = "zm%0.2d_amp%.4f" % (mode, amp)
                 fn1 = os.path.join(newfold, fn + '.tif')
                 tf.imwrite(fn1, self.om.cam.data)
@@ -671,10 +670,9 @@ class MainController:
                 print('----------------mode %d value equals %.4f----' % (mode, pmax))
         self.om.dm.SetDM(cmd)
         time.sleep(0.1)
-        self.om.cam.single_acquisition()
         self.om.daq.trig_run()
         time.sleep(0.1)
-        self.om.cam.get_acquired_image()
+        self.om.cam.get_image_live()
         fn = os.path.join(newfold, 'final.tif')
         tf.imwrite(fn, self.om.cam.data)
         self.stop_ao_iteration()

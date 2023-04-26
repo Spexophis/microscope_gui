@@ -136,7 +136,7 @@ class EMCCDCamera:
         else:
             print(atmcd_errors.Error_Codes(self.ret))
 
-    def getImage_live(self):
+    def get_image_live(self):
         self.imageSize = self.xpixels * self.ypixels
         (self.ret, self.arr) = self.sdk.GetMostRecentImage16(self.imageSize)
         if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
