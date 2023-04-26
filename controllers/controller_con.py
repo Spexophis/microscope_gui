@@ -1,4 +1,4 @@
-class ConController():
+class ConController:
 
     def __init__(self, view):
         self.view = view

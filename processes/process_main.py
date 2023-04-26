@@ -1,7 +1,4 @@
-from processes import beads_scan_reconstruction
-from processes import process_image
-from processes import process_shwfs
-from processes import process_trigger
+from processes import beads_scan_reconstruction, process_shwfs, process_image, process_trigger
 
 
 class MainProcess:

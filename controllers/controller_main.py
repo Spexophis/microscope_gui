@@ -6,9 +6,8 @@ import numpy as np
 import tifffile as tf
 from PyQt5 import QtCore
 
-from controllers import controller_ao
-from controllers import controller_con
-from controllers import controller_view
+from controllers import controller_ao, controller_con, controller_view
+
 
 datapath = r'C:\Users\ruizhe.lin\Documents\data'
 
