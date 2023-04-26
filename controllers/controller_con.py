@@ -28,13 +28,21 @@ class ConController():
 
     def get_lasers(self):
         lasers = []
+        if self.view.QRadioButton_laser_405.ischecked():
+            lasers.append(0)
+        if self.view.QRadioButton_laser_488_0.ischecked():
+            lasers.append(1)
+        if self.view.QRadioButton_laser_488_1.ischecked():
+            lasers.append(2)
+        if self.view.QRadioButton_laser_488_2.ischecked():
+            lasers.append(3)
+        return lasers
 
     def get_cobolt_laser_power(self):
         return self.view.QDoubleSpinBox_laserpower_405.value(), self.view.QDoubleSpinBox_laserpower_488_0.value(), \
             self.view.QDoubleSpinBox_laserpower_488_1.value(), self.view.QDoubleSpinBox_laserpower_488_2.value()
 
     def get_trigger_parameters(self):
-        illumination_source = self.view.QComboBox_laser_selection.currentIndex()
         detection_device = self.view.QComboBox_camera_selection.currentIndex()
         sequence_time = self.view.QDoubleSpinBox_cycle_period.value()
         axis_lengths = [self.view.QDoubleSpinBox_range_x.value(), self.view.QDoubleSpinBox_range_y.value(),

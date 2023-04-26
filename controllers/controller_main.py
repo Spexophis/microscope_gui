@@ -313,39 +313,31 @@ class MainController:
         sample_rate = 100000
         return_time = 0.001
         conv_factors = [10, 10, 10.]
-        laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
+        lasers = self.con_controller.get_lasers()
+        camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
                                          return_time, conv_factors, analog_start, digital_starts, digital_ends)
-        dgtr = self.p.trigger.generate_digital_triggers_sw(laser, camera)
+        dgtr = self.p.trigger.generate_digital_triggers_sw(lasers, camera)
         self.view_controller.plot_update(dgtr[0])
         for i in range(len(digital_starts) - 1):
             self.view_controller.plot(dgtr[i + 1] + i + 1)
-
-    # def generate_digital_trigger(self):
-    #     sample_rate = 100000
-    #     return_time = 0.001
-    #     conv_factors = [10, 10, 10.]
-    #     laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
-    #     self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
-    #                                      return_time, conv_factors, analog_start, digital_starts, digital_ends)
-    #     dgtr = self.p.trigger.generate_digital_triggers(laser, camera)
-    #     return dgtr
 
     def generate_digital_trigger_sw(self):
         sample_rate = 100000
         return_time = 0.001
         conv_factors = [10, 10, 10.]
-        laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
+        lasers = self.con_controller.get_lasers()
+        camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
                                          return_time, conv_factors, analog_start, digital_starts, digital_ends)
-        dgtr = self.p.trigger.generate_digital_triggers_sw(laser, camera)
+        dgtr = self.p.trigger.generate_digital_triggers_sw(lasers, camera)
         return dgtr
 
     def write_trigger_2d(self):
         sample_rate = 100000
         return_time = 0.05
         conv_factors = [10, 10, 10.]
-        laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
+        camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
                                          return_time, conv_factors, analog_start, digital_starts, digital_ends)
         atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_2d()
@@ -355,7 +347,7 @@ class MainController:
         sample_rate = 100000
         return_time = 0.05
         conv_factors = [10, 10, 10.]
-        laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
+        camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
                                          return_time, conv_factors, analog_start, digital_starts, digital_ends)
         atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_3d()
@@ -366,7 +358,7 @@ class MainController:
         return_time = 0.05
         conv_factors = [10, 10, 10.]
         l = self.con_controller.select_laser()
-        laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
+        camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
                                          return_time, conv_factors, analog_start, digital_starts, digital_ends)
         atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_beadscan_2d(l)
@@ -407,7 +399,7 @@ class MainController:
         self.reconstruct_beadscan_2d()
 
     def reconstruct_beadscan_2d(self):
-        laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
+        camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         step_size = step_sizes[0]
         self.p.bsrecon.reconstruct_all_beads(self.om.cam.data, step_size)
         t = time.strftime("%Y%m%d_%H%M%S_")
@@ -522,22 +514,26 @@ class MainController:
         print('WF Data saved')
 
     def correct_wf(self):
-        self.set_shcam()
         self.set_wfs()
+        self.set_lasers()
+        dgtr = self.generate_digital_trigger_sw()
+        self.om.daq.trig_open_ao(dgtr)
         # self.om.tiscam.prepare_live()
         # self.om.tiscam.start_live()
         # self.p.shwfsr.base = self.om.tiscam.grabFrame()
         # self.p.shwfsr.base = self.om.thocam.snap_image()
         self.om.hacam.startAcquisition()
-        time.sleep(0.2)
+        time.sleep(0.05)
+        self.om.daq.trig_run()
+        time.sleep(0.05)
         self.p.shwfsr.get_correction(self.om.hacam.getLastFrame(), self.ao_controller.get_wfs_method())
-        # self.om.hacam.getFrames(verbose=True, avg=True)
         self.p.shwfsr.correct_cmd()
         self.om.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
         self.ao_controller.update_cmd_index()
         i = int(self.ao_controller.get_cmd_index())
         self.p.shwfsr.current_cmd = i
         self.run_wfr()
+        self.om.daq.trig_stop()
         self.om.hacam.stopAcquisition()
 
     def influence_function(self):
@@ -548,7 +544,10 @@ class MainController:
         except:
             print('Directory already exists')
         n, amp = self.ao_controller.get_acturator()
-        self.set_shcam()
+        self.set_wfs()
+        self.set_lasers()
+        dgtr = self.generate_digital_trigger_sw()
+        self.om.daq.trig_open_ao(dgtr)
         # self.om.tiscam.start_live()
         self.om.hacam.startAcquisition()
         for i in range(self.om.dm.nbAct):
@@ -556,28 +555,40 @@ class MainController:
             print(i)
             values = [0.] * self.om.dm.nbAct
             self.om.dm.SetDM(values)
-            time.sleep(0.05)
+            time.sleep(0.04)
+            self.om.daq.trig_run()
+            time.sleep(0.04)
             # self.p.shwfsr.base = self.om.tiscam.grabFrame()
             # self.p.shwfsr.base = self.om.thocam.snap_image()
             shimg.append(self.om.hacam.getLastFrame())
+            self.om.daq.trig_stop()
             values[i] = amp
             self.om.dm.SetDM(values)
-            time.sleep(0.05)
+            time.sleep(0.04)
+            self.om.daq.trig_run()
+            time.sleep(0.04)
             # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
             # self.p.shwfsr.offset = self.om.thocam.snap_image()
             shimg.append(self.om.hacam.getLastFrame())
+            self.om.daq.trig_stop()
             values = [0.] * self.om.dm.nbAct
             self.om.dm.SetDM(values)
-            time.sleep(0.05)
+            time.sleep(0.04)
+            self.om.daq.trig_run()
+            time.sleep(0.04)
             # self.p.shwfsr.base = self.om.tiscam.grabFrame()
             # self.p.shwfsr.base = self.om.thocam.snap_image()
             shimg.append(self.om.hacam.getLastFrame())
+            self.om.daq.trig_stop()
             values[i] = - amp
             self.om.dm.SetDM(values)
-            time.sleep(0.05)
+            time.sleep(0.04)
+            self.om.daq.trig_run()
+            time.sleep(0.04)
             # self.p.shwfsr.offset = self.om.tiscam.grabFrame()
             # self.p.shwfsr.offset = self.om.thocam.snap_image()
             shimg.append(self.om.hacam.getLastFrame())
+            self.om.daq.trig_stop()
             tf.imwrite(newfold + t + '_actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
         self.om.hacam.stopAcquisition()
         # self.om.tiscam.stop_live()
@@ -585,20 +596,9 @@ class MainController:
         ctrlmat = self.p.shwfsr.get_control_matrix(influfunc)
         tf.imwrite(newfold + t + '_control_matrix.tif', ctrlmat)
 
-    def generate_digital_trigger_ao(self):
-        sample_rate = 100000
-        return_time = 0.001
-        conv_factors = [10, 10, 10.]
-        l = self.con_controller.select_laser()
-        laser, camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
-        self.p.trigger.updata_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
-                                         return_time, conv_factors, analog_start, digital_starts, digital_ends)
-        dgtr = self.p.trigger.generate_digital_triggers_ao(l)
-        return dgtr
-
     def start_ao_iteration(self):
         self.set_lasers()
-        dgtr = self.generate_digital_trigger_ao()
+        dgtr = self.generate_digital_trigger_sw()
         self.om.daq.trig_open_ao(dgtr)
         self.om.cam.set_trigger_mode(7)
         self.set_camera()
@@ -640,7 +640,8 @@ class MainController:
             for stnm in range(amp_step_number):
                 amp = amp_start + stnm * amp_step
                 amprange.append(amp)
-                self.om.dm.SetDM(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
+                # self.om.dm.SetDM(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
+                self.om.dm.SetDM(self.p.shwfsr._cmd_add([i * amp for i in self.om.dm.z2c[mode]], cmd))
                 time.sleep(0.1)
                 self.om.cam.single_acquisition()
                 self.om.daq.trig_run()
