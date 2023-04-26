@@ -35,7 +35,7 @@ class AOController:
     def update_cmd_index(self):
         item = '{}'.format(self.view.QComboBox_cmd.count())
         self.view.QComboBox_cmd.addItem(item)
-        self.view.QComboBox_cmd.setCurrentIndex(self.view.QComboBox_cmd.count())
+        self.view.QComboBox_cmd.setCurrentIndex(self.view.QComboBox_cmd.count()-1)
 
     def get_file_name(self):
         return self.view.QLineEdit_filename.text()
