@@ -47,15 +47,15 @@ class MCLNanoDrive:
         self.axis = []
         if (pi.axis_bitmap & 0x1) == 0x1:
             self.axis.append(ct.c_uint(1))
-            print("\nUsing X axis\n")
+            print("Using X axis")
         if (pi.axis_bitmap & 0x2) == 0x2:
             self.axis.append(ct.c_uint(2))
-            print("\nUsing Y axis\n")
+            print("Using Y axis")
         if (pi.axis_bitmap & 0x4) == 0x4:
             self.axis.append(ct.c_uint(3))
-            print("\nUsing Z axis\n")
+            print("Using Z axis")
         else:
-            print("\nNo valid axes available.")
+            print("No valid axes available")
             self.mclpiezo.MCL_ReleaseHandle(self.handle)
             return
 
@@ -65,15 +65,18 @@ class MCLNanoDrive:
         readpos = self.mclpiezo.MCL_SingleReadN
         readpos.restype = ct.c_double
 
-        self.calibration = self.mclpiezo.MCL_GetCalibration(self.axis, self.handle)
+        self.calibration = []
+        for i in range(len(self.axis)):
+            self.calibration.append(self.mclpiezo.MCL_GetCalibration(self.axis[i], self.handle))
 
     def close(self):
         """
         Closes the connection by releasing the handle.
         """
-        self.move_position(self.axis, 0.0)
+        for i in range(len(self.axis)):
+            self.move_position(i, 0.0)
         self.mclpiezo.MCL_ReleaseHandle(self.handle)
-        print('Handle released.')
+        print("Handle released")
 
     def read_position(self, ax):
         pos = self.mclpiezo.MCL_SingleReadN(self.axis[ax], self.handle)
@@ -86,18 +89,18 @@ class MCLNanoDrive:
             return pos
 
     def move_position(self, ax, pos):
-        err = self.mclpiezo.MCL_SingleWriteN(pos, self.axis[ax], self.handle)
+        err = self.mclpiezo.MCL_SingleWriteN(ct.c_double(pos), self.axis[ax], self.handle)
         if err != 0:
             print("Error: NanoDrive did not correctly write position. Error Code:", err)
             self.mclpiezo.MCL_ReleaseHandle(self.handle)
             return
-        # pause before reading again
-        self.mclpiezo.MCL_DeviceAttached(100, self.handle)
-        # read the new position to make sure it actually moved
-        pos = self.mclpiezo.MCL_SingleReadN(self.axis[ax], self.handle)
-        if pos < 0:
-            print("Error: NanoDrive did not correctly read position. Error Code:", pos)
-            self.mclpiezo.MCL_ReleaseHandle(self.handle)
-            return
-        else:
-            print("\nNew position is", pos)
+        # # pause before reading again
+        # self.mclpiezo.MCL_DeviceAttached(100, self.handle)
+        # # read the new position to make sure it actually moved
+        # pos = self.mclpiezo.MCL_SingleReadN(self.axis[ax], self.handle)
+        # if pos < 0:
+        #     print("Error: NanoDrive did not correctly read position. Error Code:", pos)
+        #     self.mclpiezo.MCL_ReleaseHandle(self.handle)
+        #     return
+        # else:
+        #     print("\nNew position is", pos)

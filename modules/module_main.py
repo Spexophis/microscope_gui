@@ -6,6 +6,7 @@ from modules import module_deformablemirror
 from modules import module_laser
 from modules import module_nidaq
 from modules import module_mcldeck
+from modules import module_mclpiezo
 
 
 class MainModule:
@@ -18,6 +19,7 @@ class MainModule:
         self.daq = module_nidaq.NIDAQ()
         # self.tiscam = module_tiscamera.TISCamera()
         self.md = module_mcldeck.MCLMicroDrive()
+        self.pz = module_mclpiezo.MCLNanoDrive()
         # self.thocam = module_thorcamera.UC480Cam()
 
     def close(self):
@@ -29,3 +31,4 @@ class MainModule:
         self.dm.ResetDM()
         self.daq.Reset_daq()
         self.md.close()
+        self.pz.close()
