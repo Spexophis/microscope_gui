@@ -188,12 +188,12 @@ def pushbutton_widget(name='', checkable=False, enable=True):
     ''')
     button.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
     button_size = button.fontMetrics().boundingRect(button.text()).size()
-    if button_size.width() < 108:
-        button_size.setWidth(108)
+    if button_size.width() < 96:
+        button_size.setWidth(96)
     else:
         button_size.setWidth(button_size.width() + 24)
-    if button_size.height() < 32:
-        button_size.setHeight(32)
+    if button_size.height() < 24:
+        button_size.setHeight(24)
     else:
         button_size.setHeight(button_size.height() + 16)
     button.setFixedSize(button_size.width(), button_size.height())
