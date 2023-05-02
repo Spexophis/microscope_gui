@@ -3,7 +3,7 @@ import sys
 
 sys.path.append(r'C:\Program Files\Mad City Labs\MicroDrive')
 
-mcl_lib = r'C:\Program Files\Mad City Labs\MicroDrive\MicroDrive.dll'
+micro_dll = r'C:\Program Files\Mad City Labs\MicroDrive\MicroDrive.dll'
 
 
 class MCLMicroDrive:
@@ -30,15 +30,15 @@ class MCLMicroDrive:
                             [3, 1, 'Axis 3 forward limit']]  # 095 <-> '1011111' <-> position 5
 
         # Load the DLL
-        self.mcl = ct.cdll.LoadLibrary(mcl_lib)
+        self.mcldeck = ct.cdll.LoadLibrary(micro_dll)
         # Release existing handles
-        self.mcl.MCL_ReleaseAllHandles()
+        self.mcldeck.MCL_ReleaseAllHandles()
         # Connect to the instrument and create a handle
-        self.handle = self.mcl.MCL_InitHandle()  # Handle number is assigned, which is a positive integer
+        self.handle = self.mcldeck.MCL_InitHandle()  # Handle number is assigned, which is a positive integer
         # Check if connection was successful
         if self.handle > 0:
             print(
-                'Connected to MadDeck SN: ' + str(self.mcl.MCL_GetSerialNumber(self.handle)) + '\nWith handle: ' + str(
+                'Connected to MadDeck SN: ' + str(self.mcldeck.MCL_GetSerialNumber(self.handle)) + '\nWith handle: ' + str(
                     self.handle))
             encoderResolution_temp = ct.pointer(ct.c_double())
             stepSize_temp = ct.pointer(ct.c_double())
@@ -46,7 +46,7 @@ class MCLMicroDrive:
             maxVelocityTwoAxis_temp = ct.pointer(ct.c_double())
             maxVelocityThreeAxis_temp = ct.pointer(ct.c_double())
             minVelocity_temp = ct.pointer(ct.c_double())
-            self.mcl.MCL_MDInformation(encoderResolution_temp, stepSize_temp, maxVelocity_temp, maxVelocityTwoAxis_temp,
+            self.mcldeck.MCL_MDInformation(encoderResolution_temp, stepSize_temp, maxVelocity_temp, maxVelocityTwoAxis_temp,
                                        maxVelocityThreeAxis_temp, minVelocity_temp, self.handle)
             self.encoderResolution = encoderResolution_temp.contents.value
             self.stepSize = stepSize_temp.contents.value
@@ -72,7 +72,7 @@ class MCLMicroDrive:
         Closes the connection by releasing the handle.
         """
         self.stopMoving()
-        self.mcl.MCL_ReleaseHandle(self.handle)
+        self.mcldeck.MCL_ReleaseHandle(self.handle)
         print('Handle released.')
 
     def getInfo(self):
@@ -87,12 +87,12 @@ class MCLMicroDrive:
         """
         if self.handle > 0:
             # Device attached
-            print('Device attached: ' + str(self.mcl.MCL_DeviceAttached(ct.c_uint(500), self.handle)))
+            print('Device attached: ' + str(self.mcldeck.MCL_DeviceAttached(ct.c_uint(500), self.handle)))
             # Serial number
-            print('SN: ' + str(self.mcl.MCL_GetSerialNumber(self.handle)))
+            print('SN: ' + str(self.mcldeck.MCL_GetSerialNumber(self.handle)))
             # Product ID:
             PID = ct.pointer(ct.c_ushort())
-            self.mcl.MCL_GetProductID(PID, self.handle)
+            self.mcldeck.MCL_GetProductID(PID, self.handle)
             print('PID: ' + str(PID.contents.value))
             # Encoder, StepSize and Velocities
             encoderResolution = ct.pointer(ct.c_double())
@@ -101,7 +101,7 @@ class MCLMicroDrive:
             maxVelocityTwoAxis = ct.pointer(ct.c_double())
             maxVelocityThreeAxis = ct.pointer(ct.c_double())
             minVelocity = ct.pointer(ct.c_double())
-            self.mcl.MCL_MDInformation(encoderResolution, stepSize, maxVelocity, maxVelocityTwoAxis,
+            self.mcldeck.MCL_MDInformation(encoderResolution, stepSize, maxVelocity, maxVelocityTwoAxis,
                                        maxVelocityThreeAxis, minVelocity, self.handle)
             print('encoderResolution: ' + str(encoderResolution.contents.value))
             print('stepSize: ' + str(stepSize.contents.value))
@@ -114,7 +114,7 @@ class MCLMicroDrive:
 
     def _getStatus(self):  # Internal function to get the error number
         status_temp = ct.pointer(ct.c_ushort())
-        self.mcl.MCL_MDStatus(status_temp, self.handle)
+        self.mcldeck.MCL_MDStatus(status_temp, self.handle)
         result_temp = status_temp.contents.value
         del status_temp
         return result_temp
@@ -143,14 +143,14 @@ class MCLMicroDrive:
         """
         This function takes approximately 10ms if the motors are not moving.
         """
-        errorNumber = self.mcl.MCL_MicroDriveWait(self.handle)
+        errorNumber = self.mcldeck.MCL_MicroDriveWait(self.handle)
         if errorNumber != 0:
             print('Error while waiting: ' + self.errorDictionary[errorNumber])
 
     # Start: Internal move functions that have no error handling and should be used with caution and only if one is familiar with the motors
 
     def _moveRelativeAxis(self, axis, distance, velocity=1.5):
-        errorCode = self.mcl.MCL_MDMove(ct.c_uint(axis), ct.c_double(velocity), ct.c_double(distance), self.handle)
+        errorCode = self.mcldeck.MCL_MDMove(ct.c_uint(axis), ct.c_double(velocity), ct.c_double(distance), self.handle)
         # self.wait()
         return errorCode
 
@@ -183,7 +183,7 @@ class MCLMicroDrive:
         This function takes approximately 20ms.
         """
         isMoving = ct.pointer(ct.c_int())
-        self.mcl.MCL_MicroDriveMoveStatus(isMoving, self.handle)
+        self.mcldeck.MCL_MicroDriveMoveStatus(isMoving, self.handle)
         result_temp = isMoving.contents.value
         del isMoving
         return result_temp
@@ -193,14 +193,14 @@ class MCLMicroDrive:
         Stops motors from moving.
         """
         status = ct.pointer(ct.c_ushort())
-        errorNumber = self.mcl.MCL_MDStop(status, self.handle)
+        errorNumber = self.mcldeck.MCL_MDStop(status, self.handle)
         del status
         if errorNumber != 0:
             print('Error while stopping device: ' + self.errorDictionary[errorNumber])
 
     def getPositionStepsTakenAxis(self, axis):
         microSteps = ct.pointer(ct.c_int())
-        errorNumber = self.mcl.MCL_MDCurrentPositionM(ct.c_int(axis), microSteps, self.handle)
+        errorNumber = self.mcldeck.MCL_MDCurrentPositionM(ct.c_int(axis), microSteps, self.handle)
         # Check for error
         if errorNumber != 0:
             print('Error reading the position of axis' + str(axis) + ': ' + self.errorDictionary[errorNumber])
