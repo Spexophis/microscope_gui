@@ -147,12 +147,7 @@ class MainController:
             self.con_controller.display_deck_position(p)
 
     def set_piezo_positions(self):
-        conv_factors = [10, 10, 10.]
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        value_x = pos_x * conv_factors[0]
-        value_y = pos_y * conv_factors[1]
-        value_z = pos_z * conv_factors[2]
-        self.om.daq.set_xyz(value_x, value_y, value_z)
 
     def reset_galvo(self):
         self.om.daq.set_galvo(0, 0)
