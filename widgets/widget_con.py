@@ -4,7 +4,9 @@ from utilities import customized_widgets as cw
 
 
 class ConWidget(QtWidgets.QWidget):
-    Signal_piezo_move = QtCore.pyqtSignal()
+    Signal_piezo_move_x = QtCore.pyqtSignal()
+    Signal_piezo_move_y = QtCore.pyqtSignal()
+    Signal_piezo_move_z = QtCore.pyqtSignal()
     Signal_deck_up = QtCore.pyqtSignal()
     Signal_deck_down = QtCore.pyqtSignal()
     Signal_deck_move = QtCore.pyqtSignal()
@@ -104,23 +106,23 @@ class ConWidget(QtWidgets.QWidget):
 
         Layout_piezo_stage = QtWidgets.QGridLayout()
         self.QLabel_stage_x = cw.label_widget(str('X (um)'))
-        self.QDoubleSpinBox_stage_x = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.00)
-        self.QLCDNumber_stage_x = cw.lcdnumber_widget()
+        self.QDoubleSpinBox_stage_x = cw.doublespinbox_widget(0, 50, 0.02, 2, 0.00)
+        self.QLCDNumber_piezo_position_x = cw.lcdnumber_widget()
         self.QLabel_stage_y = cw.label_widget(str('Y (um)'))
-        self.QDoubleSpinBox_stage_y = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.00)
-        self.QLCDNumber_stage_y = cw.lcdnumber_widget()
+        self.QDoubleSpinBox_stage_y = cw.doublespinbox_widget(0, 50, 0.02, 2, 0.00)
+        self.QLCDNumber_piezo_position_y = cw.lcdnumber_widget()
         self.QLabel_stage_z = cw.label_widget(str('Z (um)'))
-        self.QDoubleSpinBox_stage_z = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.00)
-        self.QLCDNumber_stage_z = cw.lcdnumber_widget()
+        self.QDoubleSpinBox_stage_z = cw.doublespinbox_widget(0, 50, 0.02, 2, 0.00)
+        self.QLCDNumber_piezo_position_z = cw.lcdnumber_widget()
         Layout_piezo_stage.addWidget(self.QLabel_stage_x, 0, 0, 1, 1)
         Layout_piezo_stage.addWidget(self.QDoubleSpinBox_stage_x, 1, 0, 1, 1)
-        Layout_piezo_stage.addWidget(self.QLCDNumber_stage_x, 2, 0, 1, 1)
+        Layout_piezo_stage.addWidget(self.QLCDNumber_piezo_position_x, 2, 0, 1, 1)
         Layout_piezo_stage.addWidget(self.QLabel_stage_y, 0, 1, 1, 1)
         Layout_piezo_stage.addWidget(self.QDoubleSpinBox_stage_y, 1, 1, 1, 1)
-        Layout_piezo_stage.addWidget(self.QLCDNumber_stage_y, 2, 1, 1, 1)
+        Layout_piezo_stage.addWidget(self.QLCDNumber_piezo_position_y, 2, 1, 1, 1)
         Layout_piezo_stage.addWidget(self.QLabel_stage_z, 0, 2, 1, 1)
         Layout_piezo_stage.addWidget(self.QDoubleSpinBox_stage_z, 1, 2, 1, 1)
-        Layout_piezo_stage.addWidget(self.QLCDNumber_stage_z, 2, 2, 1, 1)
+        Layout_piezo_stage.addWidget(self.QLCDNumber_piezo_position_z, 2, 2, 1, 1)
         group_PiezoStage.setLayout(Layout_piezo_stage)
 
         Layout_galvo_mirror = QtWidgets.QGridLayout()
@@ -289,9 +291,9 @@ class ConWidget(QtWidgets.QWidget):
         Layout_File.addWidget(self.QPushButton_save, 0, 5, 1, 1)
         group_File.setLayout(Layout_File)
 
-        self.QDoubleSpinBox_stage_x.valueChanged.connect(self.piezo_move)
-        self.QDoubleSpinBox_stage_y.valueChanged.connect(self.piezo_move)
-        self.QDoubleSpinBox_stage_z.valueChanged.connect(self.piezo_move)
+        self.QDoubleSpinBox_stage_x.valueChanged.connect(self.Signal_piezo_move_x.emit)
+        self.QDoubleSpinBox_stage_y.valueChanged.connect(self.Signal_piezo_move_y.emit)
+        self.QDoubleSpinBox_stage_z.valueChanged.connect(self.Signal_piezo_move_z.emit)
         self.QPushButton_move_deck_up.clicked.connect(self.deck_move_up)
         self.QPushButton_move_deck_down.clicked.connect(self.deck_move_down)
         self.QPushButton_move_deck.clicked.connect(self.deck_move)
@@ -322,12 +324,6 @@ class ConWidget(QtWidgets.QWidget):
             self.Signal_deck_move.emit()
         else:
             self.Signal_deck_move_stop.emit()
-
-    def deck_move_stop(self):
-        self.Signal_deck_move_stop.emit()
-
-    def piezo_move(self):
-        self.Signal_piezo_move.emit()
 
     def set_laser_488_0(self):
         if self.QPushButton_laser_488_0.isChecked():

@@ -64,7 +64,9 @@ class MainController:
         # Main
         self.view.get_control_widget().Signal_setcoordinates.connect(self.set_camera_coordinates)
         self.view.get_control_widget().Signal_resetcoordinates.connect(self.reset_camera_coordinates)
-        self.view.get_control_widget().Signal_piezo_move.connect(self.set_piezo_positions)
+        self.view.get_control_widget().Signal_piezo_move_x.connect(self.set_piezo_position_x)
+        self.view.get_control_widget().Signal_piezo_move_y.connect(self.set_piezo_position_y)
+        self.view.get_control_widget().Signal_piezo_move_z.connect(self.set_piezo_position_z)
         self.view.get_control_widget().Signal_deck_up.connect(self.move_deck_up)
         self.view.get_control_widget().Signal_deck_down.connect(self.move_deck_down)
         self.view.get_control_widget().Signal_deck_move.connect(self.move_deck)
@@ -146,8 +148,20 @@ class MainController:
             p = self.om.md.getPositionStepsTakenAxis(3)
             self.con_controller.display_deck_position(p)
 
-    def set_piezo_positions(self):
+    def set_piezo_position_x(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
+        self.om.pz.move_position(0, pos_x)
+        self.con_controller.display_piezo_position_x(self.om.pz.read_position(0))
+
+    def set_piezo_position_y(self):
+        pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
+        self.om.pz.move_position(1, pos_y)
+        self.con_controller.display_piezo_position_y(self.om.pz.read_position(1))
+
+    def set_piezo_position_z(self):
+        pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
+        self.om.pz.move_position(2, pos_z)
+        self.con_controller.display_piezo_position_z(self.om.pz.read_position(2))
 
     def reset_galvo(self):
         self.om.daq.set_galvo(0, 0)

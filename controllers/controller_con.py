@@ -76,5 +76,14 @@ class ConController:
     def display_deck_position(self, mdposz):
         self.view.QLCDNumber_deck_position.display(mdposz)
 
+    def display_piezo_position_x(self, ps):
+        self.view.QLCDNumber_piezo_position_x.display(ps)
+
+    def display_piezo_position_y(self, ps):
+        self.view.QLCDNumber_piezo_position_y.display(ps)
+
+    def display_piezo_position_z(self, ps):
+        self.view.QLCDNumber_piezo_position_z.display(ps)
+
     def get_file_name(self):
         return self.view.QLineEdit_filename.text()
