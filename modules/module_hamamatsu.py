@@ -385,10 +385,10 @@ class HamamatsuCamera(object):
 
     def getFrames(self):
         """
-        Gets all of the available frames.
+        Gets all the available frames.
     
         This will block waiting for new frames even if 
-        there new frames available when it is called.
+        there are new frames available when it is called.
         """
         frames = []
         for n in self.newFrames():
