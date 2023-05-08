@@ -6,8 +6,6 @@ import numpy as np
 import csv
 
 
-
-
 class DeformableMirror:
 
     def __init__(self):
@@ -21,7 +19,7 @@ class DeformableMirror:
             print("Number of actuator for " + serialName + ": " + str(self.nbAct))
             # self.values = [0.] * self.nbAct
             # self.dm.Send( self.values )
-            self.z2c = self.Zernike_modes()
+            self.z2c = self.zernike_modes()
         except:
             print('No DM found')
 
@@ -43,7 +41,7 @@ class DeformableMirror:
         self.dm.Send(self.values)
         print('DM set to null')
 
-    def Zernike_modes(self):
+    def zernike_modes(self):
         Z2C = []
         with open(r'C:/Program Files/Alpao/sourcefiles/BAX513-Z2C.csv', newline='') as csvfile:
             csvrows = csv.reader(csvfile, delimiter=' ')

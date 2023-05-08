@@ -7,28 +7,28 @@ class CoboltLaser:
         super().__init__()
 
         try:
-            self.l405 = pycobolt.Cobolt06MLD(port='COM5')
+            self.l405 = pycobolt.Cobolt06MLD(port='COM4')
             print('405 nm Laser Connected')
             self.l405_handle = True
         except:
             print("405 nm Laser Not Found")
             self.l405_handle = False
         try:
-            self.l488_0 = pycobolt.Cobolt06MLD(port='COM6')
+            self.l488_0 = pycobolt.Cobolt06MLD(port='COM5')
             print('488 nm Laser Connected')
             self.l488_0_handle = True
         except:
             print("488 nm Laser Not Found")
             self.l488_0_handle = False
         try:
-            self.l488_1 = pycobolt.Cobolt06MLD(port='COM7')
+            self.l488_1 = pycobolt.Cobolt06MLD(port='COM6')
             print('488 nm Laser #1 Connected')
             self.l488_1_handle = True
         except:
             print("488 nm Laser #1 Not Found")
             self.l488_1_handle = False
         try:
-            self.l488_2 = pycobolt.Cobolt06MLD(port='COM4')
+            self.l488_2 = pycobolt.Cobolt06MLD(port='COM7')
             print('488 nm Laser #2 Connected')
             self.l488_2_handle = True
         except:
