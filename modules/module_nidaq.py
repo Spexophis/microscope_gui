@@ -193,3 +193,39 @@ class NIDAQ:
             errBuff = DAQmxTypes.create_string_buffer(b"", 2048)
             PyDAQmx.DAQmxGetExtendedErrorInfo(errBuff, 2048)
             print(errBuff.value)
+
+    def trigger_scan(self, ao_sequences, do_sequences):
+        try:
+            ao_channels, ao_samples = ao_sequences.shape
+            do_channels, do_samples = do_sequences.shape
+            PyDAQmx.DAQmxCfgImplicitTiming(self.counterHandle, DAQmxConstants.DAQmx_Val_ContSamps, do_samples)
+            PyDAQmx.DAQmxCfgSampClkTiming(self.galvoHandle, r'Ctr0InternalOutput', self.frequency,
+                                          DAQmxConstants.DAQmx_Val_Rising,
+                                          DAQmxConstants.DAQmx_Val_FiniteSamps, ao_samples)
+            PyDAQmx.DAQmxCfgSampClkTiming(self.doHandle, r'Ctr0InternalOutput', self.frequency,
+                                          DAQmxConstants.DAQmx_Val_Rising,
+                                          DAQmxConstants.DAQmx_Val_FiniteSamps, do_samples)
+            PyDAQmx.DAQmxWriteAnalogF64(self.galvoHandle, ao_samples, False, -1,
+                                        DAQmxConstants.DAQmx_Val_GroupByChannel,
+                                        ao_sequences.astype(np.float64), None, None)
+            PyDAQmx.DAQmxWriteDigitalLines(self.doHandle, do_samples, False, -1,
+                                           DAQmxConstants.DAQmx_Val_GroupByChannel,
+                                           do_sequences.astype(np.uint8), None, None)
+        except:
+            errBuff = DAQmxTypes.create_string_buffer(b"", 2048)
+            PyDAQmx.DAQmxGetExtendedErrorInfo(errBuff, 2048)
+            print(errBuff.value)
+
+    def run_scan(self):
+        try:
+            PyDAQmx.DAQmxStartTask(self.doHandle)
+            PyDAQmx.DAQmxStartTask(self.galvoHandle)
+            PyDAQmx.DAQmxStartTask(self.counterHandle)
+            PyDAQmx.DAQmxWaitUntilTaskDone(self.doHandle, -1)
+            PyDAQmx.DAQmxStopTask(self.counterHandle)
+            PyDAQmx.DAQmxStopTask(self.doHandle)
+            PyDAQmx.DAQmxStopTask(self.galvoHandle)
+        except:
+            errBuff = DAQmxTypes.create_string_buffer(b"", 2048)
+            PyDAQmx.DAQmxGetExtendedErrorInfo(errBuff, 2048)
+            print(errBuff.value)
