@@ -60,9 +60,17 @@ class TISCamera:
             self.unique_name = tis.D(ic.IC_GetUniqueNamefromList(0))
             print("Unique Name : {}".format(self.unique_name))
             self.hGrabber = ic.IC_CreateGrabber()
-            if ic.IC_IsDevValid(self.hGrabber):
-                if ic.IC_OpenDevByUniqueName(self.hGrabber, tis.T(self.unique_name)) == tis.IC_SUCCESS:
-                    print("SUCCESS: TIS Camera ON")
+            if ic.IC_OpenDevByUniqueName(self.hGrabber, tis.T(self.unique_name)) == tis.IC_SUCCESS:
+                print("SUCCESS: TIS Camera ON")
+                if ic.IC_IsDevValid(self.hGrabber):
+                    if ic.IC_SetPropertyAbsoluteValue(self.hGrabber, tis.T("Gain"), tis.T("Value"), ctypes.c_float(0)) == tis.IC_SUCCESS:
+                        print("SUCCESS: Set Gain zero")
+                    else:
+                        print("FAIL: Set Gain zero")
+                    if ic.IC_SetPropertyValue(self.hGrabber, tis.T("Brightness"), tis.T("Value"), ctypes.c_int(0)) == tis.IC_SUCCESS:
+                        print("SUCCESS: Set Brightness zero")
+                    else:
+                        print("FAIL: Set Brightness zero")
                     if ic.IC_SetContinuousMode(self.hGrabber, 1) == tis.IC_SUCCESS:
                         print("SUCCESS: Set Continuous Mode")
                     else:
@@ -95,19 +103,20 @@ class TISCamera:
                         print("SUCCESS: Remove Overlay")
                     else:
                         print("FAIL: Remove Overlay")
-                    if ic.IC_SetPropertyAbsoluteValue(self.hGrabber, tis.T("Gain"), tis.T("Value"), ctypes.c_float(0)) == tis.IC_SUCCESS:
-                        print("SUCCESS: Set Gain zero")
-                    else:
-                        print("FAIL: Set Gain zero")
                 else:
-                    print("FAIL: TIS Camera ON")
+                    print("Invalid TISGrabber")
             else:
-                print("Invalid TISGrabber")
+                print("FAIL: TIS Camera ON")
         else:
             print('No TIS camera')
 
     def close(self):
-        ic.IC_ReleaseGrabber(self.hGrabber)
+        r = ic.IC_CloseVideoCaptureDevice(self.hGrabber)
+        if r:
+            r = ic.IC_ReleaseGrabber(self.hGrabber)
+            if r:
+                ic.IC_CloseLibrary()
+                print("TIS Camera OFF")
 
     def start_live(self):
         if ic.IC_IsDevValid(self.hGrabber):
@@ -158,8 +167,10 @@ class TISCamera:
 
     def snap_image(self):
         if ic.IC_SnapImage(self.hGrabber, 2000) == tis.IC_SUCCESS:
+            print("SUCCESS: Image Capture")
             return True
         else:
+            print("FAIL: Image Capture")
             return False
 
     def get_buffer(self):
@@ -167,8 +178,7 @@ class TISCamera:
         img_height = ctypes.c_long()
         img_depth = ctypes.c_int()
         color_format = ctypes.c_int()
-        r = ic.IC_GetImageDescription(self.hGrabber, img_width, img_height, img_depth, color_format)
-        if r:
+        if ic.IC_GetImageDescription(self.hGrabber, img_width, img_height, img_depth, color_format) == tis.IC_SUCCESS:
             bpp = int(img_depth.value / 8.0)
             buffer_size = img_width.value * img_height.value * img_depth.value
             return bpp, buffer_size, img_width, img_height, img_depth
