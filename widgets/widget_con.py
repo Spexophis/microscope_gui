@@ -11,7 +11,7 @@ class ConWidget(QtWidgets.QWidget):
     Signal_deck_down = QtCore.pyqtSignal()
     Signal_deck_move = QtCore.pyqtSignal()
     Signal_deck_move_stop = QtCore.pyqtSignal()
-    Signal_galvo_scan = QtCore.pyqtSignal()
+    Signal_galvo_set = QtCore.pyqtSignal()
     Signal_galvo_reset = QtCore.pyqtSignal()
     Signal_setcoordinates = QtCore.pyqtSignal()
     Signal_resetcoordinates = QtCore.pyqtSignal()
@@ -32,9 +32,10 @@ class ConWidget(QtWidgets.QWidget):
     Signal_run_plot_profile = QtCore.pyqtSignal()
     Signal_stop_plot_profile = QtCore.pyqtSignal()
     Signal_2d_resolft = QtCore.pyqtSignal()
-    Signal_3d_resolft = QtCore.pyqtSignal()
+    # Signal_3d_resolft = QtCore.pyqtSignal()
     Signal_beadscan_2d = QtCore.pyqtSignal()
-    Signal_beadscan_3d = QtCore.pyqtSignal()
+    # Signal_beadscan_3d = QtCore.pyqtSignal()
+    Signal_galvo_scan = QtCore.pyqtSignal()
     Signal_save_file = QtCore.pyqtSignal()
 
     def __init__(self, *args, **kwargs):
@@ -303,9 +304,10 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_video = cw.pushbutton_widget('Video', checkable=True)
         self.QPushButton_fft = cw.pushbutton_widget('FFT', checkable=True, enable=False)
         self.QPushButton_2d_resolft = cw.pushbutton_widget('2D RESOLFT', enable=False)
-        self.QPushButton_3d_resolft = cw.pushbutton_widget('3D RESOLFT', enable=False)
+        # self.QPushButton_3d_resolft = cw.pushbutton_widget('3D RESOLFT', enable=False)
         self.QPushButton_2d_beadscan = cw.pushbutton_widget('2D BeadScan', enable=False)
         self.QPushButton_3d_beadscan = cw.pushbutton_widget('3D BeadScan', enable=False)
+        self.QPushButton_galvo_scan = cw.pushbutton_widget('Galvo Scan', enable=False)
         self.QComboBox_profile_axis = cw.combobox_widget(list_items=['X', 'Y'])
         self.QPushButton_plot_profile = cw.pushbutton_widget('Plot Profile', checkable=True, enable=False)
         Layout_DataAquisition.addWidget(self.QLabel_exposure_time, 0, 0, 1, 1)
@@ -315,9 +317,10 @@ class ConWidget(QtWidgets.QWidget):
         Layout_DataAquisition.addWidget(self.QPushButton_video, 2, 0, 1, 1)
         Layout_DataAquisition.addWidget(self.QPushButton_fft, 2, 1, 1, 1)
         Layout_DataAquisition.addWidget(self.QPushButton_2d_resolft, 0, 2, 1, 1)
-        Layout_DataAquisition.addWidget(self.QPushButton_3d_resolft, 0, 3, 1, 1)
-        Layout_DataAquisition.addWidget(self.QPushButton_2d_beadscan, 1, 2, 1, 1)
-        Layout_DataAquisition.addWidget(self.QPushButton_3d_beadscan, 1, 3, 1, 1)
+        # Layout_DataAquisition.addWidget(self.QPushButton_3d_resolft, 0, 3, 1, 1)
+        Layout_DataAquisition.addWidget(self.QPushButton_2d_beadscan, 0, 3, 1, 1)
+        # Layout_DataAquisition.addWidget(self.QPushButton_3d_beadscan, 1, 3, 1, 1)
+        Layout_DataAquisition.addWidget(self.QPushButton_galvo_scan, 1, 2, 1, 1)
         Layout_DataAquisition.addWidget(self.QComboBox_profile_axis, 2, 2, 1, 1)
         Layout_DataAquisition.addWidget(self.QPushButton_plot_profile, 2, 3, 1, 1)
         group_DataAquisition.setLayout(Layout_DataAquisition)
@@ -349,7 +352,8 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_laser_488_2.clicked.connect(self.set_laser_488_2)
         self.QPushButton_laser_405.clicked.connect(self.set_laser_405)
         self.QPushButton_2d_resolft.clicked.connect(self.resolft_2d)
-        self.QPushButton_3d_resolft.clicked.connect(self.resolft_3d)
+        # self.QPushButton_3d_resolft.clicked.connect(self.resolft_3d)
+        self.QPushButton_galvo_scan.clicked.connect(self.galvo_scan)
         self.QPushButton_2d_beadscan.clicked.connect(self.beadscan_2d)
         self.QComboBox_trigger_parameter.currentIndexChanged.connect(self.update_trigger_parameter_sets)
 
@@ -398,9 +402,10 @@ class ConWidget(QtWidgets.QWidget):
             self.QPushButton_fft.setEnabled(True)
             self.QPushButton_plot_profile.setEnabled(True)
             self.QPushButton_2d_resolft.setEnabled(False)
-            self.QPushButton_3d_resolft.setEnabled(False)
+            # self.QPushButton_3d_resolft.setEnabled(False)
             self.QPushButton_2d_beadscan.setEnabled(False)
-            self.QPushButton_3d_beadscan.setEnabled(False)
+            # self.QPushButton_3d_beadscan.setEnabled(False)
+            self.QPushButton_galvo_scan.setEnabled(False)
         else:
             self.Signal_stop_video.emit()
             if self.QPushButton_fft.isChecked():
@@ -412,9 +417,10 @@ class ConWidget(QtWidgets.QWidget):
             self.QPushButton_plot_profile.setEnabled(False)
             self.QPushButton_plot_profile.setChecked(False)
             self.QPushButton_2d_resolft.setEnabled(True)
-            self.QPushButton_3d_resolft.setEnabled(True)
+            # self.QPushButton_3d_resolft.setEnabled(True)
             self.QPushButton_2d_beadscan.setEnabled(True)
-            self.QPushButton_3d_beadscan.setEnabled(True)
+            # self.QPushButton_3d_beadscan.setEnabled(True)
+            self.QPushButton_galvo_scan.setEnabled(True)
 
     def run_fft(self):
         if self.QPushButton_fft.isChecked():
@@ -434,14 +440,17 @@ class ConWidget(QtWidgets.QWidget):
     def resolft_2d(self):
         self.Signal_2d_resolft.emit()
 
-    def resolft_3d(self):
-        self.Signal_3d_resolft.emit()
+    # def resolft_3d(self):
+    #     self.Signal_3d_resolft.emit()
 
     def beadscan_2d(self):
         self.Signal_beadscan_2d.emit()
 
-    def beadscan_3d(self):
-        self.Signal_beadscan_3d.emit()
+    # def beadscan_3d(self):
+    #     self.Signal_beadscan_3d.emit()
+
+    def galvo_scan(self):
+        self.Signal_galvo_scan.emit()
 
     def update_trigger_parameter_sets(self):
         presets = self.QComboBox_trigger_parameter.currentText()

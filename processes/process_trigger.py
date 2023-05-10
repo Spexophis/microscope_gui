@@ -22,16 +22,22 @@ class TriggerSequence:
         self.bp_increase = BPoly.from_derivatives([0, 1], [[0., 0., 0.], [1., 0., 0.]])
         self.bp_decrease = BPoly.from_derivatives([0, 1], [[1., 0., 0.], [0., 0., 0.]])
 
-    def update_parameters(self, sequence_time, sample_rate, piezo_ranges, piezo_step_sizes, piezo_starts,
+    def update_parameters(self, sequence_time, piezo_ranges, piezo_step_sizes, piezo_starts,
                           piezo_return_time, piezo_conv_factors, piezo_analog_start, digital_starts, digital_ends):
         self.sequence_time = sequence_time
-        self.sample_rate = sample_rate
         self.piezo_ranges = piezo_ranges
         self.piezo_step_sizes = piezo_step_sizes
         self.piezo_starts = piezo_starts
         self.piezo_return_time = piezo_return_time
         self.piezo_conv_factors = piezo_conv_factors
         self.piezo_analog_start = piezo_analog_start
+        self.digital_starts = digital_starts
+        self.digital_ends = digital_ends
+
+    def update_galvo_scan_parameters(self, galvo_starts, galvo_stops, galvo_step_sizes, digital_starts, digital_ends):
+        self.galvo_starts = galvo_starts
+        self.galvo_stops = galvo_stops
+        self.galvo_step_sizes = galvo_step_sizes
         self.digital_starts = digital_starts
         self.digital_ends = digital_ends
 
@@ -76,7 +82,7 @@ class TriggerSequence:
             scan_y_h = np.append(scan_y_h, scan_y_temp + (2 * i + 2) * self.galvo_step_sizes[1])
         scan_x = np.append(scan_x_h, scan_y_h)
         scan_y = np.append(scan_y_h, -scan_x_h)
-        analog_trigger = np.zeros((len(self.galvo_starts), scan_x.shape[0] + 20))
+        analog_trigger = np.zeros((len(self.galvo_starts), scan_x.shape[0] + 32))
         analog_trigger[0] = np.pad(scan_x, (16, 16), 'constant', constant_values=(0, 0))
         analog_trigger[1] = np.pad(scan_y, (16, 16), 'constant', constant_values=(0, 0))
         digital_trigger = np.zeros((len(self.digital_starts), analog_trigger[0].shape[0]))

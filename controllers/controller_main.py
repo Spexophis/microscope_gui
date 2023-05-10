@@ -71,7 +71,7 @@ class MainController:
         self.view.get_control_widget().Signal_deck_down.connect(self.move_deck_down)
         self.view.get_control_widget().Signal_deck_move.connect(self.move_deck)
         self.view.get_control_widget().Signal_deck_move_stop.connect(self.move_deck_stop)
-        self.view.get_control_widget().Signal_galvo_scan.connect(self.scan_galvo)
+        self.view.get_control_widget().Signal_galvo_set.connect(self.set_galvo)
         self.view.get_control_widget().Signal_galvo_reset.connect(self.reset_galvo)
         self.view.get_control_widget().Signal_setlaseron_488_0.connect(self.set_laseron_488_0)
         self.view.get_control_widget().Signal_setlaseron_488_1.connect(self.set_laseron_488_1)
@@ -88,9 +88,10 @@ class MainController:
         self.view.get_control_widget().Signal_stop_fft.connect(self.stop_fft)
         self.view.get_control_widget().Signal_run_plot_profile.connect(self.start_plot_live)
         self.view.get_control_widget().Signal_stop_plot_profile.connect(self.stop_plot_live)
-        self.view.get_control_widget().Signal_3d_resolft.connect(self.record_3d_resolft)
+        # self.view.get_control_widget().Signal_3d_resolft.connect(self.record_3d_resolft)
         self.view.get_control_widget().Signal_2d_resolft.connect(self.record_2d_resolft)
         self.view.get_control_widget().Signal_beadscan_2d.connect(self.record_beadscan_2d)
+        self.view.get_control_widget().Signal_galvo_scan.connect(self.record_gs)
         self.view.get_control_widget().Signal_save_file.connect(self.save_data)
         # DM
         self.view.get_ao_widget().Signal_push_actuator.connect(self.push_actuator)
@@ -166,7 +167,7 @@ class MainController:
     def reset_galvo(self):
         self.om.daq.set_galvo(0, 0)
 
-    def scan_galvo(self):
+    def set_galvo(self):
         voltx, volty = self.con_controller.get_galvo_scan()
         self.om.daq.set_galvo(voltx, volty)
 
@@ -285,12 +286,12 @@ class MainController:
         gain = self.con_controller.get_emccd_gain()
         # self.om.cam.set_exposure(expo)
         self.om.cam.set_emccd_gain(gain)
+        self.om.cam.set_trigger_mode(7)
 
     def prepare_video(self):
         self.set_lasers()
         dgtr = self.generate_digital_trigger_sw()
         self.om.daq.trig_open(dgtr)
-        self.om.cam.set_trigger_mode(7)
         self.set_camera()
         self.om.cam.prepare_live()
 
@@ -331,12 +332,11 @@ class MainController:
             self.view_controller.plot(dgtr[i + 1] + i + 1)
 
     def generate_digital_trigger_sw(self):
-        sample_rate = 100000
         return_time = 0.001
         conv_factors = [10, 10, 10.]
         lasers = self.con_controller.get_lasers()
         camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
-        self.p.trigger.update_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
+        self.p.trigger.update_parameters(sequence_time, axis_lengths, step_sizes, axis_start_pos,
                                          return_time, conv_factors, analog_start, digital_starts, digital_ends)
         dgtr = self.p.trigger.generate_digital_triggers_sw(lasers, camera)
         return dgtr
@@ -374,7 +374,6 @@ class MainController:
 
     def prepare_resolft_recording(self):
         self.set_camera()
-        self.om.cam.set_trigger_mode(7)
         self.om.cam.prepare_kinetic_acquisition(self.npos)
         self.set_lasers()
 
@@ -417,6 +416,27 @@ class MainController:
         tf.imwrite(self.path + '/' + t + fn + '_final_image.tif', self.p.bsrecon.final_image)
         self.view_controller.plot_main(self.p.bsrecon.final_image)
         print('Data saved')
+
+    def write_trigger_gs(self):
+        lasers = self.con_controller.get_lasers()
+        camera, galvo_starts, galvo_stops, galvo_step_sizes, digital_starts, digital_ends = self.con_controller.get_galvo_scan_parameters()
+        self.p.trigger.update_galvo_scan_parameters(galvo_starts, galvo_stops, galvo_step_sizes, digital_starts, digital_ends)
+        atr, dtr = self.p.trigger.generate_trigger_sequence_gs(lasers, camera)
+        self.om.daq.trigger_scan(atr, dtr)
+
+    def prepare_gs_recording(self):
+        self.set_camera()
+        self.om.cam.prepare_kinetic_acquisition(1)
+        self.set_lasers()
+
+    def record_gs(self):
+        self.write_trigger_gs()
+        self.prepare_gs_recording()
+        self.om.cam.start_kinetic_acquisition()
+        self.om.daq.run_scan()
+        self.om.cam.get_data(1)
+        print('Acquisition Done')
+        self.lasers_off()
 
     def push_actuator(self):
         n, a = self.ao_controller.get_acturator()
@@ -606,7 +626,6 @@ class MainController:
 
     def start_ao_iteration(self):
         self.set_lasers()
-        self.om.cam.set_trigger_mode(7)
         self.set_camera()
         dgtr = self.generate_digital_trigger_sw()
         self.om.daq.trig_open_ao(dgtr)

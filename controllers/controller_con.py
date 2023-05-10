@@ -67,6 +67,25 @@ class ConController:
         return detection_device, sequence_time, axis_lengths, step_sizes, axis_start_pos, \
             analog_start, digital_starts, digital_ends
 
+    def get_galvo_scan_parameters(self):
+        detection_device = self.view.QComboBox_camera_selection.currentIndex()
+        galvo_starts = [self.view.QDoubleSpinBox_galvo_start_x.value(), self.view.QDoubleSpinBox_galvo_start_y.value()]
+        galvo_stops = [self.view.QDoubleSpinBox_galvo_stop_x.value(), self.view.QDoubleSpinBox_galvo_stop_y.value()]
+        galvo_step_sizes = [self.view.QDoubleSpinBox_galvo_step_x.value(), self.view.QDoubleSpinBox_galvo_step_y.value()]
+        digital_starts = [self.view.QDoubleSpinBox_ttl_start_on_405.value(),
+                          self.view.QDoubleSpinBox_ttl_start_off_488_0.value(),
+                          self.view.QDoubleSpinBox_ttl_start_off_488_1.value(),
+                          self.view.QDoubleSpinBox_ttl_start_read_488_2.value(),
+                          self.view.QDoubleSpinBox_ttl_start_camera_main.value(),
+                          self.view.QDoubleSpinBox_ttl_start_camera_wfs.value()]
+        digital_ends = [self.view.QDoubleSpinBox_ttl_stop_on_405.value(),
+                        self.view.QDoubleSpinBox_ttl_stop_off_488_0.value(),
+                        self.view.QDoubleSpinBox_ttl_stop_off_488_1.value(),
+                        self.view.QDoubleSpinBox_ttl_stop_read_488_2.value(),
+                        self.view.QDoubleSpinBox_ttl_stop_camera_main.value(),
+                        self.view.QDoubleSpinBox_ttl_stop_camera_wfs.value()]
+        return detection_device, galvo_starts, galvo_stops, galvo_step_sizes, digital_starts, digital_ends
+
     def get_profile_axis(self):
         return self.view.QComboBox_profile_axis.currentText()
 
