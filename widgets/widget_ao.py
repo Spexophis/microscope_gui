@@ -128,7 +128,6 @@ class AOWidget(QtWidgets.QWidget):
         self.QLabel_zernike_mode_amp = cw.label_widget(str('Amplitude'))
         self.QDoubleSpinBox_zernike_mode_amp = cw.doublespinbox_widget(-20, 20, 0.01, 2, 0)
         self.QPushButton_set_zernike_mode = cw.pushbutton_widget('Set Zernike')
-        self.QPushButton_alpao_zernike = cw.pushbutton_widget('ALPAO Zernike')
         self.QComboBox_cmd = cw.combobox_widget(list_items=['0', '1'])
         self.QComboBox_cmd.setCurrentIndex(1)
         self.QPushButton_setDM = cw.pushbutton_widget('Set DM')
@@ -148,7 +147,6 @@ class AOWidget(QtWidgets.QWidget):
         layout_deformablemirror.addWidget(self.QLabel_zernike_mode_amp, 2, 2, 1, 1)
         layout_deformablemirror.addWidget(self.QDoubleSpinBox_zernike_mode_amp, 2, 3, 1, 1)
         layout_deformablemirror.addWidget(self.QPushButton_set_zernike_mode, 3, 2, 1, 1)
-        layout_deformablemirror.addWidget(self.QPushButton_alpao_zernike, 0, 2, 1, 2)
         layout_deformablemirror.addWidget(self.QComboBox_cmd, 4, 0, 1, 1)
         layout_deformablemirror.addWidget(self.QPushButton_setDM, 4, 1, 1, 1)
         layout_deformablemirror.addWidget(self.QPushButton_loadDM, 3, 3, 1, 1)
@@ -219,7 +217,6 @@ class AOWidget(QtWidgets.QWidget):
         self.QPushButton_push_actuator.clicked.connect(self.Signal_push_actuator.emit)
         self.QPushButton_influence_fuction_laser.clicked.connect(self.Signal_influence_function.emit)
         self.QPushButton_set_zernike_mode.clicked.connect(self.Signal_set_zernike.emit)
-        self.QPushButton_alpao_zernike.clicked.connect(self.open_alpao_zernike)
         self.QPushButton_setDM.clicked.connect(self.Signal_set_dm.emit)
         self.QPushButton_update_cmd.clicked.connect(self.Signal_update_cmd.emit)
         self.QPushButton_loadDM.clicked.connect(self.dialog)
@@ -258,38 +255,12 @@ class AOWidget(QtWidgets.QWidget):
         self.QPushButton_shwfs_compute_wf.setEnabled(True)
         self.QPushButton_shwfs_save_wf.setEnabled(True)
 
-    def open_alpao_zernike(self):
-        self.widget_az = ALPAOZernike()
-        self.widget_az.show()
-
     def dialog(self):
         file, check = QtWidgets.QFileDialog.getOpenFileName(None, "QtWidgets.QFileDialog.getOpenFileName()", "",
                                                             "All Files (*);;Python Files (*.py);;Text Files (*.txt)")
         if check:
             print(file)
             self.Signal_load_dm.emit(file)
-
-
-class ALPAOZernike(QtWidgets.QWidget):
-
-    Signal_alpao_zernike = QtCore.pyqtSignal()
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("ALPAO Zernike Modes")
-        layout = QtWidgets.QFormLayout(self)
-        self.setLayout(layout)
-
-        title_1 = cw.label_widget("Zernike Mode")
-        title_2 = cw.label_widget("Amplitude")
-        layout.addRow(title_1, title_2)
-
-        self.QLabel_z1 = cw.label_widget(str('#1'))
-        self.QDoubleSpinBox_z1 = cw.doublespinbox_widget(-100, 100, 0.1, 1, 0.)
-        layout.addRow(self.QLabel_z1, self.QDoubleSpinBox_z1)
-
-        self.QPushbutton_set = cw.pushbutton_widget("Set")
-        layout.addRow(self.QPushbutton_set)
 
 
 import sys
