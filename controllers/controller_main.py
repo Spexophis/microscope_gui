@@ -501,17 +501,17 @@ class MainController:
 
     def save_wf(self):
         t = time.strftime("%Y%m%d_%H%M%S_")
-        slideName = self.ao_controller.get_file_name()
+        slide_name = self.ao_controller.get_file_name()
         try:
-            tf.imwrite(self.path + '/' + t + slideName + '_shimg_base_raw.tif', self.p.shwfsr.base)
+            tf.imwrite(self.path + '/' + t + slide_name + '_shimg_base_raw.tif', self.p.shwfsr.base)
         except:
             print("NO SH Image")
         try:
-            tf.imwrite(self.path + '/' + t + slideName + '_shimg_processed.tif', self.p.shwfsr.im)
+            tf.imwrite(self.path + '/' + t + slide_name + '_shimg_processed.tif', self.p.shwfsr.im)
         except:
             print("NO SH Image")
         try:
-            tf.imwrite(self.path + '/' + t + slideName + '_reconstruted_wf.tif', self.p.shwfsr.wf)
+            tf.imwrite(self.path + '/' + t + slide_name + '_reconstruted_wf.tif', self.p.shwfsr.wf)
         except:
             print("NO WF Image")
         print('WF Data saved')
