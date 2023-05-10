@@ -30,6 +30,8 @@ class MainController:
         except:
             print('Directory already exists')
 
+        self.stack_params = None
+
         # video thread
         self.thread_video = QtCore.QThread()
         self.videoWorker = VideoWorker(parent=None)
@@ -396,37 +398,7 @@ class MainController:
         t = time.strftime("%Y%m%d_%H%M%S_")
         slide_name = self.con_controller.get_file_name()
         tf.imwrite(self.path + '/' + t + slide_name + '.tif', self.m.ccdcam.data)
-        self.stack_params['Slide Name'] = slide_name
-        fnt = self.path + '/' + t + slide_name + '_info.txt'
-        self.save_text(fnt)
         print('Data saved')
-
-    def save_text(self, fn=None):
-        if fn is None:
-            return False
-        s = []
-        for parts in self.stack_params:
-            s.append('%s : %s \n' % (parts, self.stack_params[parts]))
-        s.sort()
-        fid = open(fn, 'w')
-        fid.writelines(s)
-        fid.close()
-
-    def stack_tags(self, function):
-        self.stack_params.clear()
-        self.stack_params['00 User'] = getuser()
-        self.stack_params['01 Date/Time'] = time.asctime()
-        self.stack_params['02 function'] = function
-        self.stack_params['03 CCD Temperature'] = self.m.ccdcam.get_ccd_temperature()
-        self.stack_params['04 EMCCDGain'] = self.m.ccdcam.get_emccdgain()
-        self.stack_params['05 Pixel size'] = 13 / (63 * 2.8)
-        self.stack_params['06 Camera Coordinates'] = self.m.ccdcam.G
-        # self.stack_params['07 X'] = xx
-        # self.stack_params['08 Y'] = yy
-        # self.stack_params['09 Z'] = zz
-        # self.stack_params['10 Xstep'] = zs
-        # self.stack_params['11 Ystep'] = zs
-        # self.stack_params['12 Zstep'] = zs
 
     def push_actuator(self):
         n, a = self.ao_controller.get_actuator()
