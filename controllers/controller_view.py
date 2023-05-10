@@ -23,6 +23,10 @@ class ViewController:
     def plot_wf(self, data):
         self.view.show_image('Wavefront', data)
 
+    @pyqtSlot(np.ndarray)
+    def plot_dm(self, data):
+        self.view.show_image('DM Calibration', data)
+
     def get_image_data(self, layer):
         return self.view.get_image(layer)
 

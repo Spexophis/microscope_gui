@@ -1,6 +1,6 @@
 from modules import module_andorixon
 from modules import module_hamamatsu
-# from modules import module_tiscamera
+from modules import module_tiscamera
 # from modules import module_thorcamera
 from modules import module_deformablemirror
 from modules import module_laser
@@ -12,12 +12,13 @@ from modules import module_mclpiezo
 class MainModule:
 
     def __init__(self):
-        self.cam = module_andorixon.EMCCDCamera()
-        self.hacam = module_hamamatsu.HamamatsuCameraMR()
+        self.ccdcam = module_andorixon.EMCCDCamera()
+        self.cmoscam = module_hamamatsu.HamamatsuCameraMR()
+        self.dmkcam = module_tiscamera.TISCamera()
         self.dm = module_deformablemirror.DeformableMirror()
         self.laser = module_laser.CoboltLaser()
         self.daq = module_nidaq.NIDAQ()
-        # self.tiscam = module_tiscamera.TISCamera()
+        self.tiscam = module_tiscamera.TISCamera()
         self.md = module_mcldeck.MCLMicroDrive()
         self.pz = module_mclpiezo.MCLNanoDrive()
         # self.thocam = module_thorcamera.UC480Cam()

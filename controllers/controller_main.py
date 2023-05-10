@@ -62,8 +62,8 @@ class MainController:
         self.thread_wfs.finished.connect(self.wfsWorker.stop)
         self.wfsWorker.signal_wfsshow.connect(self.imshow_wfs)
         # Main
-        self.view.get_control_widget().Signal_setcoordinates.connect(self.set_camera_coordinates)
-        self.view.get_control_widget().Signal_resetcoordinates.connect(self.reset_camera_coordinates)
+        self.view.get_control_widget().Signal_setcoordinates.connect(self.set_ccd_camera_coordinates)
+        self.view.get_control_widget().Signal_resetcoordinates.connect(self.reset_ccd_camera_coordinates)
         self.view.get_control_widget().Signal_piezo_move_x.connect(self.set_piezo_position_x)
         self.view.get_control_widget().Signal_piezo_move_y.connect(self.set_piezo_position_y)
         self.view.get_control_widget().Signal_piezo_move_z.connect(self.set_piezo_position_z)
@@ -116,12 +116,12 @@ class MainController:
         self.con_controller.display_deck_position(p)
         self.om.dm.SetDM(self.p.shwfsr._dm_cmd[1])
 
-    def set_camera_coordinates(self):
+    def set_ccd_camera_coordinates(self):
         x, y, n = self.con_controller.get_camera_coordinates()
         b = self.con_controller.get_camera_bin()
         self.om.cam.set_image(b, b, x, x + n - 1, y, y + n - 1)
 
-    def reset_camera_coordinates(self):
+    def reset_ccd_camera_coordinates(self):
         self.om.cam.set_image(1, 1, 1, 1024, 1, 1024)
 
     def move_deck_up(self):
@@ -280,19 +280,18 @@ class MainController:
         # self.stack_params['11 Ystep'] = zs
         # self.stack_params['12 Zstep'] = zs
 
-    def set_camera(self):
-        self.set_camera_coordinates()
+    def set_ccd_camera(self):
+        self.set_ccd_camera_coordinates()
         # expo = self.con_controller.get_exposure_time()
         gain = self.con_controller.get_emccd_gain()
         # self.om.cam.set_exposure(expo)
         self.om.cam.set_emccd_gain(gain)
-        self.om.cam.set_trigger_mode(7)
 
     def prepare_video(self):
         self.set_lasers()
         dgtr = self.generate_digital_trigger_sw()
         self.om.daq.trig_open(dgtr)
-        self.set_camera()
+        self.set_ccd_camera()
         self.om.cam.prepare_live()
 
     def start_video(self):
@@ -319,12 +318,11 @@ class MainController:
         self.thread_fft.wait()
 
     def plot_trigger(self):
-        sample_rate = 100000
         return_time = 0.001
         conv_factors = [10, 10, 10.]
         lasers = self.con_controller.get_lasers()
         camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
-        self.p.trigger.update_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
+        self.p.trigger.update_parameters(sequence_time, axis_lengths, step_sizes, axis_start_pos,
                                          return_time, conv_factors, analog_start, digital_starts, digital_ends)
         dgtr = self.p.trigger.generate_digital_triggers_sw(lasers, camera)
         self.view_controller.plot_update(dgtr[0])
@@ -373,7 +371,7 @@ class MainController:
         self.om.daq.trigger_sequence(atr, dtr)
 
     def prepare_resolft_recording(self):
-        self.set_camera()
+        self.set_ccd_camera()
         self.om.cam.prepare_kinetic_acquisition(self.npos)
         self.set_lasers()
 
@@ -426,7 +424,7 @@ class MainController:
 
     def prepare_gs_recording(self):
         self.set_lasers()
-        self.set_camera()
+        self.set_ccd_camera()
         self.om.cam.prepare_live()
 
     def record_gs(self):
@@ -474,7 +472,7 @@ class MainController:
         self.p.shwfsr._write_cmd(self.path, t, flatfile=False)
         print('DM cmd saved')
 
-    def set_shcam(self):
+    def set_cmos_cam(self):
         self.set_lasers()
         dgtr = self.generate_digital_trigger_sw()
         self.om.daq.trig_open(dgtr)
@@ -500,7 +498,7 @@ class MainController:
         self.view_controller.plot_sh(self.om.hacam.getLastFrame())
 
     def start_wfs(self):
-        self.set_shcam()
+        self.set_cmos_cam()
         # self.om.tiscam.prepare_live()
         # self.om.tiscam.start_live()
         # self.om.thocam.start_acquire()
@@ -629,7 +627,7 @@ class MainController:
 
     def start_ao_iteration(self):
         self.set_lasers()
-        self.set_camera()
+        self.set_ccd_camera()
         dgtr = self.generate_digital_trigger_sw()
         self.om.daq.trig_open_ao(dgtr)
         self.om.cam.start_live()
