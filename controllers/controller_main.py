@@ -18,9 +18,9 @@ class MainController:
         self.v = view
         self.m = module
         self.p = process
-        self.view_controller = controller_view.ViewController(self.v.get_view_widget(), self.m, self.p)
-        self.con_controller = controller_con.ConController(self.v.get_control_widget(), self.m, self.p)
-        self.ao_controller = controller_ao.AOController(self.v.get_ao_widget(), self.m, self.p)
+        self.view_controller = controller_view.ViewController(self.v.get_view_widget())
+        self.con_controller = controller_con.ConController(self.v.get_control_widget())
+        self.ao_controller = controller_ao.AOController(self.v.get_ao_widget())
 
         t = time.strftime("%Y%m%d")
         dpth = t + '_' + getuser()
