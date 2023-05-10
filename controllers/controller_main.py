@@ -425,16 +425,19 @@ class MainController:
         self.om.daq.trigger_scan(atr, dtr)
 
     def prepare_gs_recording(self):
-        self.set_camera()
-        self.om.cam.prepare_kinetic_acquisition(1)
         self.set_lasers()
+        self.set_camera()
+        self.om.cam.prepare_live()
 
     def record_gs(self):
         self.write_trigger_gs()
         self.prepare_gs_recording()
-        self.om.cam.start_kinetic_acquisition()
+        self.om.cam.start_live()
+        time.sleep(0.1)
         self.om.daq.run_scan()
-        self.om.cam.get_data(1)
+        time.sleep(0.1)
+        r = self.om.cam.get_image_live()
+        self.om.cam.stop_live()
         print('Acquisition Done')
         self.lasers_off()
 
