@@ -22,14 +22,12 @@ class TriggerSequence:
         self.bp_increase = BPoly.from_derivatives([0, 1], [[0., 0., 0.], [1., 0., 0.]])
         self.bp_decrease = BPoly.from_derivatives([0, 1], [[1., 0., 0.], [0., 0., 0.]])
 
-    def update_parameters(self, sequence_time, piezo_ranges, piezo_step_sizes, piezo_starts,
-                          piezo_return_time, piezo_conv_factors, piezo_analog_start, digital_starts, digital_ends):
+    def update_piezo_scan_parameters(self, sequence_time, piezo_ranges, piezo_step_sizes, piezo_starts,
+                                     piezo_analog_start, digital_starts, digital_ends):
         self.sequence_time = sequence_time
         self.piezo_ranges = piezo_ranges
         self.piezo_step_sizes = piezo_step_sizes
         self.piezo_starts = piezo_starts
-        self.piezo_return_time = piezo_return_time
-        self.piezo_conv_factors = piezo_conv_factors
         self.piezo_analog_start = piezo_analog_start
         self.digital_starts = digital_starts
         self.digital_ends = digital_ends
@@ -40,18 +38,6 @@ class TriggerSequence:
         self.galvo_step_sizes = galvo_step_sizes
         self.digital_starts = digital_starts
         self.digital_ends = digital_ends
-
-    # def generate_digital_triggers(self, laser, camera):
-    #     cycle_samples = self.sequence_time * self.sample_rate
-    #     cycle_samples = int(np.ceil(cycle_samples))
-    #     digital_trigger = np.zeros((len(self.digital_starts), cycle_samples))
-    #     startSamp = int(np.round(self.digital_starts[laser] * self.sample_rate))
-    #     endSamp = int(np.round(self.digital_ends[laser] * self.sample_rate))
-    #     digital_trigger[laser, startSamp:endSamp] = 1
-    #     startSamp = int(np.round(self.digital_starts[camera + 4] * self.sample_rate))
-    #     endSamp = int(np.round(self.digital_ends[camera + 4] * self.sample_rate))
-    #     digital_trigger[camera + 4, startSamp:endSamp] = 1
-    #     return digital_trigger
 
     def generate_digital_triggers_sw(self, lasers, camera):
         cycle_samples = self.sequence_time * self.sample_rate
@@ -67,10 +53,12 @@ class TriggerSequence:
         return digital_trigger
 
     def generate_trigger_sequence_gs(self, lasers, camera):
-        galvo_steps_x = int(np.ceil(1 + 0.5 * np.abs(self.galvo_starts[0] - self.galvo_stops[0]) / self.galvo_step_sizes[0]))
-        galvo_steps_y = int(np.ceil(1 + 0.5 * np.abs(self.galvo_starts[1] - self.galvo_stops[1]) / self.galvo_step_sizes[1]))
+        galvo_steps_x = int(
+            np.ceil(1 + 0.5 * np.abs(self.galvo_starts[0] - self.galvo_stops[0]) / self.galvo_step_sizes[0]))
+        galvo_steps_y = int(
+            np.ceil(1 + 0.5 * np.abs(self.galvo_starts[1] - self.galvo_stops[1]) / self.galvo_step_sizes[1]))
         scan_x_p = np.arange(self.galvo_starts[0], self.galvo_stops[0] + self.galvo_step_sizes[0],
-                           self.galvo_step_sizes[0])
+                             self.galvo_step_sizes[0])
         scan_x_temp = np.append(scan_x_p, np.flip(scan_x_p))
         scan_y_temp = np.ones(scan_x_temp.shape[0]) * self.galvo_starts[1]
         scan_y_temp[scan_x_p.shape[0]:] += self.galvo_step_sizes[1]

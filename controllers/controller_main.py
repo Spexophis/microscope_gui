@@ -226,68 +226,19 @@ class MainController:
         self.m.laser.laserOFF_488_2()
         self.m.laser.laserOFF_405()
 
-    def imshow_main(self):
-        if self.m.ccdcam.get_image_live():
-            self.view_controller.plot_main(self.m.ccdcam.data)
-        else:
-            print('No Camera Data')
-
-    def imshow_fft(self):
-        self.view_controller.plot_fft(self.p.imgprocess.fourier_transform(self.m.ccdcam.data))
-
-    def profile_plot(self):
-        ax = self.con_controller.get_profile_axis()
-        self.view_controller.plot_update(self.p.imgprocess.get_profile(self.m.ccdcam.data, ax))
-
-    def start_plot_live(self):
-        self.thread_plot.start()
-
-    def stop_plot_live(self):
-        self.thread_plot.quit()
-        self.thread_plot.wait()
-
-    def save_data(self):
-        t = time.strftime("%Y%m%d_%H%M%S_")
-        slide_name = self.con_controller.get_file_name()
-        tf.imwrite(self.path + '/' + t + slide_name + '.tif', self.m.ccdcam.data)
-        self.stack_params['Slide Name'] = slide_name
-        fnt = self.path + '/' + t + slide_name + '_info.txt'
-        self.save_text(fnt)
-        print('Data saved')
-
-    def save_text(self, fn=None):
-        if fn is None:
-            return False
-        s = []
-        for parts in self.stack_params:
-            s.append('%s : %s \n' % (parts, self.stack_params[parts]))
-        s.sort()
-        fid = open(fn, 'w')
-        fid.writelines(s)
-        fid.close()
-
-    def stack_tags(self, function):
-        self.stack_params.clear()
-        self.stack_params['00 User'] = getuser()
-        self.stack_params['01 Date/Time'] = time.asctime()
-        self.stack_params['02 function'] = function
-        self.stack_params['03 CCD Temperature'] = self.m.ccdcam.get_ccd_temperature()
-        self.stack_params['04 EMCCDGain'] = self.m.ccdcam.get_emccdgain()
-        self.stack_params['05 Pixel size'] = 13 / (63 * 2.8)
-        self.stack_params['06 Camera Coordinates'] = self.m.ccdcam.G
-        # self.stack_params['07 X'] = xx
-        # self.stack_params['08 Y'] = yy
-        # self.stack_params['09 Z'] = zz
-        # self.stack_params['10 Xstep'] = zs
-        # self.stack_params['11 Ystep'] = zs
-        # self.stack_params['12 Zstep'] = zs
-
     def set_ccd_camera(self):
         self.set_ccd_camera_coordinates()
         # expo = self.con_controller.get_exposure_time()
         gain = self.con_controller.get_emccd_gain()
         # self.m.ccdcam.set_exposure(expo)
         self.m.ccdcam.set_emccd_gain(gain)
+
+    def generate_digital_trigger_sw(self):
+        lasers = self.con_controller.get_lasers()
+        camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
+        self.p.trigger.update_piezo_scan_parameters(sequence_time, axis_lengths, step_sizes, axis_start_pos,
+                                                    analog_start, digital_starts, digital_ends)
+        return self.p.trigger.generate_digital_triggers_sw(lasers, camera)
 
     def prepare_video(self):
         self.set_lasers()
@@ -312,6 +263,12 @@ class MainController:
         temperature = self.m.ccdcam.get_ccd_temperature()
         self.con_controller.display_camera_temperature(temperature)
 
+    def imshow_main(self):
+        if self.m.ccdcam.get_image_live():
+            self.view_controller.plot_main(self.m.ccdcam.data)
+        else:
+            print('No Camera Data')
+
     def run_fft(self):
         self.thread_fft.start()
 
@@ -319,57 +276,50 @@ class MainController:
         self.thread_fft.quit()
         self.thread_fft.wait()
 
+    def imshow_fft(self):
+        self.view_controller.plot_fft(self.p.imgprocess.fourier_transform(self.m.ccdcam.data))
+
+    def start_plot_live(self):
+        self.thread_plot.start()
+
+    def stop_plot_live(self):
+        self.thread_plot.quit()
+        self.thread_plot.wait()
+
+    def profile_plot(self):
+        ax = self.con_controller.get_profile_axis()
+        self.view_controller.plot_update(self.p.imgprocess.get_profile(self.m.ccdcam.data, ax))
+
     def plot_trigger(self):
-        return_time = 0.001
-        conv_factors = [10, 10, 10.]
         lasers = self.con_controller.get_lasers()
         camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
-        self.p.trigger.update_parameters(sequence_time, axis_lengths, step_sizes, axis_start_pos,
-                                         return_time, conv_factors, analog_start, digital_starts, digital_ends)
+        self.p.trigger.update_piezo_scan_parameters(sequence_time, axis_lengths, step_sizes, axis_start_pos,
+                                                    analog_start, digital_starts, digital_ends)
         dgtr = self.p.trigger.generate_digital_triggers_sw(lasers, camera)
         self.view_controller.plot_update(dgtr[0])
         for i in range(len(digital_starts) - 1):
             self.view_controller.plot(dgtr[i + 1] + i + 1)
 
-    def generate_digital_trigger_sw(self):
-        return_time = 0.001
-        conv_factors = [10, 10, 10.]
-        lasers = self.con_controller.get_lasers()
-        camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
-        self.p.trigger.update_parameters(sequence_time, axis_lengths, step_sizes, axis_start_pos,
-                                         return_time, conv_factors, analog_start, digital_starts, digital_ends)
-        dgtr = self.p.trigger.generate_digital_triggers_sw(lasers, camera)
-        return dgtr
-
     def write_trigger_2d(self):
-        sample_rate = 100000
-        return_time = 0.05
-        conv_factors = [10, 10, 10.]
         camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
-        self.p.trigger.update_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
-                                         return_time, conv_factors, analog_start, digital_starts, digital_ends)
+        self.p.trigger.update_piezo_scan_parameters(sequence_time, axis_lengths, step_sizes, axis_start_pos,
+                                                    analog_start, digital_starts, digital_ends)
         atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_2d()
         self.m.daq.trigger_sequence(atr, dtr)
 
     def write_trigger_3d(self):
-        sample_rate = 100000
-        return_time = 0.05
-        conv_factors = [10, 10, 10.]
         camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
-        self.p.trigger.update_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
-                                         return_time, conv_factors, analog_start, digital_starts, digital_ends)
+        self.p.trigger.update_piezo_scan_parameters(sequence_time, axis_lengths, step_sizes, axis_start_pos,
+                                                    analog_start, digital_starts, digital_ends)
         atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_3d()
         self.m.daq.trigger_sequence(atr, dtr)
 
     def write_trigger_beadscan_2d(self):
-        sample_rate = 100000
-        return_time = 0.05
-        conv_factors = [10, 10, 10.]
-        l = self.con_controller.select_laser()
+        lasers = self.con_controller.get_lasers()
         camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
-        self.p.trigger.update_parameters(sequence_time, sample_rate, axis_lengths, step_sizes, axis_start_pos,
-                                         return_time, conv_factors, analog_start, digital_starts, digital_ends)
-        atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_beadscan_2d(l)
+        self.p.trigger.update_piezo_scan_parameters(sequence_time, axis_lengths, step_sizes, axis_start_pos,
+                                                    analog_start, digital_starts, digital_ends)
+        atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_beadscan_2d(lasers)
         self.m.daq.trigger_sequence(atr, dtr)
 
     def prepare_resolft_recording(self):
@@ -442,6 +392,42 @@ class MainController:
         print('Acquisition Done')
         self.lasers_off()
 
+    def save_data(self):
+        t = time.strftime("%Y%m%d_%H%M%S_")
+        slide_name = self.con_controller.get_file_name()
+        tf.imwrite(self.path + '/' + t + slide_name + '.tif', self.m.ccdcam.data)
+        self.stack_params['Slide Name'] = slide_name
+        fnt = self.path + '/' + t + slide_name + '_info.txt'
+        self.save_text(fnt)
+        print('Data saved')
+
+    def save_text(self, fn=None):
+        if fn is None:
+            return False
+        s = []
+        for parts in self.stack_params:
+            s.append('%s : %s \n' % (parts, self.stack_params[parts]))
+        s.sort()
+        fid = open(fn, 'w')
+        fid.writelines(s)
+        fid.close()
+
+    def stack_tags(self, function):
+        self.stack_params.clear()
+        self.stack_params['00 User'] = getuser()
+        self.stack_params['01 Date/Time'] = time.asctime()
+        self.stack_params['02 function'] = function
+        self.stack_params['03 CCD Temperature'] = self.m.ccdcam.get_ccd_temperature()
+        self.stack_params['04 EMCCDGain'] = self.m.ccdcam.get_emccdgain()
+        self.stack_params['05 Pixel size'] = 13 / (63 * 2.8)
+        self.stack_params['06 Camera Coordinates'] = self.m.ccdcam.G
+        # self.stack_params['07 X'] = xx
+        # self.stack_params['08 Y'] = yy
+        # self.stack_params['09 Z'] = zz
+        # self.stack_params['10 Xstep'] = zs
+        # self.stack_params['11 Ystep'] = zs
+        # self.stack_params['12 Zstep'] = zs
+
     def push_actuator(self):
         n, a = self.ao_controller.get_actuator()
         values = [0.] * self.m.dm.nbAct
@@ -453,7 +439,7 @@ class MainController:
         # self.m.dm.SetDM(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(indz, amp),
         #                                         self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
         self.m.dm.SetDM(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[indz]],
-                                                self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
+                                               self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
 
     def set_dm(self):
         i = int(self.ao_controller.get_cmd_index())
@@ -479,32 +465,14 @@ class MainController:
         self.set_lasers()
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open(dgtr)
-        # expo = self.ao_controller.get_exposuretime()
-        # self.m.tiscam.setPropertyValue('exposure', expo)
-        # self.m.thocam.set_exposure(expo)
-        # self.m.cmoscam.setPropertyValue('exposure_time', expo)
 
     def set_wfs(self):
         parameters = self.ao_controller.get_parameters()
-        self.p.shwfsr.update_parameters(parameters)
+        self.p.shwfsr.update_piezo_scan_parameters(parameters,,
         print('SHWFS parameter updated')
-
-    def set_wfs_base(self):
-        # self.p.shwfsr.base = self.m.tiscam.grabFrame()
-        # self.p.shwfsr.base = self.m.thocam.snap_image()
-        self.p.shwfsr.base = self.view_controller.get_image_data('ShackHartmann')
-        print('wfs base set')
-
-    def imshow_wfs(self):
-        # self.p.shwfsr.offset = self.m.tiscam.grabFrame()
-        # self.p.shwfsr.offset = self.m.thocam.get_last_image()
-        self.view_controller.plot_sh(self.m.cmoscam.getLastFrame())
 
     def start_wfs(self):
         self.set_cmos_cam()
-        # self.m.tiscam.prepare_live()
-        # self.m.tiscam.start_live()
-        # self.m.thocam.start_acquire()
         self.m.cmoscam.startAcquisition()
         self.m.daq.trig_run()
         time.sleep(0.1)
@@ -513,11 +481,16 @@ class MainController:
     def stop_wfs(self):
         self.thread_wfs.quit()
         self.thread_wfs.wait()
-        # self.m.tiscam.stop_live()
-        # self.m.thocam.stop_acquire()
         self.m.daq.trig_stop()
         self.m.cmoscam.stopAcquisition()
         self.lasers_off()
+
+    def imshow_wfs(self):
+        self.view_controller.plot_sh(self.m.cmoscam.getLastFrame())
+
+    def set_wfs_base(self):
+        self.p.shwfsr.base = self.view_controller.get_image_data('ShackHartmann')
+        print('wfs base set')
 
     def run_wfr(self):
         self.p.shwfsr.offset = self.view_controller.get_image_data('ShackHartmann')
@@ -530,8 +503,6 @@ class MainController:
         t = time.strftime("%Y%m%d_%H%M%S_")
         slideName = self.ao_controller.get_file_name()
         try:
-            # tf.imwrite(self.path + '/' + t + slideName + '_shimg_raw.tif', self.m.tiscam.grabFrame())
-            # tf.imwrite(self.path + '/' + t + slideName + '_shimg_raw.tif', self.m.thocam.img)
             tf.imwrite(self.path + '/' + t + slideName + '_shimg_base_raw.tif', self.p.shwfsr.base)
         except:
             print("NO SH Image")
@@ -550,10 +521,6 @@ class MainController:
         self.set_lasers()
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open_ao(dgtr)
-        # self.m.tiscam.prepare_live()
-        # self.m.tiscam.start_live()
-        # self.p.shwfsr.base = self.m.tiscam.grabFrame()
-        # self.p.shwfsr.base = self.m.thocam.snap_image()
         self.m.cmoscam.startAcquisition()
         time.sleep(0.05)
         self.m.daq.trig_run()
