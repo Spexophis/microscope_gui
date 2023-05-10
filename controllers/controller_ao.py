@@ -1,50 +1,53 @@
 class AOController:
 
-    def __init__(self, view):
-        self.view = view
+    def __init__(self, view, module, process):
+        self.v = view
+        self.m = module
+        self.p = process
+
 
     def get_exposuretime(self):
-        return self.view.QDoubleSpinBox_exposuretime.value()
+        return self.v.QDoubleSpinBox_exposuretime.value()
 
     def display_wf_properties(self, properties):
-        self.view.lcdNumber_wfmin.display(properties[0])
-        self.view.lcdNumber_wfmax.display(properties[1])
-        self.view.lcdNumber_wfrms.display(properties[2])
+        self.v.lcdNumber_wfmin.display(properties[0])
+        self.v.lcdNumber_wfmax.display(properties[1])
+        self.v.lcdNumber_wfrms.display(properties[2])
 
     def get_parameters(self):
-        return self.view.QSpinBox_base_xcenter.value(), self.view.QSpinBox_base_ycenter.value(), \
-            self.view.QSpinBox_offset_xcenter.value(), self.view.QSpinBox_offset_ycenter.value(), \
-            self.view.QSpinBox_n_lenslets_x.value(), self.view.QSpinBox_n_lenslets_y.value(), \
-            self.view.QSpinBox_spacing.value(), self.view.QSpinBox_radius.value()
+        return self.v.QSpinBox_base_xcenter.value(), self.v.QSpinBox_base_ycenter.value(), \
+            self.v.QSpinBox_offset_xcenter.value(), self.v.QSpinBox_offset_ycenter.value(), \
+            self.v.QSpinBox_n_lenslets_x.value(), self.v.QSpinBox_n_lenslets_y.value(), \
+            self.v.QSpinBox_spacing.value(), self.v.QSpinBox_radius.value()
 
     def get_gradient_method(self):
-        return self.view.QComboBox_wfrmd.currentText()
+        return self.v.QComboBox_wfrmd.currentText()
 
     def get_wfs_method(self):
-        return self.view.QComboBox_wfsmd.currentText()
+        return self.v.QComboBox_wfsmd.currentText()
 
     def get_acturator(self):
-        return self.view.QSpinBox_actuator.value(), self.view.QDoubleSpinBox_actuator_push.value()
+        return self.v.QSpinBox_actuator.value(), self.v.QDoubleSpinBox_actuator_push.value()
 
     def get_zernike_mode(self):
-        return self.view.QSpinBox_zernike_mode.value(), self.view.QDoubleSpinBox_zernike_mode_amp.value()
+        return self.v.QSpinBox_zernike_mode.value(), self.v.QDoubleSpinBox_zernike_mode_amp.value()
 
     def get_cmd_index(self):
-        return self.view.QComboBox_cmd.currentText()
+        return self.v.QComboBox_cmd.currentText()
 
     def update_cmd_index(self):
-        item = '{}'.format(self.view.QComboBox_cmd.count())
-        self.view.QComboBox_cmd.addItem(item)
-        self.view.QComboBox_cmd.setCurrentIndex(self.view.QComboBox_cmd.count()-1)
+        item = '{}'.format(self.v.QComboBox_cmd.count())
+        self.v.QComboBox_cmd.addItem(item)
+        self.v.QComboBox_cmd.setCurrentIndex(self.v.QComboBox_cmd.count()-1)
 
     def get_file_name(self):
-        return self.view.QLineEdit_filename.text()
+        return self.v.QLineEdit_filename.text()
 
     def get_ao_iteration(self):
-        return self.view.QSpinBox_zernike_mode_start.value(), self.view.QSpinBox_zernike_mode_stop.value(), \
-            self.view.QDoubleSpinBox_zernike_mode_amps_start.value(), self.view.QDoubleSpinBox_zernike_mode_amps_step.value(), \
-            self.view.QSpinBox_zernike_mode_amps_stepnum.value()
+        return self.v.QSpinBox_zernike_mode_start.value(), self.v.QSpinBox_zernike_mode_stop.value(), \
+            self.v.QDoubleSpinBox_zernike_mode_amps_start.value(), self.v.QDoubleSpinBox_zernike_mode_amps_step.value(), \
+            self.v.QSpinBox_zernike_mode_amps_stepnum.value()
 
     def get_ao_parameters(self):
-        return self.view.QDoubleSpinBox_lpf.value(), self.view.QDoubleSpinBox_hpf.value(), self.view.QComboBox_metric.currentIndex(), \
-            self.view.QComboBox_metric.currentText()
+        return self.v.QDoubleSpinBox_lpf.value(), self.v.QDoubleSpinBox_hpf.value(), self.v.QComboBox_metric.currentIndex(), \
+            self.v.QComboBox_metric.currentText()

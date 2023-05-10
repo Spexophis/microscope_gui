@@ -54,7 +54,7 @@ class ViewWidget(QtWidgets.QWidget):
 
         self.name_dm = 'DM Calibration'
         self.imgLayers[self.name_dm] = self.napariViewer.add_image(
-            np.zeros((1024, 1024)), rgb=False, name=self.name_wf, blending='additive',
+            np.zeros((1024, 1024)), rgb=False, name=self.name_dm, blending='additive',
             colormap=None, protected=True)
 
         self.name_wf = 'Wavefront'

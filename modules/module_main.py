@@ -1,7 +1,6 @@
 from modules import module_andorixon
 from modules import module_hamamatsu
 from modules import module_tis
-# from modules import module_thorcamera
 from modules import module_deformablemirror
 from modules import module_laser
 from modules import module_nidaq
@@ -20,13 +19,11 @@ class MainModule:
         self.daq = module_nidaq.NIDAQ()
         self.md = module_mcldeck.MCLMicroDrive()
         self.pz = module_mclpiezo.MCLNanoDrive()
-        # self.thocam = module_thorcamera.UC480Cam()
 
     def close(self):
-        self.cam.shutdown()
-        self.hacam.shutdown()
-        # self.tiscam.close()
-        # self.thocam.close()
+        self.ccdcam.shutdown()
+        self.cmoscam.shutdown()
+        self.tiscam.close()
         self.laser.all_off()
         self.dm.ResetDM()
         self.daq.Reset_daq()
