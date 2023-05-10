@@ -1,12 +1,9 @@
 class AOController:
 
-    def __init__(self, view, module, process):
+    def __init__(self, view):
         self.v = view
-        self.m = module
-        self.p = process
 
-
-    def get_exposuretime(self):
+    def get_exposure_time(self):
         return self.v.QDoubleSpinBox_exposuretime.value()
 
     def display_wf_properties(self, properties):
@@ -26,7 +23,7 @@ class AOController:
     def get_wfs_method(self):
         return self.v.QComboBox_wfsmd.currentText()
 
-    def get_acturator(self):
+    def get_actuator(self):
         return self.v.QSpinBox_actuator.value(), self.v.QDoubleSpinBox_actuator_push.value()
 
     def get_zernike_mode(self):
@@ -38,7 +35,7 @@ class AOController:
     def update_cmd_index(self):
         item = '{}'.format(self.v.QComboBox_cmd.count())
         self.v.QComboBox_cmd.addItem(item)
-        self.v.QComboBox_cmd.setCurrentIndex(self.v.QComboBox_cmd.count()-1)
+        self.v.QComboBox_cmd.setCurrentIndex(self.v.QComboBox_cmd.count() - 1)
 
     def get_file_name(self):
         return self.v.QLineEdit_filename.text()

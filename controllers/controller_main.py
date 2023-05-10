@@ -443,7 +443,7 @@ class MainController:
         self.lasers_off()
 
     def push_actuator(self):
-        n, a = self.ao_controller.get_acturator()
+        n, a = self.ao_controller.get_actuator()
         values = [0.] * self.m.dm.nbAct
         values[n] = a
         self.m.dm.SetDM(self.p.shwfsr._cmd_add(values, self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
@@ -575,7 +575,7 @@ class MainController:
             os.mkdir(newfold)
         except:
             print('Directory already exists')
-        n, amp = self.ao_controller.get_acturator()
+        n, amp = self.ao_controller.get_actuator()
         self.set_wfs()
         self.set_lasers()
         dgtr = self.generate_digital_trigger_sw()

@@ -1,9 +1,7 @@
 class ConController:
 
-    def __init__(self, view, module, process):
+    def __init__(self, view):
         self.v = view
-        self.m = module
-        self.p = process
 
     def get_camera_coordinates(self):
         return self.v.QSpinBox_coordinate_x.value(), self.v.QSpinBox_coordinate_y.value(), \
