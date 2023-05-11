@@ -120,13 +120,26 @@ class MainController:
         self.con_controller.display_deck_position(p)
         self.m.dm.SetDM(self.p.shwfsr._dm_cmd[1])
 
+        # maincam, wfscam = self.con_controller.get_camera_selections()
+        maincam = "EMCCD"
+        wfscam = "sCMOS"
+        if maincam == "EMCCD":
+            self.main_cam = self.m.ccdcam
+        elif maincam == "sCMOS":
+            self.main_cam = self.m.scmoscam
+        if wfscam == "sCMOS":
+            self.wfs_cam = self.m.scmoscam
+        elif wfscam == "EMCCD":
+            self.wfs_cam = self.m.ccdcam
+        self.dm_cam = self.m.tiscam
+
     def set_ccd_camera_coordinates(self):
         x, y, n = self.con_controller.get_camera_coordinates()
         b = self.con_controller.get_camera_bin()
-        self.m.ccdcam.set_image(b, b, x, x + n - 1, y, y + n - 1)
+        self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
 
     def reset_ccd_camera_coordinates(self):
-        self.m.ccdcam.set_image(1, 1, 1, 1024, 1, 1024)
+        self.main_cam.set_roi(1, 1, 1, 1024, 1, 1024)
 
     def move_deck_up(self):
         if not self.m.md.isMoving():
@@ -232,8 +245,8 @@ class MainController:
         self.set_ccd_camera_coordinates()
         # expo = self.con_controller.get_exposure_time()
         gain = self.con_controller.get_emccd_gain()
-        # self.m.ccdcam.set_exposure(expo)
-        self.m.ccdcam.set_emccd_gain(gain)
+        # self.main_cam.set_exposure(expo)
+        self.main_cam.set_gain(gain)
 
     def generate_digital_trigger_sw(self):
         lasers = self.con_controller.get_lasers()
@@ -247,11 +260,11 @@ class MainController:
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open(dgtr)
         self.set_ccd_camera()
-        self.m.ccdcam.prepare_live()
+        self.main_cam.prepare_live()
 
     def start_video(self):
         self.prepare_video()
-        self.m.ccdcam.start_live()
+        self.main_cam.start_live()
         self.m.daq.trig_run()
         time.sleep(0.1)
         self.thread_video.start()
@@ -261,13 +274,13 @@ class MainController:
         self.thread_video.wait()
         self.m.daq.trig_stop()
         self.lasers_off()
-        self.m.ccdcam.stop_live()
-        temperature = self.m.ccdcam.get_ccd_temperature()
+        self.main_cam.stop_live()
+        temperature = self.main_cam.get_ccd_temperature()
         self.con_controller.display_camera_temperature(temperature)
 
     def imshow_main(self):
-        if self.m.ccdcam.get_image_live():
-            self.view_controller.plot_main(self.m.ccdcam.data)
+        if self.main_cam.get_last_image():
+            self.view_controller.plot_main(self.main_cam.data)
         else:
             print('No Camera Data')
 
@@ -279,7 +292,7 @@ class MainController:
         self.thread_fft.wait()
 
     def imshow_fft(self):
-        self.view_controller.plot_fft(self.p.imgprocess.fourier_transform(self.m.ccdcam.data))
+        self.view_controller.plot_fft(self.p.imgprocess.fourier_transform(self.main_cam.data))
 
     def start_plot_live(self):
         self.thread_plot.start()
@@ -290,7 +303,7 @@ class MainController:
 
     def profile_plot(self):
         ax = self.con_controller.get_profile_axis()
-        self.view_controller.plot_update(self.p.imgprocess.get_profile(self.m.ccdcam.data, ax))
+        self.view_controller.plot_update(self.p.imgprocess.get_profile(self.main_cam.data, ax))
 
     def plot_trigger(self):
         lasers = self.con_controller.get_lasers()
@@ -326,33 +339,33 @@ class MainController:
 
     def prepare_resolft_recording(self):
         self.set_ccd_camera()
-        self.m.ccdcam.prepare_kinetic_acquisition(self.npos)
+        self.main_cam.prepare_data_acquisition(self.npos)
         self.set_lasers()
 
     def record_2d_resolft(self):
         self.write_trigger_2d()
         self.prepare_resolft_recording()
-        self.m.ccdcam.start_kinetic_acquisition()
+        self.main_cam.start_data_acquisition()
         self.m.daq.run_sequence()
-        self.m.ccdcam.get_data(self.npos)
+        self.main_cam.get_images(self.npos)
         print('Acquisition Done')
         self.lasers_off()
 
     def record_3d_resolft(self):
         self.write_trigger_3d()
         self.prepare_resolft_recording()
-        self.m.ccdcam.start_kinetic_acquisition()
+        self.main_cam.start_data_acquisition()
         self.m.daq.run_sequence()
-        self.m.ccdcam.get_data(self.npos)
+        self.main_cam.get_images(self.npos)
         print('Acquisition Done')
         self.lasers_off()
 
     def record_beadscan_2d(self):
         self.write_trigger_beadscan_2d()
         self.prepare_resolft_recording()
-        self.m.ccdcam.start_kinetic_acquisition()
+        self.main_cam.start_data_acquisition()
         self.m.daq.run_sequence()
-        self.m.ccdcam.get_data(self.npos)
+        self.main_cam.get_images(self.npos)
         print('Acquisition Done')
         self.lasers_off()
         self.reconstruct_beadscan_2d()
@@ -360,10 +373,10 @@ class MainController:
     def reconstruct_beadscan_2d(self):
         camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
         step_size = step_sizes[0]
-        self.p.bsrecon.reconstruct_all_beads(self.m.ccdcam.data, step_size)
+        self.p.bsrecon.reconstruct_all_beads(self.main_cam.data, step_size)
         t = time.strftime("%Y%m%d_%H%M%S_")
         fn = self.con_controller.get_file_name()
-        tf.imwrite(self.path + '/' + t + fn + '.tif', self.m.ccdcam.data)
+        tf.imwrite(self.path + '/' + t + fn + '.tif', self.main_cam.data)
         tf.imwrite(self.path + '/' + t + fn + '_recon_stack.tif', self.p.bsrecon.result)
         tf.imwrite(self.path + '/' + t + fn + '_final_image.tif', self.p.bsrecon.final_image)
         self.view_controller.plot_main(self.p.bsrecon.final_image)
@@ -380,24 +393,24 @@ class MainController:
     def prepare_gs_recording(self):
         self.set_lasers()
         self.set_ccd_camera()
-        self.m.ccdcam.prepare_live()
+        self.main_cam.prepare_live()
 
     def record_gs(self):
         self.write_trigger_gs()
         self.prepare_gs_recording()
-        self.m.ccdcam.start_live()
+        self.main_cam.start_live()
         time.sleep(0.1)
         self.m.daq.run_scan()
         time.sleep(0.1)
-        r = self.m.ccdcam.get_image_live()
-        self.m.ccdcam.stop_live()
+        r = self.main_cam.get_last_image()
+        self.main_cam.stop_live()
         print('Acquisition Done')
         self.lasers_off()
 
     def save_data(self):
         t = time.strftime("%Y%m%d_%H%M%S_")
         slide_name = self.con_controller.get_file_name()
-        tf.imwrite(self.path + '/' + t + slide_name + '.tif', self.m.ccdcam.data)
+        tf.imwrite(self.path + '/' + t + slide_name + '.tif', self.main_cam.data)
         print('Data saved')
 
     def push_actuator(self):
@@ -445,7 +458,7 @@ class MainController:
 
     def start_wfs(self):
         self.set_cmos_cam()
-        self.m.cmoscam.startAcquisition()
+        self.wfs_cam.startAcquisition()
         self.m.daq.trig_run()
         time.sleep(0.1)
         self.thread_wfs.start()
@@ -454,11 +467,11 @@ class MainController:
         self.thread_wfs.quit()
         self.thread_wfs.wait()
         self.m.daq.trig_stop()
-        self.m.cmoscam.stopAcquisition()
+        self.wfs_cam.stopAcquisition()
         self.lasers_off()
 
     def imshow_wfs(self):
-        self.view_controller.plot_sh(self.m.cmoscam.getLastFrame())
+        self.view_controller.plot_sh(self.wfs_cam.get_last_image())
 
     def set_wfs_base(self):
         self.p.shwfsr.base = self.view_controller.get_image_data('ShackHartmann')
@@ -493,11 +506,11 @@ class MainController:
         self.set_lasers()
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open_ao(dgtr)
-        self.m.cmoscam.startAcquisition()
+        self.wfs_cam.startAcquisition()
         time.sleep(0.05)
         self.m.daq.trig_run()
         time.sleep(0.05)
-        self.p.shwfsr.get_correction(self.m.cmoscam.getLastFrame(), self.ao_controller.get_wfs_method())
+        self.p.shwfsr.get_correction(self.wfs_cam.get_last_image(), self.ao_controller.get_wfs_method())
         self.p.shwfsr.correct_cmd()
         self.m.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
         self.ao_controller.update_cmd_index()
@@ -505,7 +518,7 @@ class MainController:
         self.p.shwfsr.current_cmd = i
         self.run_wfr()
         self.m.daq.trig_stop()
-        self.m.cmoscam.stopAcquisition()
+        self.wfs_cam.stopAcquisition()
 
     def influence_function(self):
         t = time.strftime("%Y%m%d_%H%M%S")
@@ -520,7 +533,7 @@ class MainController:
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open_ao(dgtr)
         # self.m.tiscam.start_live()
-        self.m.cmoscam.startAcquisition()
+        self.wfs_cam.startAcquisition()
         for i in range(self.m.dm.nbAct):
             shimg = []
             print(i)
@@ -531,7 +544,7 @@ class MainController:
             time.sleep(0.04)
             # self.p.shwfsr.base = self.m.tiscam.grabFrame()
             # self.p.shwfsr.base = self.m.thocam.snap_image()
-            shimg.append(self.m.cmoscam.getLastFrame())
+            shimg.append(self.wfs_cam.get_last_image())
             self.m.daq.trig_stop()
             values[i] = amp
             self.m.dm.SetDM(values)
@@ -540,7 +553,7 @@ class MainController:
             time.sleep(0.04)
             # self.p.shwfsr.offset = self.m.tiscam.grabFrame()
             # self.p.shwfsr.offset = self.m.thocam.snap_image()
-            shimg.append(self.m.cmoscam.getLastFrame())
+            shimg.append(self.wfs_cam.get_last_image())
             self.m.daq.trig_stop()
             values = [0.] * self.m.dm.nbAct
             self.m.dm.SetDM(values)
@@ -549,7 +562,7 @@ class MainController:
             time.sleep(0.04)
             # self.p.shwfsr.base = self.m.tiscam.grabFrame()
             # self.p.shwfsr.base = self.m.thocam.snap_image()
-            shimg.append(self.m.cmoscam.getLastFrame())
+            shimg.append(self.wfs_cam.get_last_image())
             self.m.daq.trig_stop()
             values[i] = - amp
             self.m.dm.SetDM(values)
@@ -558,10 +571,10 @@ class MainController:
             time.sleep(0.04)
             # self.p.shwfsr.offset = self.m.tiscam.grabFrame()
             # self.p.shwfsr.offset = self.m.thocam.snap_image()
-            shimg.append(self.m.cmoscam.getLastFrame())
+            shimg.append(self.wfs_cam.get_last_image())
             self.m.daq.trig_stop()
             tf.imwrite(newfold + t + '_actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
-        self.m.cmoscam.stopAcquisition()
+        self.wfs_cam.stopAcquisition()
         # self.m.tiscam.stop_live()
         influfunc = self.p.shwfsr.generate_influence_matrix(newfold, self.ao_controller.get_wfs_method())
         ctrlmat = self.p.shwfsr.get_control_matrix(influfunc)
@@ -572,13 +585,13 @@ class MainController:
         self.set_ccd_camera()
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open_ao(dgtr)
-        self.m.ccdcam.start_live()
+        self.main_cam.start_live()
 
     def stop_ao_iteration(self):
         self.m.daq.trig_stop()
         self.lasers_off()
-        self.m.ccdcam.stop_live()
-        temperature = self.m.ccdcam.get_ccd_temperature()
+        self.main_cam.stop_live()
+        temperature = self.main_cam.get_ccd_temperature()
         self.con_controller.display_camera_temperature(temperature)
 
     def ao_optimize(self):
@@ -600,9 +613,9 @@ class MainController:
         time.sleep(0.1)
         self.m.daq.trig_run()
         time.sleep(0.1)
-        self.m.ccdcam.get_image_live()
+        self.main_cam.get_last_image()
         fn = os.path.join(newfold, 'original.tif')
-        tf.imwrite(fn, self.m.ccdcam.data)
+        tf.imwrite(fn, self.main_cam.data)
         self.m.daq.trig_stop()
         for mode in range(mode_start, mode_stop):
             amprange = []
@@ -615,16 +628,16 @@ class MainController:
                 time.sleep(0.1)
                 self.m.daq.trig_run()
                 time.sleep(0.1)
-                self.m.ccdcam.get_image_live()
+                self.main_cam.get_last_image()
                 fn = "zm%0.2d_amp%.4f" % (mode, amp)
                 fn1 = os.path.join(newfold, fn + '.tif')
-                tf.imwrite(fn1, self.m.ccdcam.data)
+                tf.imwrite(fn1, self.main_cam.data)
                 if mindex == 0:
-                    dt.append(self.p.imgprocess.snr(self.m.ccdcam.data, hpr))
+                    dt.append(self.p.imgprocess.snr(self.main_cam.data, hpr))
                 if mindex == 1:
-                    dt.append(self.p.imgprocess.peakv(self.m.ccdcam.data))
+                    dt.append(self.p.imgprocess.peakv(self.main_cam.data))
                 if mindex == 2:
-                    dt.append(self.p.imgprocess.hpf(self.m.ccdcam.data, hpr))
+                    dt.append(self.p.imgprocess.hpf(self.main_cam.data, hpr))
                 results.append((mode, amp, dt[stnm]))
                 print('--', stnm, amp, dt[stnm])
                 self.m.daq.trig_stop()
@@ -642,9 +655,9 @@ class MainController:
         time.sleep(0.1)
         self.m.daq.trig_run()
         time.sleep(0.1)
-        self.m.ccdcam.get_image_live()
+        self.main_cam.get_last_image()
         fn = os.path.join(newfold, 'final.tif')
-        tf.imwrite(fn, self.m.ccdcam.data)
+        tf.imwrite(fn, self.main_cam.data)
         self.stop_ao_iteration()
         self.p.shwfsr._dm_cmd.append(cmd)
         self.ao_controller.update_cmd_index()

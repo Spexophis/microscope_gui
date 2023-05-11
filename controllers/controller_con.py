@@ -3,6 +3,9 @@ class ConController:
     def __init__(self, view):
         self.v = view
 
+    # def get_camera_selections(self):
+    #     return self.v.QSpinBox_coordinate_x.value(), self.v.QSpinBox_coordinate_y.value()
+
     def get_camera_coordinates(self):
         return self.v.QSpinBox_coordinate_x.value(), self.v.QSpinBox_coordinate_y.value(), \
             self.v.QSpinBox_coordinate_n.value()

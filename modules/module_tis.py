@@ -103,6 +103,7 @@ class TISCamera:
                         print("SUCCESS: Remove Overlay")
                     else:
                         print("FAIL: Remove Overlay")
+                    self.data = None
                 else:
                     print("Invalid TISGrabber")
             else:
@@ -117,6 +118,9 @@ class TISCamera:
             if r:
                 ic.IC_CloseLibrary()
                 print("TIS Camera OFF")
+
+    def prepare_live(self):
+        pass
 
     def start_live(self):
         if ic.IC_IsDevValid(self.hGrabber):
@@ -164,6 +168,10 @@ class TISCamera:
             r = ic.IC_SetPropertyAbsoluteValue(self.hGrabber, tis.T("Exposure"), tis.T("Value"), ctypes.c_float(exposure))
             if r:
                 self.get_exposure(False)
+
+    def get_last_image(self):
+        self.snap_image()
+        self.data = self.get_data()
 
     def snap_image(self):
         if ic.IC_SnapImage(self.hGrabber, 2000) == tis.IC_SUCCESS:
