@@ -762,7 +762,7 @@ class HamamatsuCamera(object):
                                               DCAMBUF_ATTACHKIND_FRAME),
                          "dcambuf_release")
 
-    def shutdown(self):
+    def close(self):
         """
         Close down the connection to the camera.
         """

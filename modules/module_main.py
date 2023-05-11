@@ -21,8 +21,8 @@ class MainModule:
         self.pz = module_mclpiezo.MCLNanoDrive()
 
     def close(self):
-        self.ccdcam.shutdown()
-        self.cmoscam.shutdown()
+        self.ccdcam.close()
+        self.cmoscam.close()
         self.tiscam.close()
         self.laser.all_off()
         self.dm.ResetDM()

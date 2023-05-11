@@ -52,7 +52,7 @@ class EMCCDCamera:
         else:
             print('AndorEMCCD is not initiated')
 
-    def shutdown(self):
+    def close(self):
         self.ret = self.sdk.ShutDown()
         if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
             print("Andor EMCCD Shut Down")
