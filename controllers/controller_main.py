@@ -133,14 +133,6 @@ class MainController:
             self.wfs_cam = self.m.ccdcam
         self.dm_cam = self.m.tiscam
 
-    def set_ccd_camera_coordinates(self):
-        x, y, n = self.con_controller.get_camera_coordinates()
-        b = self.con_controller.get_camera_bin()
-        self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
-
-    def reset_ccd_camera_coordinates(self):
-        self.main_cam.set_roi(1, 1, 1, 1024, 1, 1024)
-
     def move_deck_up(self):
         if not self.m.md.isMoving():
             self.m.md.moveRelativeAxis(3, 0.001524, velocity=1.5)
@@ -241,12 +233,20 @@ class MainController:
         self.m.laser.laserOFF_488_2()
         self.m.laser.laserOFF_405()
 
+    def set_ccd_camera_coordinates(self):
+        x, y, n = self.con_controller.get_camera_coordinates()
+        b = self.con_controller.get_camera_bin()
+        self.m.ccdcam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
+
+    def reset_ccd_camera_coordinates(self):
+        self.m.ccdcam.set_roi(1, 1, 1, 1024, 1, 1024)
+
     def set_ccd_camera(self):
         self.set_ccd_camera_coordinates()
         # expo = self.con_controller.get_exposure_time()
         gain = self.con_controller.get_emccd_gain()
         # self.main_cam.set_exposure(expo)
-        self.main_cam.set_gain(gain)
+        self.m.ccdcam.set_gain(gain)
 
     def generate_digital_trigger_sw(self):
         lasers = self.con_controller.get_lasers()
