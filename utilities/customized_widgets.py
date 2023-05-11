@@ -66,6 +66,23 @@ def create_dock(name=''):
     return dock, group
 
 
+def create_scroll_area():
+    scroll_area = QtWidgets.QScrollArea()
+    scroll_area.setWidgetResizable(True)
+    scroll_area.setStyleSheet("""
+                                QScrollArea {
+                                    background-color: #444444;
+                                    color: white;
+                                }
+                            """)
+    content_widget = QtWidgets.QWidget(scroll_area)
+    content_widget.setStyleSheet("background-color: #444444;")
+    scroll_area.setWidget(content_widget)
+    layout = QtWidgets.QFormLayout(content_widget)
+    content_widget.setLayout(layout)
+    return scroll_area, layout
+
+
 def label_widget(name=''):
     label = QtWidgets.QLabel(name)
     label.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
@@ -90,8 +107,9 @@ def lcdnumber_widget(num=None, n=None):
         lcd.display(num)
     if n is not None:
         lcd.setDigitCount(n)
-    lcd.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+    lcd.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
     lcd.setMinimumWidth(lcd.sizeHint().width())
+    lcd.setMaximumWidth(64)
     return lcd
 
 
@@ -116,7 +134,7 @@ def spinbox_widget(range_min, range_max, step, value):
     spinbox.setRange(range_min, range_max)
     spinbox.setSingleStep(step)
     spinbox.setValue(value)
-    spinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+    spinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
     spinbox.setMinimumWidth(spinbox.sizeHint().width())
     spinbox.setMinimumHeight(spinbox.sizeHint().height())
     max_value_width = spinbox.fontMetrics().width(str(spinbox.maximum()))
@@ -148,7 +166,7 @@ def doublespinbox_widget(range_min, range_max, step, decimals, value):
     doublespinbox.setSingleStep(step)
     doublespinbox.setDecimals(decimals)
     doublespinbox.setValue(value)
-    doublespinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+    doublespinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
     doublespinbox.setMinimumWidth(doublespinbox.sizeHint().width())
     doublespinbox.setMinimumHeight(doublespinbox.sizeHint().height())
     max_value_width = doublespinbox.fontMetrics().width(str(doublespinbox.maximum()))
@@ -186,7 +204,7 @@ def pushbutton_widget(name='', checkable=False, enable=True):
             border-style: inset;
         }
     ''')
-    button.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
+    button.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
     button_size = button.fontMetrics().boundingRect(button.text()).size()
     if button_size.width() < 96:
         button_size.setWidth(96)
