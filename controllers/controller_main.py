@@ -440,7 +440,7 @@ class MainController:
 
     def set_wfs(self):
         parameters = self.ao_controller.get_parameters()
-        self.p.shwfsr.update_piezo_scan_parameters(parameters,,
+        self.p.shwfsr.update_piezo_scan_parameters(parameters)
         print('SHWFS parameter updated')
 
     def start_wfs(self):
