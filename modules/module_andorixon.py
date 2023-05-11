@@ -134,16 +134,13 @@ class EMCCDCamera:
             print(atmcd_errors.Error_Codes(ret))
 
     def get_last_image(self):
-        try:
-            (ret, self.arr) = self.sdk.GetMostRecentImage16(self.image_size)
-            if atmcd_errors.Error_Codes.DRV_SUCCESS == ret:
-                self.data = self.arr.reshape(self.xpixels, self.ypixels)
-                return True
-            else:
-                print(atmcd_errors.Error_Codes(ret))
-                return False
-        except Exception as e:
-            print("An error occurred:", e)
+        (ret, self.arr) = self.sdk.GetMostRecentImage16(self.image_size)
+        if atmcd_errors.Error_Codes.DRV_SUCCESS == ret:
+            self.data = self.arr.reshape(self.xpixels, self.ypixels)
+            return True
+        else:
+            print(atmcd_errors.Error_Codes(ret))
+            return False
 
     def stop_live(self):
         ret = self.sdk.AbortAcquisition()

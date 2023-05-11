@@ -12,7 +12,7 @@ class MainModule:
 
     def __init__(self):
         self.ccdcam = module_andorixon.EMCCDCamera()
-        self.cmoscam = module_hamamatsu.HamamatsuCameraMR()
+        self.scmoscam = module_hamamatsu.HamamatsuCameraMR()
         self.tiscam = module_tis.TISCamera()
         self.dm = module_deformablemirror.DeformableMirror()
         self.laser = module_laser.CoboltLaser()
@@ -22,7 +22,7 @@ class MainModule:
 
     def close(self):
         self.ccdcam.close()
-        self.cmoscam.close()
+        self.scmoscam.close()
         self.tiscam.close()
         self.laser.all_off()
         self.dm.ResetDM()

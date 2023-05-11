@@ -16,7 +16,6 @@ class MicroscopeGUI(QtWidgets.QMainWindow):
         self.process = process_main.MainProcess()
         self.module = module_main.MainModule()
         self.controller = controller_main.MainController(self.view, self.module, self.process)
-        self.view.Signal_quit.connect(self.close)
 
 
 def close():

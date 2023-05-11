@@ -252,14 +252,11 @@ class MainController:
                                                     analog_start, digital_starts, digital_ends)
         return self.p.trigger.generate_digital_triggers_sw(lasers, camera)
 
-    def prepare_video(self):
+    def start_video(self):
         self.set_lasers()
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open(dgtr)
         self.main_cam.prepare_live()
-
-    def start_video(self):
-        self.prepare_video()
         self.main_cam.start_live()
         self.m.daq.trig_run()
         time.sleep(0.1)
@@ -269,10 +266,8 @@ class MainController:
         self.thread_video.quit()
         self.thread_video.wait()
         self.m.daq.trig_stop()
-        self.lasers_off()
         self.main_cam.stop_live()
-        temperature = self.main_cam.get_ccd_temperature()
-        self.con_controller.display_camera_temperature(temperature)
+        self.lasers_off()
 
     def imshow_main(self):
         if self.main_cam.get_last_image():
