@@ -241,11 +241,8 @@ class MainController:
     def reset_ccd_camera_coordinates(self):
         self.m.ccdcam.set_roi(1, 1, 1, 1024, 1, 1024)
 
-    def set_ccd_camera(self):
-        self.set_ccd_camera_coordinates()
-        # expo = self.con_controller.get_exposure_time()
+    def set_ccd_gain(self):
         gain = self.con_controller.get_emccd_gain()
-        # self.main_cam.set_exposure(expo)
         self.m.ccdcam.set_gain(gain)
 
     def generate_digital_trigger_sw(self):
@@ -259,7 +256,6 @@ class MainController:
         self.set_lasers()
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open(dgtr)
-        self.set_ccd_camera()
         self.main_cam.prepare_live()
 
     def start_video(self):
@@ -338,7 +334,6 @@ class MainController:
         self.m.daq.trigger_sequence(atr, dtr)
 
     def prepare_resolft_recording(self):
-        self.set_ccd_camera()
         self.main_cam.prepare_data_acquisition(self.npos)
         self.set_lasers()
 
@@ -390,14 +385,10 @@ class MainController:
         atr, dtr = self.p.trigger.generate_trigger_sequence_gs(lasers, camera)
         self.m.daq.trigger_scan(atr, dtr)
 
-    def prepare_gs_recording(self):
-        self.set_lasers()
-        self.set_ccd_camera()
-        self.main_cam.prepare_live()
-
     def record_gs(self):
         self.write_trigger_gs()
-        self.prepare_gs_recording()
+        self.set_lasers()
+        self.main_cam.prepare_live()
         self.main_cam.start_live()
         time.sleep(0.1)
         self.m.daq.run_scan()
@@ -446,19 +437,17 @@ class MainController:
         self.p.shwfsr._write_cmd(self.path, t, flatfile=False)
         print('DM cmd saved')
 
-    def set_cmos_cam(self):
-        self.set_lasers()
-        dgtr = self.generate_digital_trigger_sw()
-        self.m.daq.trig_open(dgtr)
-
     def set_wfs(self):
         parameters = self.ao_controller.get_parameters()
         self.p.shwfsr.update_piezo_scan_parameters(parameters)
         print('SHWFS parameter updated')
 
     def start_wfs(self):
-        self.set_cmos_cam()
-        self.wfs_cam.startAcquisition()
+        self.set_lasers()
+        self.wfs_cam.prepare_live()
+        dgtr = self.generate_digital_trigger_sw()
+        self.m.daq.trig_open(dgtr)
+        self.wfs_cam.start_live()
         self.m.daq.trig_run()
         time.sleep(0.1)
         self.thread_wfs.start()
@@ -467,7 +456,7 @@ class MainController:
         self.thread_wfs.quit()
         self.thread_wfs.wait()
         self.m.daq.trig_stop()
-        self.wfs_cam.stopAcquisition()
+        self.wfs_cam.stop_live()
         self.lasers_off()
 
     def imshow_wfs(self):
