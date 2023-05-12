@@ -254,9 +254,9 @@ class MainController:
 
     def start_video(self):
         self.set_lasers()
+        self.main_cam.prepare_live()
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open(dgtr)
-        self.main_cam.prepare_live()
         self.main_cam.start_live()
         self.m.daq.trig_run()
         time.sleep(0.1)
@@ -381,9 +381,9 @@ class MainController:
         self.m.daq.trigger_scan(atr, dtr)
 
     def record_gs(self):
-        self.write_trigger_gs()
         self.set_lasers()
         self.main_cam.prepare_live()
+        self.write_trigger_gs()
         self.main_cam.start_live()
         time.sleep(0.1)
         self.m.daq.run_scan()
