@@ -20,7 +20,6 @@ class MicroscopeGUI(QtWidgets.QMainWindow):
 
 def close():
     gui.module.close()
-    gui.view.close()
     app.exit()
 
 
