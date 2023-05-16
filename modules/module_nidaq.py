@@ -21,7 +21,7 @@ class NIDAQ:
 
             self.doHandle = PyDAQmx.TaskHandle(0)
             PyDAQmx.DAQmxCreateTask("", DAQmxTypes.byref(self.doHandle))
-            PyDAQmx.DAQmxCreateDOChan(self.doHandle, 'Dev1/port0/line0:5', '', DAQmxConstants.DAQmx_Val_ChanPerLine)
+            PyDAQmx.DAQmxCreateDOChan(self.doHandle, 'Dev1/port0/line0:6', '', DAQmxConstants.DAQmx_Val_ChanPerLine)
 
             self.piezoHandle = PyDAQmx.TaskHandle(0)
             PyDAQmx.DAQmxCreateTask("", DAQmxTypes.byref(self.piezoHandle))

@@ -10,13 +10,13 @@ class AOWidget(QtWidgets.QWidget):
     Signal_img_shwfr_run = QtCore.pyqtSignal()
     Signal_img_shwfs_compute_wf = QtCore.pyqtSignal()
     Signal_img_shwfs_correct_wf = QtCore.pyqtSignal()
-    Signal_img_shwfs_save_wf = QtCore.pyqtSignal()
+    Signal_img_shwfs_save_wf = QtCore.pyqtSignal(str)
     Signal_dm_wfs_start = QtCore.pyqtSignal()
     Signal_dm_wfs_stop = QtCore.pyqtSignal()
     Signal_dm_shwfr_run = QtCore.pyqtSignal()
     Signal_dm_shwfs_initiate = QtCore.pyqtSignal()
     Signal_dm_shwfs_compute_wf = QtCore.pyqtSignal()
-    Signal_dm_shwfs_save_wf = QtCore.pyqtSignal()
+    Signal_dm_shwfs_save_wf = QtCore.pyqtSignal(str)
     Signal_push_actuator = QtCore.pyqtSignal()
     Signal_influence_function = QtCore.pyqtSignal()
     Signal_set_zernike = QtCore.pyqtSignal()
@@ -37,14 +37,12 @@ class AOWidget(QtWidgets.QWidget):
         dock_deformablemirror, group_deformablemirror = cw.create_dock('Deformable Mirror')
         dock_dwfs, group_dwfs = cw.create_dock('Wavefront Sensing AO')
         dock_sensorlessao, group_sensorlessao = cw.create_dock('Sensorless AO')
-        dock_file, group_file = cw.create_dock('File')
         layout.addWidget(dock_image)
         layout.addWidget(dock_parameters)
         layout.addWidget(dock_commands)
         layout.addWidget(dock_deformablemirror)
         layout.addWidget(dock_dwfs)
         layout.addWidget(dock_sensorlessao)
-        layout.addWidget(dock_file)
         self.setLayout(layout)
 
         layout_image = QtWidgets.QHBoxLayout()
@@ -185,7 +183,7 @@ class AOWidget(QtWidgets.QWidget):
         self.QComboBox_cmd = cw.combobox_widget(list_items=['0', '1'])
         self.QComboBox_cmd.setCurrentIndex(1)
         self.QPushButton_setDM = cw.pushbutton_widget('Set DM')
-        self.QPushButton_loadDM = cw.pushbutton_widget('Load DM')
+        self.QPushButton_load_dm = cw.pushbutton_widget('Load DM')
         self.QPushButton_update_cmd = cw.pushbutton_widget('Add DM')
         self.QPushButton_save_dm = cw.pushbutton_widget('Save DM')
         layout_deformablemirror.addWidget(self.QLabel_wfsmd, 0, 0, 1, 1)
@@ -203,7 +201,7 @@ class AOWidget(QtWidgets.QWidget):
         layout_deformablemirror.addWidget(self.QPushButton_set_zernike_mode, 3, 2, 1, 1)
         layout_deformablemirror.addWidget(self.QComboBox_cmd, 4, 0, 1, 1)
         layout_deformablemirror.addWidget(self.QPushButton_setDM, 4, 1, 1, 1)
-        layout_deformablemirror.addWidget(self.QPushButton_loadDM, 3, 3, 1, 1)
+        layout_deformablemirror.addWidget(self.QPushButton_load_dm, 3, 3, 1, 1)
         layout_deformablemirror.addWidget(self.QPushButton_update_cmd, 4, 2, 1, 1)
         layout_deformablemirror.addWidget(self.QPushButton_save_dm, 4, 3, 1, 1)
         group_deformablemirror.setLayout(layout_deformablemirror)
@@ -256,28 +254,21 @@ class AOWidget(QtWidgets.QWidget):
         layout_sensorless.addWidget(self.QPushButton_sensorless_save, 3, 5, 1, 1)
         group_sensorlessao.setLayout(layout_sensorless)
 
-        layout_File = QtWidgets.QGridLayout()
-        self.QLabel_file_name = cw.label_widget(str('File name'))
-        self.QLineEdit_filename = cw.lineedit_widget()
-        layout_File.addWidget(self.QLabel_file_name, 0, 0, 1, 1)
-        layout_File.addWidget(self.QLineEdit_filename, 0, 1, 1, 5)
-        group_file.setLayout(layout_File)
-
         self.QPushButton_img_shwfs_base.clicked.connect(self.set_img_wfs_base)
         self.QPushButton_run_img_wfs.clicked.connect(self.run_img_wfs)
         self.QPushButton_run_img_wfr.clicked.connect(self.run_img_wfr)
         self.QPushButton_img_shwfs_compute_wf.clicked.connect(self.Signal_img_shwfs_compute_wf.emit)
-        self.QPushButton_img_shwfs_save_wf.clicked.connect(self.Signal_img_shwfs_save_wf.emit)
+        self.QPushButton_img_shwfs_save_wf.clicked.connect(self.save_img_wf)
         self.QPushButton_dm_shwfs_base.clicked.connect(self.set_dm_wfs_base)
         self.QPushButton_run_dm_wfs.clicked.connect(self.run_dm_wfs)
         self.QPushButton_run_dm_wfr.clicked.connect(self.run_dm_wfr)
-        self.QPushButton_dm_shwfs_save_wf.clicked.connect(self.Signal_dm_shwfs_save_wf.emit)
+        self.QPushButton_dm_shwfs_save_wf.clicked.connect(self.save_dm_wf)
         self.QPushButton_push_actuator.clicked.connect(self.Signal_push_actuator.emit)
         self.QPushButton_influence_fuction_laser.clicked.connect(self.Signal_influence_function.emit)
         self.QPushButton_set_zernike_mode.clicked.connect(self.Signal_set_zernike.emit)
         self.QPushButton_setDM.clicked.connect(self.Signal_set_dm.emit)
         self.QPushButton_update_cmd.clicked.connect(self.Signal_update_cmd.emit)
-        self.QPushButton_loadDM.clicked.connect(self.dialog)
+        self.QPushButton_load_dm.clicked.connect(self.load_dm_file)
         self.QPushButton_save_dm.clicked.connect(self.Signal_save_dm.emit)
         self.QPushButton_dwfs_correction.clicked.connect(self.Signal_img_shwfs_correct_wf.emit)
         self.QPushButton_sensorless_run.clicked.connect(self.Signal_sensorlessAO_run.emit)
@@ -330,12 +321,32 @@ class AOWidget(QtWidgets.QWidget):
         self.Signal_dm_shwfr_run.emit()
         self.QPushButton_dm_shwfs_save_wf.setEnabled(True)
 
-    def dialog(self):
-        file, check = QtWidgets.QFileDialog.getOpenFileName(None, "QtWidgets.QFileDialog.getOpenFileName()", "",
-                                                            "All Files (*);;Python Files (*.py);;Text Files (*.txt)")
-        if check:
-            print(file)
-            self.Signal_load_dm.emit(file)
+    def save_img_wf(self):
+        dialog = cw.create_file_dialogue(name="Save File", file_filter="All Files (*)",
+                                         default_dir=r"C:/Users/ruizhe.lin/Documents/data")
+        if dialog.exec_() == QtWidgets.QFileDialog.Accepted:
+            selected_file = dialog.selectedFiles()
+            if selected_file:
+                print(selected_file[0])
+                self.Signal_img_shwfs_save_wf.emit(selected_file[0])
+
+    def save_dm_wf(self):
+        dialog = cw.create_file_dialogue(name="Save File", file_filter="All Files (*)",
+                                         default_dir=r"C:/Users/ruizhe.lin/Documents/data")
+        if dialog.exec_() == QtWidgets.QFileDialog.Accepted:
+            selected_file = dialog.selectedFiles()
+            if selected_file:
+                print(selected_file[0])
+                self.Signal_dm_shwfs_save_wf.emit(selected_file[0])
+
+    def load_dm_file(self):
+        dialog = cw.create_file_dialogue(name="Open File", file_filter="All Files (*)",
+                                         default_dir=r"C:/Users/ruizhe.lin/Documents/data")
+        if dialog.exec_() == QtWidgets.QFileDialog.Accepted:
+            selected_files = dialog.selectedFiles()
+            if selected_files:
+                print(selected_files[0])
+                self.Signal_load_dm.emit(selected_files[0])
 
 
 import sys

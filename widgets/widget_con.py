@@ -36,7 +36,7 @@ class ConWidget(QtWidgets.QWidget):
     Signal_beadscan_2d = QtCore.pyqtSignal()
     # Signal_beadscan_3d = QtCore.pyqtSignal()
     Signal_galvo_scan = QtCore.pyqtSignal()
-    Signal_save_file = QtCore.pyqtSignal()
+    Signal_save_file = QtCore.pyqtSignal(str)
 
     def __init__(self, *args, **kwargs):
 
@@ -46,18 +46,13 @@ class ConWidget(QtWidgets.QWidget):
         dock_Camera, group_Camera = cw.create_dock('Camera')
         dock_Position, group_Position = cw.create_dock('Position')
         dock_Illumination, group_Illumination = cw.create_dock('Laser')
-        dock_DataAquisition, group_DataAquisition = cw.create_dock('Image Acquisition')
         dock_Triggers, group_Triggers = cw.create_dock('Triggers')
-        dock_File, group_File = cw.create_dock('File')
+        dock_DataAquisition, group_DataAquisition = cw.create_dock('Image Acquisition')
         layout.addWidget(dock_Camera)
         layout.addWidget(dock_Position)
-        # layout.addWidget(dock_PiezoStage)
-        # layout.addWidget(dock_MadDeck)
-        # layout.addWidget(dock_GalvoMirror)
         layout.addWidget(dock_Illumination)
         layout.addWidget(dock_Triggers)
         layout.addWidget(dock_DataAquisition)
-        layout.addWidget(dock_File)
         self.setLayout(layout)
 
         Layout_Camera = QtWidgets.QHBoxLayout()
@@ -323,6 +318,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_galvo_scan = cw.pushbutton_widget('Galvo Scan', enable=False)
         self.QComboBox_profile_axis = cw.combobox_widget(list_items=['X', 'Y'])
         self.QPushButton_plot_profile = cw.pushbutton_widget('Plot Profile', checkable=True, enable=False)
+        self.QPushButton_save = cw.pushbutton_widget('Save')
         Layout_DataAquisition.addWidget(self.QPushButton_video, 0, 0, 1, 1)
         Layout_DataAquisition.addWidget(self.QPushButton_fft, 0, 1, 1, 1)
         Layout_DataAquisition.addWidget(self.QPushButton_2d_resolft, 0, 2, 1, 1)
@@ -332,16 +328,8 @@ class ConWidget(QtWidgets.QWidget):
         Layout_DataAquisition.addWidget(self.QPushButton_galvo_scan, 1, 2, 1, 1)
         Layout_DataAquisition.addWidget(self.QComboBox_profile_axis, 1, 0, 1, 1)
         Layout_DataAquisition.addWidget(self.QPushButton_plot_profile, 1, 1, 1, 1)
+        Layout_DataAquisition.addWidget(self.QPushButton_save, 1, 3, 1, 1)
         group_DataAquisition.setLayout(Layout_DataAquisition)
-
-        Layout_File = QtWidgets.QGridLayout()
-        self.QLabel_file_name = cw.label_widget(str('File name'))
-        self.QLineEdit_filename = cw.lineedit_widget()
-        self.QPushButton_save = cw.pushbutton_widget('Save')
-        Layout_File.addWidget(self.QLabel_file_name, 0, 0, 1, 1)
-        Layout_File.addWidget(self.QLineEdit_filename, 0, 1, 1, 4)
-        Layout_File.addWidget(self.QPushButton_save, 0, 5, 1, 1)
-        group_File.setLayout(Layout_File)
 
         self.QDoubleSpinBox_stage_x.valueChanged.connect(self.Signal_piezo_move_x.emit)
         self.QDoubleSpinBox_stage_y.valueChanged.connect(self.Signal_piezo_move_y.emit)
@@ -444,7 +432,13 @@ class ConWidget(QtWidgets.QWidget):
             self.Signal_stop_plot_profile.emit()
 
     def save(self):
-        self.Signal_save_file.emit()
+        dialog = cw.create_file_dialogue(name="Save File", file_filter="All Files (*)",
+                                         default_dir=r"C:/Users/ruizhe.lin/Documents/data")
+        if dialog.exec_() == QtWidgets.QFileDialog.Accepted:
+            selected_file = dialog.selectedFiles()
+            if selected_file:
+                print(selected_file[0])
+                self.Signal_save_file.emit(selected_file[0])
 
     def resolft_2d(self):
         self.Signal_2d_resolft.emit()

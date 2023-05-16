@@ -66,6 +66,44 @@ def create_dock(name=''):
     return dock, group
 
 
+def create_file_dialogue(name="Save File", file_filter="All Files (*)", default_dir="/path/to/default/folder"):
+    options = QtWidgets.QFileDialog.Options()
+    options |= QtWidgets.QFileDialog.DontUseNativeDialog
+    dialog = QtWidgets.QFileDialog()
+    dialog.setOptions(options)
+    if "Save File" == name:
+        dialog.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+    if "Open File" == name:
+        dialog.setFileMode(QtWidgets.QFileDialog.ExistingFile)
+    dialog.setNameFilters([file_filter])
+    dialog.setWindowTitle(name)
+    dialog.setDirectory(default_dir)
+    dialog.setStyleSheet("""
+            QFileDialog {
+                background-color: #333333;
+                color: white;
+            }
+            QFileDialog QLabel {
+                color: white;
+            }
+            QFileDialog QLineEdit {
+                background-color: #2E2E2E;
+                color: white;
+                selection-background-color: #0096FF;
+            }
+            QFileDialog QPushButton {
+                background-color: #2E2E2E;
+                color: white;
+                padding: 5px;
+                min-width: 80px;
+            }
+            QFileDialog QPushButton:hover {
+                background-color: #0096FF;
+            }
+        """)
+    return dialog
+
+
 def create_scroll_area():
     scroll_area = QtWidgets.QScrollArea()
     scroll_area.setWidgetResizable(True)
