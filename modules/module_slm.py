@@ -20,7 +20,7 @@ class HamamatsuSLM:
         self.farray = self.FARRAY(0)
         self.farray2 = self.FARRAY(0)
         self.farray3 = self.FARRAY(0)
-        # monitor number setting
+        # monitor setting
         self.monitorNo = 2
         self.windowNo = 0
         self.xShift = 0
