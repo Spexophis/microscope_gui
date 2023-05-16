@@ -9,8 +9,7 @@ class HamamatsuSLM:
     def __init__(self):
         super().__init__()
 
-        self.Lcoslib = ct.cdll.LoadLibrary("Image_Control.dll")
-        # self.Lcoslib = ct.windll.LoadLibrary("Image_Control.dll")
+        self.lcos_lib = ct.cdll.LoadLibrary("Image_Control.dll")
         self.pitch = 1  # pixel pitch (0: 20um 1: 1.25um)
         # SLM pixel numbers
         self.x = 1272
@@ -69,7 +68,7 @@ class HamamatsuSLM:
         int y: Pixel number of y-dimension
         8bit unsigned integer array: output array
         """
-        AxiconLens = self.Lcoslib.AxiconLens
+        AxiconLens = self.lcos_lib.AxiconLens
         AxiconLens.argtyes = [ct.c_double, ct.c_int, ct.c_int, ct.c_int, ct.c_void_p, ct.c_void_p]
         AxiconLens.restype = ct.c_int
         if (pitch != 0 and pitch != 1):
@@ -89,7 +88,7 @@ class HamamatsuSLM:
         int y: Pixel number of y-dimension
         8bit unsigned int array: output array
         """
-        CylindricalLens = self.Lcoslib.CylindricalLens
+        CylindricalLens = self.lcos_lib.CylindricalLens
         CylindricalLens.argtyes = [ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_void_p, ct.c_void_p]
         CylindricalLens.restype = ct.c_int
         if (pitch != 0 and pitch != 1):
@@ -108,7 +107,7 @@ class HamamatsuSLM:
         int y: Pixel number of y-dimension
         8bit unsigned int array array: output array
         """
-        Diffraction_pattern = self.Lcoslib.Diffraction_pattern
+        Diffraction_pattern = self.lcos_lib.Diffraction_pattern
         Diffraction_pattern.argtyes = [ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_void_p, ct.c_void_p]
         Diffraction_pattern.restype = ct.c_int
         Diffraction_pattern(rowOrColumn, gradiationNo, gradiationWidth, slipFactor, x, y, ct.byref(ct.c_int(x * y)),
@@ -125,7 +124,7 @@ class HamamatsuSLM:
         int y: Pixel number of y-dimension
         8bit unsigned int array array: output array
         """
-        LaguerreGaussMode = self.Lcoslib.LaguerreGaussMode
+        LaguerreGaussMode = self.lcos_lib.LaguerreGaussMode
         LaguerreGaussMode.argtyes = [ct.c_int, ct.c_int, ct.c_int, ct.c_double, ct.c_int, ct.c_int, ct.c_void_p, ct.c_void_p]
         LaguerreGaussMode.restype = ct.c_int
         if (pitch != 0 and pitch != 1):
@@ -143,7 +142,7 @@ class HamamatsuSLM:
         int y: Pixel number of y-dimension
         8bit unsigned int array: output array
         """
-        FresnelLens = self.Lcoslib.FresnelLens
+        FresnelLens = self.lcos_lib.FresnelLens
         FresnelLens.argtyes = [ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_void_p, ct.c_void_p]
         FresnelLens.restype = ct.c_int
         if pitch != 0 and pitch != 1:
@@ -168,7 +167,7 @@ class HamamatsuSLM:
                 outArray[i + imageWidth * j] = im_gray.getpixel((i, j))
         # Create CGH
         inArray = copy.deepcopy(outArray)
-        Create_CGH_OC = self.Lcoslib.Create_CGH_OC
+        Create_CGH_OC = self.lcos_lib.Create_CGH_OC
         Create_CGH_OC.argtyes = [ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_void_p, ct.c_void_p]
         Create_CGH_OC.restype = ct.c_int
         repNo = 100
@@ -178,7 +177,7 @@ class HamamatsuSLM:
                       ct.byref(outArray))
         # Tilling the image
         inArray = copy.deepcopy(outArray)
-        Image_Tiling = self.Lcoslib.Image_Tiling
+        Image_Tiling = self.lcos_lib.Image_Tiling
         Image_Tiling.argtyes = [ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_void_p, ct.c_void_p]
         Image_Tiling.restype = ct.c_int
         Image_Tiling(ct.byref(inArray), imageWidth, imageHeight, imageHeight * imageWidth, x, y, ct.byref(ct.c_int(x * y)),
@@ -196,19 +195,19 @@ class HamamatsuSLM:
         8bit unsigned int array: output array
         """
         # Select LCOS window
-        Window_Settings = self.Lcoslib.Window_Settings
+        Window_Settings = self.lcos_lib.Window_Settings
         Window_Settings.argtypes = [ct.c_int, ct.c_int, ct.c_int, ct.c_int]
         Window_Settings.restype = ct.c_int
         Window_Settings(monitorNo, windowNo, xShift, yShift)
 
         # Show pattern
-        Window_Array_to_Display = self.Lcoslib.Window_Array_to_Display
+        Window_Array_to_Display = self.lcos_lib.Window_Array_to_Display
         Window_Array_to_Display.argtypes = [ct.c_void_p, ct.c_int, ct.c_int, ct.c_int, ct.c_int]
         Window_Array_to_Display.restype = ct.c_int
         Window_Array_to_Display(array, x, y, windowNo, x * y)
 
     def stop_display(self, windowNo):
-        Window_Term = self.Lcoslib.Window_Term
+        Window_Term = self.lcos_lib.Window_Term
         Window_Term.argtyes = [ct.c_int]
         Window_Term.restype = ct.c_int
         Window_Term(windowNo)
@@ -222,7 +221,7 @@ class HamamatsuSLM:
         int y: Pixel number of y-dimension
         output 1D array outputArray: output array.
         """
-        Image_Rotation = self.Lcoslib.Image_Rotation
+        Image_Rotation = self.lcos_lib.Image_Rotation
         Image_Rotation.argtyes = [ct.c_void_p, ct.c_double, ct.c_int, ct.c_int, ct.c_void_p, ct.c_void_p]
         Image_Rotation.restype = ct.c_int
         Image_Rotation(ct.byref(inputArray), ct.c_double(degree), x, y, ct.byref(ct.c_int(x * y)), ct.byref(outputArray))
