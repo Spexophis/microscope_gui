@@ -66,7 +66,7 @@ def create_dock(name=''):
     return dock, group
 
 
-def create_file_dialogue(name="Save File", file_filter="All Files (*)", default_dir="/path/to/default/folder"):
+def create_file_dialogue(name="Save File", file_filter="All Files (*)", default_dir=""):
     options = QtWidgets.QFileDialog.Options()
     options |= QtWidgets.QFileDialog.DontUseNativeDialog
     dialog = QtWidgets.QFileDialog()
