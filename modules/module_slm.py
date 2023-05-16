@@ -71,7 +71,7 @@ class HamamatsuSLM:
         AxiconLens = self.lcos_lib.AxiconLens
         AxiconLens.argtyes = [ct.c_double, ct.c_int, ct.c_int, ct.c_int, ct.c_void_p, ct.c_void_p]
         AxiconLens.restype = ct.c_int
-        if (pitch != 0 and pitch != 1):
+        if pitch != 0 and pitch != 1:
             print("Error: AxiconLensFunction. invalid argument (pitch).")
             return -1
         # input argument to dll function.
@@ -91,7 +91,7 @@ class HamamatsuSLM:
         CylindricalLens = self.lcos_lib.CylindricalLens
         CylindricalLens.argtyes = [ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_void_p, ct.c_void_p]
         CylindricalLens.restype = ct.c_int
-        if (pitch != 0 and pitch != 1):
+        if pitch != 0 and pitch != 1:
             print("Error: CylindricalLensFunction. invalid argument (pitch).")
             return -1
         CylindricalLens(focus, wavelength, pitch, modeSelect, x, y, ct.byref(ct.c_int(x * y)), ct.byref(array))
@@ -105,7 +105,7 @@ class HamamatsuSLM:
         int slipFactor: slip factor.
         int x: Pixel number of x-dimension
         int y: Pixel number of y-dimension
-        8bit unsigned int array array: output array
+        8bit unsigned int array: output array
         """
         Diffraction_pattern = self.lcos_lib.Diffraction_pattern
         Diffraction_pattern.argtyes = [ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_void_p, ct.c_void_p]
@@ -122,12 +122,12 @@ class HamamatsuSLM:
         double beamSize: Beam size (mm)
         int x: Pixel number of x-dimension
         int y: Pixel number of y-dimension
-        8bit unsigned int array array: output array
+        8bit unsigned int array: output array
         """
         LaguerreGaussMode = self.lcos_lib.LaguerreGaussMode
         LaguerreGaussMode.argtyes = [ct.c_int, ct.c_int, ct.c_int, ct.c_double, ct.c_int, ct.c_int, ct.c_void_p, ct.c_void_p]
         LaguerreGaussMode.restype = ct.c_int
-        if (pitch != 0 and pitch != 1):
+        if pitch != 0 and pitch != 1:
             print("Error: LaguerreGaussModeFunction. invalid argument (pitch).")
             return -1
         LaguerreGaussMode(p, m, pitch, ct.c_double(beamSize), x, y, ct.byref(ct.c_int(x * y)), ct.byref(array))
