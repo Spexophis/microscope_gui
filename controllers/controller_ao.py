@@ -3,24 +3,35 @@ class AOController:
     def __init__(self, view):
         self.v = view
 
-    def get_exposure_time(self):
-        return self.v.QDoubleSpinBox_exposuretime.value()
+    def display_img_wf_properties(self, properties):
+        self.v.lcdNumber_wfmin_img.display(properties[0])
+        self.v.lcdNumber_wfmax_img.display(properties[1])
+        self.v.lcdNumber_wfrms_img.display(properties[2])
 
-    def display_wf_properties(self, properties):
-        self.v.lcdNumber_wfmin.display(properties[0])
-        self.v.lcdNumber_wfmax.display(properties[1])
-        self.v.lcdNumber_wfrms.display(properties[2])
+    def display_dm_wf_properties(self, properties):
+        self.v.lcdNumber_wfmin_dm.display(properties[0])
+        self.v.lcdNumber_wfmax_dm.display(properties[1])
+        self.v.lcdNumber_wfrms_dm.display(properties[2])
 
-    def get_parameters(self):
-        return self.v.QSpinBox_base_xcenter.value(), self.v.QSpinBox_base_ycenter.value(), \
-            self.v.QSpinBox_offset_xcenter.value(), self.v.QSpinBox_offset_ycenter.value(), \
-            self.v.QSpinBox_n_lenslets_x.value(), self.v.QSpinBox_n_lenslets_y.value(), \
-            self.v.QSpinBox_spacing.value(), self.v.QSpinBox_radius.value()
+    def get_parameters_img(self):
+        return self.v.QSpinBox_base_xcenter_img.value(), self.v.QSpinBox_base_ycenter_img.value(), \
+            self.v.QSpinBox_offset_xcenter_img.value(), self.v.QSpinBox_offset_ycenter_img.value(), \
+            self.v.QSpinBox_n_lenslets_x_img.value(), self.v.QSpinBox_n_lenslets_y_img.value(), \
+            self.v.QSpinBox_spacing_img.value(), self.v.QSpinBox_radius_img.value()
 
-    def get_gradient_method(self):
-        return self.v.QComboBox_wfrmd.currentText()
+    def get_parameters_dm(self):
+        return self.v.QSpinBox_base_xcenter_dm.value(), self.v.QSpinBox_base_ycenter_dm.value(), \
+            self.v.QSpinBox_offset_xcenter_dm.value(), self.v.QSpinBox_offset_ycenter_dm.value(), \
+            self.v.QSpinBox_n_lenslets_x_dm.value(), self.v.QSpinBox_n_lenslets_y_dm.value(), \
+            self.v.QSpinBox_spacing_dm.value(), self.v.QSpinBox_radius_dm.value()
 
-    def get_wfs_method(self):
+    def get_gradient_method_img(self):
+        return self.v.QComboBox_wfrmd_img.currentText()
+
+    def get_gradient_method_dm(self):
+        return self.v.QComboBox_wfrmd_dm.currentText()
+
+    def get_img_wfs_method(self):
         return self.v.QComboBox_wfsmd.currentText()
 
     def get_actuator(self):

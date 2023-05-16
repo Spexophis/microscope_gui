@@ -17,25 +17,24 @@ class TriggerSequence:
         self.galvo_stops = [1.0, 1.0]
         self.galvo_step_sizes = [0.04, 0.04]
         self.galvo_prep = 0.4
-        self.digital_starts = [0.002, 0.007, 0.007, 0.012, 0.012, 0.012]
-        self.digital_ends = [0.004, 0.01, 0.01, 0.015, 0.015, 0.015]
+        self.digital_starts = [0.002, 0.007, 0.007, 0.012, 0.012, 0.012, 0.012]
+        self.digital_ends = [0.004, 0.01, 0.01, 0.015, 0.015, 0.015, 0.015]
         self.bp_increase = BPoly.from_derivatives([0, 1], [[0., 0., 0.], [1., 0., 0.]])
         self.bp_decrease = BPoly.from_derivatives([0, 1], [[1., 0., 0.], [0., 0., 0.]])
 
-    def update_piezo_scan_parameters(self, sequence_time, piezo_ranges, piezo_step_sizes, piezo_starts,
-                                     piezo_analog_start, digital_starts, digital_ends):
-        self.sequence_time = sequence_time
+    def update_piezo_scan_parameters(self, piezo_ranges, piezo_step_sizes, piezo_starts, piezo_analog_start):
         self.piezo_ranges = piezo_ranges
         self.piezo_step_sizes = piezo_step_sizes
         self.piezo_starts = piezo_starts
         self.piezo_analog_start = piezo_analog_start
-        self.digital_starts = digital_starts
-        self.digital_ends = digital_ends
 
-    def update_galvo_scan_parameters(self, galvo_starts, galvo_stops, galvo_step_sizes, digital_starts, digital_ends):
+    def update_galvo_scan_parameters(self, galvo_starts, galvo_stops, galvo_step_sizes):
         self.galvo_starts = galvo_starts
         self.galvo_stops = galvo_stops
         self.galvo_step_sizes = galvo_step_sizes
+
+    def update_digital_parameters(self, sequence_time, digital_starts, digital_ends):
+        self.sequence_time = sequence_time
         self.digital_starts = digital_starts
         self.digital_ends = digital_ends
 

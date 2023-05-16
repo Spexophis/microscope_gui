@@ -121,6 +121,11 @@ class EMCCDCamera:
             print("Set Acquisition Mode to Run Till Abort")
         else:
             print(atmcd_errors.Error_Codes(self.ret))
+        self.ret = self.sdk.SetKineticCycleTime(0)
+        if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
+            print("Set Kinetic Cycle Time to 0")
+        else:
+            print(atmcd_errors.Error_Codes(self.ret))
         (self.ret, self.xpixels, self.ypixels) = self.sdk.GetDetector()
         print("Function GetDetector returned {} xpixels = {} ypixels = {}".format(self.ret, self.xpixels, self.ypixels))
         self.ret = self.sdk.SetImage(1, 1, 1, self.xpixels, 1, self.ypixels)

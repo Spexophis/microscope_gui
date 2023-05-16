@@ -59,7 +59,7 @@ class MainController:
         self.wfsWorker.moveToThread(self.thread_wfs)
         self.thread_wfs.started.connect(self.wfsWorker.run)
         self.thread_wfs.finished.connect(self.wfsWorker.stop)
-        self.wfsWorker.signal_wfsshow.connect(self.imshow_wfs)
+        self.wfsWorker.signal_wfsshow.connect(self.imshow_img_wfs)
         # MCL Piezo
         self.v.get_control_widget().Signal_piezo_move_x.connect(self.set_piezo_position_x)
         self.v.get_control_widget().Signal_piezo_move_y.connect(self.set_piezo_position_y)
@@ -105,13 +105,19 @@ class MainController:
         self.v.get_ao_widget().Signal_load_dm.connect(self.load_dm)
         self.v.get_ao_widget().Signal_update_cmd.connect(self.update_dm)
         self.v.get_ao_widget().Signal_save_dm.connect(self.save_dm)
+        # WFS
+        self.v.get_ao_widget().Signal_img_shwfs_initiate.connect(self.set_img_wfs_base)
+        self.v.get_ao_widget().Signal_img_wfs_start.connect(self.start_img_wfs)
+        self.v.get_ao_widget().Signal_img_wfs_stop.connect(self.stop_img_wfs)
+        self.v.get_ao_widget().Signal_img_shwfs_run.connect(self.run_img_wfr)
+        self.v.get_ao_widget().Signal_img_shwfs_save_wf.connect(self.save_img_wf)
+        self.v.get_ao_widget().Signal_dm_shwfs_initiate.connect(self.set_dm_wfs_base)
+        self.v.get_ao_widget().Signal_dm_wfs_start.connect(self.start_dm_wfs)
+        self.v.get_ao_widget().Signal_dm_wfs_stop.connect(self.stop_dm_wfs)
+        self.v.get_ao_widget().Signal_dm_shwfs_run.connect(self.run_dm_wfr)
+        self.v.get_ao_widget().Signal_dm_shwfs_save_wf.connect(self.save_dm_wf)
         # AO
-        self.v.get_ao_widget().Signal_shwfs_initiate.connect(self.set_wfs_base)
-        self.v.get_ao_widget().Signal_wfs_start.connect(self.start_wfs)
-        self.v.get_ao_widget().Signal_wfs_stop.connect(self.stop_wfs)
-        self.v.get_ao_widget().Signal_shwfs_run.connect(self.run_wfr)
-        self.v.get_ao_widget().Signal_shwfs_savewf.connect(self.save_wf)
-        self.v.get_ao_widget().Signal_shwfs_correctwf.connect(self.correct_wf)
+        self.v.get_ao_widget().Signal_img_shwfs_correct_wf.connect(self.correct_img_wf)
         self.v.get_ao_widget().Signal_sensorlessAO_run.connect(self.ao_optimize)
 
         temperature = self.m.ccdcam.get_ccd_temperature()
@@ -247,9 +253,8 @@ class MainController:
 
     def generate_digital_trigger_sw(self):
         lasers = self.con_controller.get_lasers()
-        camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
-        self.p.trigger.update_piezo_scan_parameters(sequence_time, axis_lengths, step_sizes, axis_start_pos,
-                                                    analog_start, digital_starts, digital_ends)
+        camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
+        self.p.trigger.update_digital_parameters(sequence_time, digital_starts, digital_ends)
         return self.p.trigger.generate_digital_triggers_sw(lasers, camera)
 
     def start_video(self):
@@ -298,33 +303,37 @@ class MainController:
 
     def plot_trigger(self):
         lasers = self.con_controller.get_lasers()
-        camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
-        self.p.trigger.update_piezo_scan_parameters(sequence_time, axis_lengths, step_sizes, axis_start_pos,
-                                                    analog_start, digital_starts, digital_ends)
+        camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
+        self.p.trigger.update_digtial_parameters(sequence_time, digital_starts, digital_ends)
         dgtr = self.p.trigger.generate_digital_triggers_sw(lasers, camera)
         self.view_controller.plot_update(dgtr[0])
         for i in range(len(digital_starts) - 1):
             self.view_controller.plot(dgtr[i + 1] + i + 1)
 
     def write_trigger_2d(self):
-        camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
-        self.p.trigger.update_piezo_scan_parameters(sequence_time, axis_lengths, step_sizes, axis_start_pos,
-                                                    analog_start, digital_starts, digital_ends)
+        lasers = self.con_controller.get_lasers()
+        camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
+        self.p.trigger.update_digtial_parameters(sequence_time, digital_starts, digital_ends)
+        axis_lengths, step_sizes, axis_start_pos, analog_start = self.con_controller.get_piezo_scan_parameters()
+        self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, axis_start_pos, analog_start)
         atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_2d()
         self.m.daq.trigger_sequence(atr, dtr)
 
     def write_trigger_3d(self):
-        camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
-        self.p.trigger.update_piezo_scan_parameters(sequence_time, axis_lengths, step_sizes, axis_start_pos,
-                                                    analog_start, digital_starts, digital_ends)
+        lasers = self.con_controller.get_lasers()
+        camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
+        self.p.trigger.update_digtial_parameters(sequence_time, digital_starts, digital_ends)
+        axis_lengths, step_sizes, axis_start_pos, analog_start = self.con_controller.get_piezo_scan_parameters()
+        self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, axis_start_pos, analog_start)
         atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_3d()
         self.m.daq.trigger_sequence(atr, dtr)
 
     def write_trigger_beadscan_2d(self):
         lasers = self.con_controller.get_lasers()
-        camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
-        self.p.trigger.update_piezo_scan_parameters(sequence_time, axis_lengths, step_sizes, axis_start_pos,
-                                                    analog_start, digital_starts, digital_ends)
+        camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
+        self.p.trigger.update_digtial_parameters(sequence_time, digital_starts, digital_ends)
+        axis_lengths, step_sizes, axis_start_pos, analog_start = self.con_controller.get_piezo_scan_parameters()
+        self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, axis_start_pos, analog_start)
         atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_beadscan_2d(lasers)
         self.m.daq.trigger_sequence(atr, dtr)
 
@@ -361,7 +370,7 @@ class MainController:
         self.reconstruct_beadscan_2d()
 
     def reconstruct_beadscan_2d(self):
-        camera, sequence_time, axis_lengths, step_sizes, axis_start_pos, analog_start, digital_starts, digital_ends = self.con_controller.get_trigger_parameters()
+        axis_lengths, step_sizes, axis_start_pos, analog_start = self.con_controller.get_piezo_scan_parameters()
         step_size = step_sizes[0]
         self.p.bsrecon.reconstruct_all_beads(self.main_cam.data, step_size)
         t = time.strftime("%Y%m%d_%H%M%S_")
@@ -373,10 +382,11 @@ class MainController:
         print('Data saved')
 
     def write_trigger_gs(self):
+        galvo_starts, galvo_stops, galvo_step_sizes = self.con_controller.get_galvo_scan_parameters()
+        self.p.trigger.update_galvo_scan_parameters(galvo_starts, galvo_stops, galvo_step_sizes)
         lasers = self.con_controller.get_lasers()
-        camera, galvo_starts, galvo_stops, galvo_step_sizes, digital_starts, digital_ends = self.con_controller.get_galvo_scan_parameters()
-        self.p.trigger.update_galvo_scan_parameters(galvo_starts, galvo_stops, galvo_step_sizes, digital_starts,
-                                                    digital_ends)
+        camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
+        self.p.trigger.update_digtial_parameters(sequence_time, digital_starts, digital_ends)
         atr, dtr = self.p.trigger.generate_trigger_sequence_gs(lasers, camera)
         self.m.daq.trigger_scan(atr, dtr)
 
@@ -432,12 +442,116 @@ class MainController:
         self.p.shwfsr._write_cmd(self.path, t, flatfile=False)
         print('DM cmd saved')
 
-    def set_wfs(self):
-        parameters = self.ao_controller.get_parameters()
-        self.p.shwfsr.update_piezo_scan_parameters(parameters)
+    def set_dm_wfs(self):
+        parameters = self.ao_controller.get_parameters_dm()
+        self.p.shwfsr.update_parameters(parameters)
         print('SHWFS parameter updated')
 
-    def start_wfs(self):
+    def start_dm_wfs(self):
+        self.set_lasers()
+        self.dm_cam.prepare_live()
+        dgtr = self.generate_digital_trigger_sw()
+        self.m.daq.trig_open(dgtr)
+        self.dm_cam.start_live()
+        self.m.daq.trig_run()
+        time.sleep(0.1)
+        self.thread_wfs.start()
+
+    def stop_dm_wfs(self):
+        self.thread_wfs.quit()
+        self.thread_wfs.wait()
+        self.m.daq.trig_stop()
+        self.dm_cam.stop_live()
+        self.lasers_off()
+
+    def imshow_dm_wfs(self):
+        self.view_controller.plot_sh(self.dm_cam.get_last_image())
+
+    def set_dm_wfs_base(self):
+        self.p.shwfsr.base = self.view_controller.get_image_data('DM Calibration')
+        print('wfs base set')
+
+    def run_dm_wfr(self):
+        self.p.shwfsr.offset = self.view_controller.get_image_data('DM Calibration')
+        self.p.shwfsr.wavefront_reconstruction(self.p.shwfsr.base, self.p.shwfsr.offset,
+                                               self.ao_controller.get_gradient_method_dm())
+        self.view_controller.plot_dm(self.p.shwfsr.wf)
+        self.ao_controller.display_dm_wf_properties(self.p.imgprocess.wf_properties(self.p.shwfsr.wf))
+
+    def save_dm_wf(self):
+        t = time.strftime("%Y%m%d_%H%M%S_")
+        slide_name = self.ao_controller.get_file_name()
+        try:
+            tf.imwrite(self.path + '/' + t + slide_name + '_shdm_base_raw.tif', self.p.shwfsr.base)
+        except:
+            print("NO SH Image")
+        try:
+            tf.imwrite(self.path + '/' + t + slide_name + '_shdm_processed.tif', self.p.shwfsr.im)
+        except:
+            print("NO SH Image")
+        try:
+            tf.imwrite(self.path + '/' + t + slide_name + '_reconstruted_wf.tif', self.p.shwfsr.wf)
+        except:
+            print("NO WF Image")
+        print('WF Data saved')
+
+    def influence_function(self):
+        t = time.strftime("%Y%m%d_%H%M%S")
+        newfold = self.path + '/' + t + '_influence_function' + '/'
+        try:
+            os.mkdir(newfold)
+        except:
+            print('Directory already exists')
+        n, amp = self.ao_controller.get_actuator()
+        self.set_dm_wfs()
+        self.set_lasers()
+        self.wfs_cam.prepare_live()
+        dgtr = self.generate_digital_trigger_sw()
+        self.m.daq.trig_open_ao(dgtr)
+        self.dm_cam.start_live()
+        for i in range(self.m.dm.nbAct):
+            shimg = []
+            print(i)
+            values = [0.] * self.m.dm.nbAct
+            self.m.dm.SetDM(values)
+            time.sleep(0.04)
+            self.m.daq.trig_run()
+            time.sleep(0.04)
+            shimg.append(self.dm_cam.get_last_image())
+            self.m.daq.trig_stop()
+            values[i] = amp
+            self.m.dm.SetDM(values)
+            time.sleep(0.04)
+            self.m.daq.trig_run()
+            time.sleep(0.04)
+            shimg.append(self.dm_cam.get_last_image())
+            self.m.daq.trig_stop()
+            values = [0.] * self.m.dm.nbAct
+            self.m.dm.SetDM(values)
+            time.sleep(0.04)
+            self.m.daq.trig_run()
+            time.sleep(0.04)
+            shimg.append(self.dm_cam.get_last_image())
+            self.m.daq.trig_stop()
+            values[i] = - amp
+            self.m.dm.SetDM(values)
+            time.sleep(0.04)
+            self.m.daq.trig_run()
+            time.sleep(0.04)
+            shimg.append(self.dm_cam.get_last_image())
+            self.m.daq.trig_stop()
+            tf.imwrite(newfold + t + '_actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
+        self.dm_cam.stop_live()
+        influfunc = self.p.shwfsr.generate_influence_matrix(newfold, self.ao_controller.get_img_wfs_method())
+        ctrlmat = self.p.shwfsr.get_control_matrix(influfunc)
+        tf.imwrite(newfold + t + '_control_matrix.tif', ctrlmat)
+
+    def set_img_wfs(self):
+        parameters = self.ao_controller.get_parameters_img()
+        self.p.shwfsr.update_parameters(parameters)
+        print('SHWFS parameter updated')
+
+    def start_img_wfs(self):
         self.set_lasers()
         self.wfs_cam.prepare_live()
         dgtr = self.generate_digital_trigger_sw()
@@ -447,28 +561,28 @@ class MainController:
         time.sleep(0.1)
         self.thread_wfs.start()
 
-    def stop_wfs(self):
+    def stop_img_wfs(self):
         self.thread_wfs.quit()
         self.thread_wfs.wait()
         self.m.daq.trig_stop()
         self.wfs_cam.stop_live()
         self.lasers_off()
 
-    def imshow_wfs(self):
+    def imshow_img_wfs(self):
         self.view_controller.plot_sh(self.wfs_cam.get_last_image())
 
-    def set_wfs_base(self):
+    def set_img_wfs_base(self):
         self.p.shwfsr.base = self.view_controller.get_image_data('ShackHartmann')
         print('wfs base set')
 
-    def run_wfr(self):
+    def run_img_wfr(self):
         self.p.shwfsr.offset = self.view_controller.get_image_data('ShackHartmann')
         self.p.shwfsr.wavefront_reconstruction(self.p.shwfsr.base, self.p.shwfsr.offset,
-                                               self.ao_controller.get_gradient_method())
+                                               self.ao_controller.get_gradient_method_img())
         self.view_controller.plot_wf(self.p.shwfsr.wf)
-        self.ao_controller.display_wf_properties(self.p.imgprocess.wf_properties(self.p.shwfsr.wf))
+        self.ao_controller.display_img_wf_properties(self.p.imgprocess.wf_properties(self.p.shwfsr.wf))
 
-    def save_wf(self):
+    def save_img_wf(self):
         t = time.strftime("%Y%m%d_%H%M%S_")
         slide_name = self.ao_controller.get_file_name()
         try:
@@ -485,8 +599,8 @@ class MainController:
             print("NO WF Image")
         print('WF Data saved')
 
-    def correct_wf(self):
-        self.set_wfs()
+    def correct_img_wf(self):
+        self.set_img_wfs()
         self.set_lasers()
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open_ao(dgtr)
@@ -494,79 +608,19 @@ class MainController:
         time.sleep(0.05)
         self.m.daq.trig_run()
         time.sleep(0.05)
-        self.p.shwfsr.get_correction(self.wfs_cam.get_last_image(), self.ao_controller.get_wfs_method())
+        self.p.shwfsr.get_correction(self.wfs_cam.get_last_image(), self.ao_controller.get_img_wfs_method())
         self.p.shwfsr.correct_cmd()
         self.m.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
         self.ao_controller.update_cmd_index()
         i = int(self.ao_controller.get_cmd_index())
         self.p.shwfsr.current_cmd = i
-        self.run_wfr()
+        self.run_img_wfr()
         self.m.daq.trig_stop()
         self.wfs_cam.stopAcquisition()
 
-    def influence_function(self):
-        t = time.strftime("%Y%m%d_%H%M%S")
-        newfold = self.path + '/' + t + '_influence_function' + '/'
-        try:
-            os.mkdir(newfold)
-        except:
-            print('Directory already exists')
-        n, amp = self.ao_controller.get_actuator()
-        self.set_wfs()
-        self.set_lasers()
-        dgtr = self.generate_digital_trigger_sw()
-        self.m.daq.trig_open_ao(dgtr)
-        # self.m.tiscam.start_live()
-        self.wfs_cam.startAcquisition()
-        for i in range(self.m.dm.nbAct):
-            shimg = []
-            print(i)
-            values = [0.] * self.m.dm.nbAct
-            self.m.dm.SetDM(values)
-            time.sleep(0.04)
-            self.m.daq.trig_run()
-            time.sleep(0.04)
-            # self.p.shwfsr.base = self.m.tiscam.grabFrame()
-            # self.p.shwfsr.base = self.m.thocam.snap_image()
-            shimg.append(self.wfs_cam.get_last_image())
-            self.m.daq.trig_stop()
-            values[i] = amp
-            self.m.dm.SetDM(values)
-            time.sleep(0.04)
-            self.m.daq.trig_run()
-            time.sleep(0.04)
-            # self.p.shwfsr.offset = self.m.tiscam.grabFrame()
-            # self.p.shwfsr.offset = self.m.thocam.snap_image()
-            shimg.append(self.wfs_cam.get_last_image())
-            self.m.daq.trig_stop()
-            values = [0.] * self.m.dm.nbAct
-            self.m.dm.SetDM(values)
-            time.sleep(0.04)
-            self.m.daq.trig_run()
-            time.sleep(0.04)
-            # self.p.shwfsr.base = self.m.tiscam.grabFrame()
-            # self.p.shwfsr.base = self.m.thocam.snap_image()
-            shimg.append(self.wfs_cam.get_last_image())
-            self.m.daq.trig_stop()
-            values[i] = - amp
-            self.m.dm.SetDM(values)
-            time.sleep(0.04)
-            self.m.daq.trig_run()
-            time.sleep(0.04)
-            # self.p.shwfsr.offset = self.m.tiscam.grabFrame()
-            # self.p.shwfsr.offset = self.m.thocam.snap_image()
-            shimg.append(self.wfs_cam.get_last_image())
-            self.m.daq.trig_stop()
-            tf.imwrite(newfold + t + '_actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
-        self.wfs_cam.stopAcquisition()
-        # self.m.tiscam.stop_live()
-        influfunc = self.p.shwfsr.generate_influence_matrix(newfold, self.ao_controller.get_wfs_method())
-        ctrlmat = self.p.shwfsr.get_control_matrix(influfunc)
-        tf.imwrite(newfold + t + '_control_matrix.tif', ctrlmat)
-
     def start_ao_iteration(self):
         self.set_lasers()
-        self.set_ccd_camera()
+        self.main_cam.prepare_live()
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open_ao(dgtr)
         self.main_cam.start_live()
@@ -575,8 +629,6 @@ class MainController:
         self.m.daq.trig_stop()
         self.lasers_off()
         self.main_cam.stop_live()
-        temperature = self.main_cam.get_ccd_temperature()
-        self.con_controller.display_camera_temperature(temperature)
 
     def ao_optimize(self):
         mode_start, mode_stop, amp_start, amp_step, amp_step_number = self.ao_controller.get_ao_iteration()
