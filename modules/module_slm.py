@@ -9,8 +9,8 @@ class HamamatsuSLM:
     def __init__(self):
         super().__init__()
 
-        # self.Lcoslib = ct.cdll.LoadLibrary("Image_Control.dll")
-        self.Lcoslib = ct.windll.LoadLibrary("Image_Control.dll")
+        self.Lcoslib = ct.cdll.LoadLibrary("Image_Control.dll")
+        # self.Lcoslib = ct.windll.LoadLibrary("Image_Control.dll")
         self.pitch = 1  # pixel pitch (0: 20um 1: 1.25um)
         # SLM pixel numbers
         self.x = 1272
