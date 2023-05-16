@@ -28,11 +28,11 @@ class HamamatsuSLM:
         self.yShift = 0
 
     def display_axiconLens_pattern(self, top=10.0):
-        self.makeAxiconLensArray(top, self.pitch, self.x, self.y, self.farray)
+        self.make_axicon_lens(top, self.pitch, self.x, self.y, self.farray)
         self.show_on_display(self.monitorNo, self.windowNo, self.x, self.xShift, self.y, self.yShift, self.farray)
 
     def display_cylindricalLens_pattern(self, focus=1000, wavelength=488, modeSelect=0):
-        self.makeCylindricalLensArray(focus, wavelength, self.pitch, modeSelect, self.x, self.y, self.farray)
+        self.make_cylindrical_lens(focus, wavelength, self.pitch, modeSelect, self.x, self.y, self.farray)
         self.show_on_display(self.monitorNo, self.windowNo, self.x, self.xShift, self.y, self.yShift, self.farray)
 
     def display_rotated_pattern(self, degree=30.0):
@@ -40,17 +40,16 @@ class HamamatsuSLM:
         self.show_on_display(self.monitorNo, self.windowNo, self.x, self.xShift, self.y, self.yShift, self.farray2)
 
     def display_diffraction_grating_pattern(self, rowOrColumn=0, gradiationNo=16, gradiationWidth=16, slipFactor=0):
-        self.makeDiffractionPatternArray(rowOrColumn, gradiationNo, gradiationWidth, slipFactor, self.x, self.y,
-                                         self.farray)
+        self.make_diffraction_pattern(rowOrColumn, gradiationNo, gradiationWidth, slipFactor, self.x, self.y,
+                                      self.farray)
         self.show_on_display(self.monitorNo, self.windowNo, self.x, self.xShift, self.y, self.yShift, self.farray)
 
     def display_Laguerre_Gauss_mode_pattern(self, p=1, m=1, pitch=1, beamSize=20.0):
-        self.makeLaguerreGaussModeArray(p, m, pitch, beamSize, self.x, self.y, self.farray)
+        self.make_laguerre_gaussian(p, m, pitch, beamSize, self.x, self.y, self.farray)
         self.show_on_display(self.monitorNo, self.windowNo, self.x, self.xShift, self.y, self.yShift, self.farray)
 
     def display_FresnelLens_pattern(self, focus=1000, wavelength=1064):
-
-        self.make_fresnel_lens_array(focus, wavelength, self.pitch, self.x, self.y, self.farray2)
+        self.make_fresnel_lens(focus, wavelength, self.pitch, self.x, self.y, self.farray2)
         self.show_on_display(self.monitorNo, self.windowNo, self.x, self.xShift, self.y, self.yShift, self.farray2)
 
     def display_synthesize_FresnelLens_Laguerre_Gauss_Mode_pattern(self):
@@ -61,14 +60,14 @@ class HamamatsuSLM:
         self.make_bmp_array(filepath, self.x, self.y, self.farray)
         self.show_on_display(self.monitorNo, self.windowNo, self.x, self.xShift, self.y, self.yShift, self.farray)
 
-    def makeAxiconLensArray(self, top, pitch, x, y, array):
+    def make_axicon_lens(self, top, pitch, x, y, array):
         """
         the function for making AxiconLens pattern array
         double top: Top level of AxiconLens pattern. (/pi rad)
         int pitch: Pixel pitch. 0: 20um 1: 1.25um
         int x: Pixel number of x-dimension
         int y: Pixel number of y-dimension
-        8bit unsigned integer array array: output array
+        8bit unsigned integer array: output array
         """
         AxiconLens = self.Lcoslib.AxiconLens
         AxiconLens.argtyes = [ct.c_double, ct.c_int, ct.c_int, ct.c_int, ct.c_void_p, ct.c_void_p]
@@ -79,7 +78,7 @@ class HamamatsuSLM:
         # input argument to dll function.
         AxiconLens(ct.c_double(top), pitch, x, y, ct.byref(ct.c_int(x * y)), ct.byref(array))
 
-    def makeCylindricalLensArray(self, forcus, wavelength, pitch, modeSelect, x, y, array):
+    def make_cylindrical_lens(self, focus, wavelength, pitch, modeSelect, x, y, array):
         """
         the function for making CylindricalLens pattern array
         int focus: the forcus of cylindrical lens. (mm)
@@ -88,7 +87,7 @@ class HamamatsuSLM:
         int modeSelect: 0: horizontal or 1: vertical
         int x: Pixel number of x-dimension
         int y: Pixel number of y-dimension
-        8bit unsigned int array array: output array
+        8bit unsigned int array: output array
         """
         CylindricalLens = self.Lcoslib.CylindricalLens
         CylindricalLens.argtyes = [ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_int, ct.c_void_p, ct.c_void_p]
@@ -96,9 +95,9 @@ class HamamatsuSLM:
         if (pitch != 0 and pitch != 1):
             print("Error: CylindricalLensFunction. invalid argument (pitch).")
             return -1
-        CylindricalLens(forcus, wavelength, pitch, modeSelect, x, y, ct.byref(ct.c_int(x * y)), ct.byref(array))
+        CylindricalLens(focus, wavelength, pitch, modeSelect, x, y, ct.byref(ct.c_int(x * y)), ct.byref(array))
 
-    def makeDiffractionPatternArray(self, rowOrColumn, gradiationNo, gradiationWidth, slipFactor, x, y, array):
+    def make_diffraction_pattern(self, rowOrColumn, gradiationNo, gradiationWidth, slipFactor, x, y, array):
         """
         the function for making Diffraction pattern array
         int rowOrColumn: 0: horizontal or 1: vertical
@@ -115,7 +114,7 @@ class HamamatsuSLM:
         Diffraction_pattern(rowOrColumn, gradiationNo, gradiationWidth, slipFactor, x, y, ct.byref(ct.c_int(x * y)),
                             ct.byref(array))
 
-    def makeLaguerreGaussModeArray(self, p, m, pitch, beamSize, x, y, array):
+    def make_laguerre_gaussian(self, p, m, pitch, beamSize, x, y, array):
         """
         the function for making LaguerreGaussMode pattern array
         int p: radial index
@@ -134,7 +133,7 @@ class HamamatsuSLM:
             return -1
         LaguerreGaussMode(p, m, pitch, ct.c_double(beamSize), x, y, ct.byref(ct.c_int(x * y)), ct.byref(array))
 
-    def make_fresnel_lens_array(self, forcus, wavelength, pitch, x, y, array):
+    def make_fresnel_lens(self, forcus, wavelength, pitch, x, y, array):
         """
         the function for making FresnelLens pattern array
         int focus: the forcus of cylindrical lens. (mm)
