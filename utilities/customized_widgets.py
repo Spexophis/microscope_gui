@@ -330,6 +330,7 @@ def combobox_widget(list_items):
     combobox.setStyleSheet('QComboBox {background-color: #454545; color: #f0f0f0;}'
                            'QComboBox::down-arrow { image: none; }'
                            'QComboBox::drop-down { border: none; }')
+    combobox.setMaximumWidth(100)
     return combobox
 
 

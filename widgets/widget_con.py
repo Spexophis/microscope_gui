@@ -241,7 +241,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QComboBox_trigger_parameter = cw.combobox_widget(list_items=['Default', 'Live', 'WFS', 'DM',
                                                                           'UseDefined_1', 'UseDefined_2'])
         self.QLabel_camera_selection = cw.label_widget(str('Camera'))
-        self.QComboBox_camera_selection = cw.combobox_widget(list_items=['Andor EMCCD', 'Hamamatsu sCMOS', 'DMK33U250'])
+        self.QComboBox_camera_selection = cw.combobox_widget(list_items=['Main', 'WFS', 'DM'])
         Layout_Triggers.addWidget(self.QLabel_cycle_period, 0, 0, 1, 1)
         Layout_Triggers.addWidget(self.QDoubleSpinBox_cycle_period, 0, 1, 1, 1)
         Layout_Triggers.addWidget(self.QLabel_piezo_start, 1, 0, 1, 1)
