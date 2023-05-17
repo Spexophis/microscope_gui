@@ -244,9 +244,11 @@ class MainController:
         if self.main_cam == "EMCCD":
             x, y, n, b = self.con_controller.get_emccd_roi()
             self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
-        if self.main_cam == "sCMOS":
+        elif self.main_cam == "sCMOS":
             x, y, n, b = self.con_controller.get_scmos_roi()
             self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
+        else:
+            print("Invalid Main Camera")
 
     def set_wfs_camera_roi(self):
         if self.wfs_cam == "sCMOS":
@@ -255,6 +257,8 @@ class MainController:
         elif self.wfs_cam == "EMCCD":
             x, y, n, b = self.con_controller.get_emccd_roi()
             self.wfs_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
+        else:
+            print("Invalid WFS Camera")
 
     # def reset_main_camera_roi(self):
     #     if self.main_cam == "EMCCD":
@@ -289,8 +293,8 @@ class MainController:
 
     def start_video(self):
         self.set_lasers()
-        self.set_main_camera_roi()
         self.main_cam.prepare_live()
+        self.set_main_camera_roi()
         self.m.daq.trig_open(self.generate_digital_trigger_sw())
         self.main_cam.start_live()
         self.m.daq.trig_run()

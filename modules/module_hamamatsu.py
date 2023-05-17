@@ -766,6 +766,9 @@ class HamamatsuCameraMR(HamamatsuCamera):
         # Stop acquisition.
         self.checkStatus(dcam.dcamcap_stop(self.camera_handle), "dcamcap_stop")
 
+    def set_roi(self, hbin, vbin, hstart, hend, vstart, vend):
+        return True
+
     def prepare_live(self):
         self.acquisition_mode = "run_till_abort"
         self.setACQMode(self.acquisition_mode)

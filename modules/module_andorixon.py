@@ -118,6 +118,11 @@ class EMCCDCamera:
             print("An error occurred:", e)
 
     def set_roi(self, hbin, vbin, hstart, hend, vstart, vend):
+        (self.ret, self.xpixels, self.ypixels) = self.sdk.GetDetector()
+        if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
+            print("Detector size: xpixels = {} ypixels = {}".format(self.xpixels, self.ypixels))
+        else:
+            print(atmcd_errors.Error_Codes(self.ret))
         self.ret = self.sdk.SetImage(hbin, vbin, hstart, hend, vstart, vend)
         if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
             print("hbin = {} \nvbin = {} \nhstart = {} \nhend = {} \nvstart = {} \nvend = {}".format(
@@ -127,6 +132,9 @@ class EMCCDCamera:
             self.ps = 13 / hbin
         else:
             print(atmcd_errors.Error_Codes(self.ret))
+        # self.ret = self.sdk.SetImage(1, 1, 1, self.xpixels, 1, self.ypixels)
+        # print("Function SetImage returned {} hbin = 1 vbin = 1 hstart = 1 hend = {} vstart = 1 vend = {}".format(
+        #     self.ret, self.xpixels, self.ypixels))
 
     def set_trigger_mode(self, ind):
         self.ret = self.sdk.SetTriggerMode(ind)
@@ -153,9 +161,6 @@ class EMCCDCamera:
             print("Set Kinetic Cycle Time to 0")
         else:
             print(atmcd_errors.Error_Codes(self.ret))
-        # self.ret = self.sdk.SetImage(1, 1, 1, self.xpixels, 1, self.ypixels)
-        # print("Function SetImage returned {} hbin = 1 vbin = 1 hstart = 1 hend = {} vstart = 1 vend = {}".format(
-        #     self.ret, self.xpixels, self.ypixels))
 
     def start_live(self):
         self.ret = self.sdk.StartAcquisition()
