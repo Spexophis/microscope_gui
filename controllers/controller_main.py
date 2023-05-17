@@ -296,7 +296,7 @@ class MainController:
     def start_video(self):
         self.set_lasers()
         self.main_cam.prepare_live()
-        # self.set_main_camera_roi()
+        self.set_main_camera_roi()
         self.m.daq.trig_open(self.generate_digital_trigger_sw())
         self.main_cam.start_live()
         self.m.daq.trig_run()
