@@ -63,7 +63,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QLabel_ccd_tempetature = cw.label_widget(str('CCD Temperature'))
         self.QLCDNumber_ccd_tempetature = cw.lcdnumber_widget(0, 3)
         self.QPushButton_emccd_cooler_check = cw.pushbutton_widget('Check', False, True)
-        self.QPushButton_emccd_cooler_switch = cw.pushbutton_widget('OFF', True, True)
+        self.QPushButton_emccd_cooler_switch = cw.pushbutton_widget('Cooler OFF', True, True, True)
         self.QLabel_emccd_exposure_time = cw.label_widget(str('Exposure Time (s)'))
         self.QDoubleSpinBox_emccd_exposure_time = cw.doublespinbox_widget(0, 10, 0.005, 3, 0.02)
         self.QLabel_emccd_gain = cw.label_widget(str('EMCCD Gain'))
@@ -89,9 +89,21 @@ class ConWidget(QtWidgets.QWidget):
         self.QLabel_scmos = cw.label_widget(str('sCMOS'))
         self.QLabel_scmos_exposure_time = cw.label_widget(str('Exposure time (s)'))
         self.QDoubleSpinBox_scmos_exposure_time = cw.doublespinbox_widget(0, 10, 0.005, 3, 0.01)
+        self.QLabel_scmos_coordinate_x = cw.label_widget(str('X'))
+        self.QSpinBox_scmos_coordinate_x = cw.spinbox_widget(0, 2048, 1, 1)
+        self.QLabel_scmos_coordinate_y = cw.label_widget(str('Y'))
+        self.QSpinBox_scmos_coordinate_y = cw.spinbox_widget(0, 2048, 1, 1)
+        self.QLabel_scmos_coordinate_n = cw.label_widget(str('N'))
+        self.QSpinBox_scmos_coordinate_n = cw.spinbox_widget(0, 2048, 1, 1024)
+        self.QLabel_scmos_coordinate_bin = cw.label_widget(str('Bin'))
+        self.QSpinBox_scmos_coordinate_bin = cw.spinbox_widget(0, 1024, 1, 1)
         self.scmos_scroll_area, scmos_scroll_layout = cw.create_scroll_area()
         scmos_scroll_layout.addRow(self.QLabel_scmos)
         scmos_scroll_layout.addRow(self.QLabel_scmos_exposure_time, self.QDoubleSpinBox_scmos_exposure_time)
+        scmos_scroll_layout.addRow(self.QLabel_scmos_coordinate_x, self.QSpinBox_scmos_coordinate_x)
+        scmos_scroll_layout.addRow(self.QLabel_scmos_coordinate_y, self.QSpinBox_scmos_coordinate_y)
+        scmos_scroll_layout.addRow(self.QLabel_scmos_coordinate_n, self.QSpinBox_scmos_coordinate_n)
+        scmos_scroll_layout.addRow(self.QLabel_scmos_coordinate_bin, self.QSpinBox_scmos_coordinate_bin)
         Layout_Camera.addWidget(self.emccd_scroll_area)
         Layout_Camera.addWidget(self.scmos_scroll_area)
         group_Camera.setLayout(Layout_Camera)
@@ -337,7 +349,7 @@ class ConWidget(QtWidgets.QWidget):
         Layout_DataAquisition.addWidget(self.QPushButton_save, 1, 3, 1, 1)
         group_DataAquisition.setLayout(Layout_DataAquisition)
 
-        self.QPushButton_emccd_cooler_check.clicked.connect(self.check_emccd_temperature)
+        self.QPushButton_emccd_cooler_check.clicked.connect(self.Signal_check_emccd_temperature.emit)
         self.QPushButton_emccd_cooler_switch.clicked.connect(self.switch_emccd_cooler)
         self.QDoubleSpinBox_stage_x.valueChanged.connect(self.Signal_piezo_move_x.emit)
         self.QDoubleSpinBox_stage_y.valueChanged.connect(self.Signal_piezo_move_y.emit)
@@ -362,19 +374,13 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_2d_beadscan.clicked.connect(self.beadscan_2d)
         self.QComboBox_trigger_parameter.currentIndexChanged.connect(self.update_trigger_parameter_sets)
 
-    def check_emccd_temperature(self):
-        self.Signal_check_emccd_temperature.emit()
-
     def switch_emccd_cooler(self, checked):
         if checked:
-            self.QPushButton_emccd_cooler_switch.setText("Cooler ON")
-            self.Signal_switch_emccd_cooler_on.emit()
-            print("Cooler is ON")
-        else:
             self.QPushButton_emccd_cooler_switch.setText("Cooler OFF")
+            self.Signal_switch_emccd_cooler_on.emit()
+        else:
+            self.QPushButton_emccd_cooler_switch.setText("Cooler ON")
             self.Signal_switch_emccd_cooler_off.emit()
-            print("Cooler is OFF")
-
 
     def deck_move_up(self):
         self.Signal_deck_up.emit()

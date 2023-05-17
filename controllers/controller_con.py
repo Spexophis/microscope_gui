@@ -6,12 +6,16 @@ class ConController:
     # def get_camera_selections(self):
     #     return self.v.QSpinBox_coordinate_x.value(), self.v.QSpinBox_coordinate_y.value()
 
-    def get_camera_coordinates(self):
-        return self.v.QSpinBox_coordinate_x.value(), self.v.QSpinBox_coordinate_y.value(), \
-            self.v.QSpinBox_coordinate_n.value()
+    def get_emccd_roi(self):
+        return self.v.QSpinBox_emccd_coordinate_x.value(), self.v.QSpinBox_emccd_coordinate_y.value(), \
+            self.v.QSpinBox_emccd_coordinate_n.value(), self.v.QSpinBox_emccd_coordinate_bin.value()
 
-    def get_camera_bin(self):
-        return self.v.QSpinBox_coordinate_bin.value()
+    def get_emccd_gain(self):
+        return self.v.QSpinBox_emccd_gain.value()
+
+    def get_scmos_roi(self):
+        return self.v.QSpinBox_scmos_coordinate_x.value(), self.v.QSpinBox_scmos_coordinate_y.value(), \
+            self.v.QSpinBox_scmos_coordinate_n.value(), self.v.QSpinBox_scmos_coordinate_bin.value()
 
     def get_deck_movement(self):
         return self.v.QDoubleSpinBox_deck_movement.value()
@@ -20,14 +24,8 @@ class ConController:
         return self.v.QDoubleSpinBox_stage_x.value(), self.v.QDoubleSpinBox_stage_y.value(), \
             self.v.QDoubleSpinBox_stage_z.value()
 
-    def get_exposure_time(self):
-        return self.v.QDoubleSpinBox_exposure_time.value()
-
     def get_galvo_scan(self):
         return self.v.QDoubleSpinBox_galvo_x.value(), self.v.QDoubleSpinBox_galvo_y.value()
-
-    def get_emccd_gain(self):
-        return self.v.QSpinBox_emccd_gain.value()
 
     def get_lasers(self):
         lasers = []

@@ -37,6 +37,11 @@ class EMCCDCamera:
                 print("Set TriggerMode to External Exposure")
             else:
                 print(atmcd_errors.Error_Codes(self.ret))
+            (self.ret, self.xpixels, self.ypixels) = self.sdk.GetDetector()
+            if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
+                print("Detector size: xpixels = {} ypixels = {}".format(self.xpixels, self.ypixels))
+            else:
+                print(atmcd_errors.Error_Codes(self.ret))
 
             self.xpixels = None
             self.ypixels = None
@@ -95,6 +100,7 @@ class EMCCDCamera:
             return temperature
         else:
             print(atmcd_errors.Error_Codes(self.ret))
+            return temperature
 
     def set_gain(self, emccdgain):
         self.ret = self.sdk.SetEMCCDGain(emccdgain)
@@ -147,11 +153,9 @@ class EMCCDCamera:
             print("Set Kinetic Cycle Time to 0")
         else:
             print(atmcd_errors.Error_Codes(self.ret))
-        (self.ret, self.xpixels, self.ypixels) = self.sdk.GetDetector()
-        print("Function GetDetector returned {} xpixels = {} ypixels = {}".format(self.ret, self.xpixels, self.ypixels))
-        self.ret = self.sdk.SetImage(1, 1, 1, self.xpixels, 1, self.ypixels)
-        print("Function SetImage returned {} hbin = 1 vbin = 1 hstart = 1 hend = {} vstart = 1 vend = {}".format(
-            self.ret, self.xpixels, self.ypixels))
+        # self.ret = self.sdk.SetImage(1, 1, 1, self.xpixels, 1, self.ypixels)
+        # print("Function SetImage returned {} hbin = 1 vbin = 1 hstart = 1 hend = {} vstart = 1 vend = {}".format(
+        #     self.ret, self.xpixels, self.ypixels))
 
     def start_live(self):
         self.ret = self.sdk.StartAcquisition()

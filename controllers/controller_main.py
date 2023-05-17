@@ -85,8 +85,8 @@ class MainController:
         self.v.get_control_widget().Signal_check_emccd_temperature.connect(self.check_emdccd_temperature)
         self.v.get_control_widget().Signal_switch_emccd_cooler_on.connect(self.switch_emdccd_cooler_on)
         self.v.get_control_widget().Signal_switch_emccd_cooler_off.connect(self.switch_emdccd_cooler_off)
-        self.v.get_control_widget().Signal_setcoordinates.connect(self.set_ccd_camera_coordinates)
-        self.v.get_control_widget().Signal_resetcoordinates.connect(self.reset_ccd_camera_coordinates)
+        # self.v.get_control_widget().Signal_setcoordinates.connect(self.set_ccd_camera_coordinates)
+        # self.v.get_control_widget().Signal_resetcoordinates.connect(self.reset_ccd_camera_coordinates)
         self.v.get_control_widget().Signal_plot_trigger.connect(self.plot_trigger)
         self.v.get_control_widget().Signal_start_video.connect(self.start_video)
         self.v.get_control_widget().Signal_stop_video.connect(self.stop_video)
@@ -127,16 +127,16 @@ class MainController:
         self.con_controller.display_deck_position(p)
         self.m.dm.SetDM(self.p.shwfsr._dm_cmd[1])
 
-        # maincam, wfscam = self.con_controller.get_camera_selections()
-        maincam = "EMCCD"
-        wfscam = "sCMOS"
-        if maincam == "EMCCD":
+        # self.main_cam, self.wfs_cam = self.con_controller.get_camera_selections()
+        self.main_cam = "EMCCD"
+        self.wfs_cam = "sCMOS"
+        if self.main_cam == "EMCCD":
             self.main_cam = self.m.ccdcam
-        elif maincam == "sCMOS":
+        elif self.main_cam == "sCMOS":
             self.main_cam = self.m.scmoscam
-        if wfscam == "sCMOS":
+        if self.wfs_cam == "sCMOS":
             self.wfs_cam = self.m.scmoscam
-        elif wfscam == "EMCCD":
+        elif self.wfs_cam == "EMCCD":
             self.wfs_cam = self.m.ccdcam
         self.dm_cam = self.m.tiscam
 
@@ -240,13 +240,31 @@ class MainController:
         self.m.laser.laserOFF_488_2()
         self.m.laser.laserOFF_405()
 
-    def set_ccd_camera_coordinates(self):
-        x, y, n = self.con_controller.get_camera_coordinates()
-        b = self.con_controller.get_camera_bin()
-        self.m.ccdcam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
+    def set_main_camera_roi(self):
+        if self.main_cam == "EMCCD":
+            x, y, n, b = self.con_controller.get_emccd_roi()
+        if self.main_cam == "sCMOS":
+            x, y, n, b = self.con_controller.get_scmos_roi()
+        self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
 
-    def reset_ccd_camera_coordinates(self):
-        self.m.ccdcam.set_roi(1, 1, 1, 1024, 1, 1024)
+    def set_wfs_camera_roi(self):
+        if self.wfs_cam == "sCMOS":
+            x, y, n, b = self.con_controller.get_scmos_roi()
+        elif self.wfs_cam == "EMCCD":
+            x, y, n, b = self.con_controller.get_emccd_roi()
+        self.wfs_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
+
+    # def reset_main_camera_roi(self):
+    #     if self.main_cam == "EMCCD":
+    #         self.main_cam.set_roi(1, 1, 1, 1024, 1, 1024)
+    #     if self.main_cam == "sCMOS":
+    #         self.main_cam.set_roi(1, 1, 1, 2048, 1, 2048)
+    #
+    # def reset_wfs_camera_roi(self):
+    #     if self.wfs_cam == "sCMOS":
+    #         self.wfs_cam.set_roi(1, 1, 1, 2048, 1, 2048)
+    #     elif self.wfs_cam == "EMCCD":
+    #         self.wfs_cam.set_roi(1, 1, 1, 1024, 1, 1024)
 
     def set_ccd_gain(self):
         gain = self.con_controller.get_emccd_gain()
@@ -269,6 +287,7 @@ class MainController:
 
     def start_video(self):
         self.set_lasers()
+        self.set_main_camera_roi()
         self.main_cam.prepare_live()
         self.m.daq.trig_open(self.generate_digital_trigger_sw())
         self.main_cam.start_live()
