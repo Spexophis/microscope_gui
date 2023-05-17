@@ -10,7 +10,22 @@ from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as Navigatio
 import numpy as np
 from utilities import customized_widgets as cw
 from utilities import napari_tools
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
+from io import StringIO
+
+
+class ConsoleRedirector:
+    def __init__(self, text_widget):
+        self.text_widget = text_widget
+        self.stdout = sys.stdout
+        self.stderr = sys.stderr
+
+    def write(self, message):
+        self.text_widget.moveCursor(QtGui.QTextCursor.End)
+        self.text_widget.insertPlainText(message)
+
+    def flush(self):
+        pass
 
 
 class MplCanvas(FigureCanvas):
@@ -31,8 +46,10 @@ class ViewWidget(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout()
         splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         dock_view, group_view = cw.create_dock('Camera View')
+        dock_console, group_console = cw.create_dock('Console')
         dock_plot, group_plot = cw.create_dock('Plot')
         splitter.addWidget(dock_view)
+        splitter.addWidget(dock_console)
         splitter.addWidget(dock_plot)
         layout.addWidget(splitter)
         self.setLayout(layout)
@@ -43,8 +60,16 @@ class ViewWidget(QtWidgets.QWidget):
         layout_view.addWidget(self.napariViewer.get_widget())
         group_view.setLayout(layout_view)
 
+        layout_console = QtWidgets.QVBoxLayout()
+        self.text_edit = cw.text_widget()
+        self.console_redirector = ConsoleRedirector(self.text_edit)
+        sys.stdout = self.console_redirector
+        sys.stderr = self.console_redirector
+        layout_console.addWidget(self.text_edit)
+        group_console.setLayout(layout_console)
+
         layout_plot = QtWidgets.QVBoxLayout()
-        self.canvas = MplCanvas(self, dpi=100)
+        self.canvas = MplCanvas(self, dpi=128)
         toolbar = NavigationToolbar(self.canvas)
         layout_plot.addWidget(toolbar)
         layout_plot.addWidget(self.canvas)

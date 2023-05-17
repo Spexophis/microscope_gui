@@ -245,7 +245,7 @@ class MainController:
             x, y, n, b = self.con_controller.get_emccd_roi()
             self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
             gain = self.con_controller.get_emccd_gain()
-            self.m.main_cam.set_gain(gain)
+            self.main_cam.set_gain(gain)
         elif "sCMOS" == self.main_camera:
             x, y, n, b = self.con_controller.get_scmos_roi()
             self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
@@ -260,7 +260,7 @@ class MainController:
             x, y, n, b = self.con_controller.get_emccd_roi()
             self.wfs_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
             gain = self.con_controller.get_emccd_gain()
-            self.m.main_cam.set_gain(gain)
+            self.main_cam.set_gain(gain)
         else:
             print("Invalid WFS Camera")
 
@@ -584,7 +584,9 @@ class MainController:
 
     def start_img_wfs(self):
         self.set_lasers()
+        self.set_img_wfs()
         self.wfs_cam.prepare_live()
+        self.set_wfs_camera_roi()
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open(dgtr)
         self.wfs_cam.start_live()

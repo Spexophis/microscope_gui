@@ -717,13 +717,6 @@ class HamamatsuCameraMR(HamamatsuCamera):
         self.date_ptr = False
         self.old_frame_bytes = -1
 
-    def set_roi(self, hbin, vbin, hstart, hend, vstart, vend):
-        self.setPropertyValue("subarray_hpos", hstart)
-        self.setPropertyValue("subarray_hsize", abs(hend - hstart + 1))
-        self.setPropertyValue("subarray_vpos", vstart)
-        self.setPropertyValue("subarray_vsize", abs(vend - vstart + 1))
-        self.setPropertyValue("binning", hbin)
-
     def startAcquisition(self):
         """
         Allocate as many frames as will fit in 2GB of memory and start data acquisition.
@@ -771,7 +764,11 @@ class HamamatsuCameraMR(HamamatsuCamera):
         self.checkStatus(dcam.dcamcap_stop(self.camera_handle), "dcamcap_stop")
 
     def set_roi(self, hbin, vbin, hstart, hend, vstart, vend):
-        return True
+        self.setPropertyValue("subarray_hpos", hstart)
+        self.setPropertyValue("subarray_hsize", abs(hend - hstart + 1))
+        self.setPropertyValue("subarray_vpos", vstart)
+        self.setPropertyValue("subarray_vsize", abs(vend - vstart + 1))
+        self.setPropertyValue("binning", hbin)
 
     def prepare_live(self):
         self.acquisition_mode = "run_till_abort"

@@ -300,17 +300,14 @@ def radiobutton_widget(name='', color=f"rgb(192, 255, 62)", autoex=False):
                         background-color: #444444;
                         color: white;
                     }
-                    
                     QRadioButton::indicator {
                         width: 8px;
                         height: 8px;
                     }
-                
                     QRadioButton::indicator::unchecked {
                         border: 2px solid rgb(200, 200, 200);
                         border-radius: 4px;
                     }
-                
                     QRadioButton::indicator::checked {
                         background-color: %s;
                         border: 2px solid %s;
@@ -342,6 +339,19 @@ def lineedit_widget():
                         }
                     ''')
     return lineedit
+
+
+def text_widget():
+    text_edit = QtWidgets.QTextEdit()
+    text_edit.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
+    text_edit.setStyleSheet('''
+                        QTextEdit {
+                            background-color: #444444;
+                            color: white;
+                            selection-background-color: #0096FF
+                            }
+                        ''')
+    return text_edit
 
 
 def slider_widget(mi, ma, value, step):
