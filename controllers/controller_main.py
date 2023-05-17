@@ -243,16 +243,18 @@ class MainController:
     def set_main_camera_roi(self):
         if self.main_cam == "EMCCD":
             x, y, n, b = self.con_controller.get_emccd_roi()
+            self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
         if self.main_cam == "sCMOS":
             x, y, n, b = self.con_controller.get_scmos_roi()
-        self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
+            self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
 
     def set_wfs_camera_roi(self):
         if self.wfs_cam == "sCMOS":
             x, y, n, b = self.con_controller.get_scmos_roi()
+            self.wfs_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
         elif self.wfs_cam == "EMCCD":
             x, y, n, b = self.con_controller.get_emccd_roi()
-        self.wfs_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
+            self.wfs_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
 
     # def reset_main_camera_roi(self):
     #     if self.main_cam == "EMCCD":
