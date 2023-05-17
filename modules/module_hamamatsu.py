@@ -718,7 +718,11 @@ class HamamatsuCameraMR(HamamatsuCamera):
         self.old_frame_bytes = -1
 
     def set_roi(self, hbin, vbin, hstart, hend, vstart, vend):
-        return True
+        self.setPropertyValue("subarray_hpos", hstart)
+        self.setPropertyValue("subarray_hsize", abs(hend - hstart + 1))
+        self.setPropertyValue("subarray_vpos", vstart)
+        self.setPropertyValue("subarray_vsize", abs(vend - vstart + 1))
+        self.setPropertyValue("binning", hbin)
 
     def startAcquisition(self):
         """

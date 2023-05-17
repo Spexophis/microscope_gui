@@ -244,7 +244,8 @@ class MainController:
         if "EMCCD" == self.main_camera:
             x, y, n, b = self.con_controller.get_emccd_roi()
             self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
-            self.set_ccd_gain()
+            gain = self.con_controller.get_emccd_gain()
+            self.m.main_cam.set_gain(gain)
         elif "sCMOS" == self.main_camera:
             x, y, n, b = self.con_controller.get_scmos_roi()
             self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
@@ -258,7 +259,8 @@ class MainController:
         elif "EMCCD" == self.wfs_camera:
             x, y, n, b = self.con_controller.get_emccd_roi()
             self.wfs_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
-            self.set_ccd_gain()
+            gain = self.con_controller.get_emccd_gain()
+            self.m.main_cam.set_gain(gain)
         else:
             print("Invalid WFS Camera")
 
@@ -273,10 +275,6 @@ class MainController:
     #         self.wfs_cam.set_roi(1, 1, 1, 2048, 1, 2048)
     #     elif self.wfs_cam == "EMCCD":
     #         self.wfs_cam.set_roi(1, 1, 1, 1024, 1, 1024)
-
-    def set_ccd_gain(self):
-        gain = self.con_controller.get_emccd_gain()
-        self.m.ccdcam.set_gain(gain)
 
     def check_emdccd_temperature(self):
         self.con_controller.display_camera_temperature(self.m.ccdcam.get_ccd_temperature())
