@@ -130,6 +130,7 @@ class EMCCDCamera:
             self.xpixels = vend - vstart + 1
             self.ypixels = hend - hstart + 1
             self.ps = 13 / hbin
+            print("Image size: xpixels = {} ypixels = {}".format(self.xpixels, self.ypixels))
         else:
             print(atmcd_errors.Error_Codes(self.ret))
         # self.ret = self.sdk.SetImage(1, 1, 1, self.xpixels, 1, self.ypixels)
