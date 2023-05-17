@@ -128,15 +128,15 @@ class MainController:
         self.m.dm.SetDM(self.p.shwfsr._dm_cmd[1])
 
         # self.main_cam, self.wfs_cam = self.con_controller.get_camera_selections()
-        self.main_cam = "EMCCD"
-        self.wfs_cam = "sCMOS"
-        if self.main_cam == "EMCCD":
+        self.main_camera = "EMCCD"
+        self.wfs_camera = "sCMOS"
+        if "EMCCD" == self.main_camera:
             self.main_cam = self.m.ccdcam
-        elif self.main_cam == "sCMOS":
+        elif "sCMOS" == self.main_camera:
             self.main_cam = self.m.scmoscam
-        if self.wfs_cam == "sCMOS":
+        if "sCMOS" == self.wfs_camera:
             self.wfs_cam = self.m.scmoscam
-        elif self.wfs_cam == "EMCCD":
+        elif "EMCCD" == self.wfs_camera:
             self.wfs_cam = self.m.ccdcam
         self.dm_cam = self.m.tiscam
 
@@ -241,22 +241,24 @@ class MainController:
         self.m.laser.laserOFF_405()
 
     def set_main_camera_roi(self):
-        if self.main_cam == "EMCCD":
+        if "EMCCD" == self.main_camera:
             x, y, n, b = self.con_controller.get_emccd_roi()
             self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
-        elif self.main_cam == "sCMOS":
+            self.set_ccd_gain()
+        elif "sCMOS" == self.main_camera:
             x, y, n, b = self.con_controller.get_scmos_roi()
             self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
         else:
             print("Invalid Main Camera")
 
     def set_wfs_camera_roi(self):
-        if self.wfs_cam == "sCMOS":
+        if "sCMOS" == self.wfs_camera:
             x, y, n, b = self.con_controller.get_scmos_roi()
             self.wfs_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
-        elif self.wfs_cam == "EMCCD":
+        elif "EMCCD" == self.wfs_camera:
             x, y, n, b = self.con_controller.get_emccd_roi()
             self.wfs_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
+            self.set_ccd_gain()
         else:
             print("Invalid WFS Camera")
 
@@ -294,7 +296,7 @@ class MainController:
     def start_video(self):
         self.set_lasers()
         self.main_cam.prepare_live()
-        self.set_main_camera_roi()
+        # self.set_main_camera_roi()
         self.m.daq.trig_open(self.generate_digital_trigger_sw())
         self.main_cam.start_live()
         self.m.daq.trig_run()
