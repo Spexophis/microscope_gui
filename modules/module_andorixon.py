@@ -107,14 +107,12 @@ class EMCCDCamera:
             print(atmcd_errors.Error_Codes(self.ret))
 
     def get_gain(self):
-        try:
-            (self.ret, gain) = self.sdk.GetEMCCDGain()
-            if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
-                return gain
-            else:
-                print(atmcd_errors.Error_Codes(self.ret))
-        except Exception as e:
-            print("An error occurred:", e)
+        (self.ret, gain) = self.sdk.GetEMCCDGain()
+        if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
+            return gain
+        else:
+            print(atmcd_errors.Error_Codes(self.ret))
+            return 0
 
     def set_roi(self, hbin, vbin, hstart, hend, vstart, vend):
         self.ret = self.sdk.SetImage(hbin, vbin, hstart, hend, vstart, vend)
