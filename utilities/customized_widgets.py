@@ -214,10 +214,11 @@ def doublespinbox_widget(range_min, range_max, step, decimals, value):
     return doublespinbox
 
 
-def pushbutton_widget(name='', checkable=False, enable=True):
+def pushbutton_widget(name='', checkable=False, enable=True, checked=False):
     button = QtWidgets.QPushButton(name)
     button.setCheckable(checkable)
     button.setEnabled(enable)
+    button.setChecked(checked)
     button.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
     button.setStyleSheet('''
         QPushButton {
@@ -227,16 +228,13 @@ def pushbutton_widget(name='', checkable=False, enable=True):
             color: #FFFFFF;
             padding: 2px;
         }
-        
         QPushButton:hover {
             background-color: #4169e1;
         }
-        
         QPushButton:pressed {
             background-color: #045c64;
             border-style: inset;
         }
-        
         QPushButton:checked {
             background-color: #a52a2a;
             border-style: inset;

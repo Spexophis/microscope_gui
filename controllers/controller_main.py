@@ -82,6 +82,9 @@ class MainController:
         self.v.get_control_widget().Signal_setlaseroff_488_2.connect(self.set_laseroff_488_2)
         self.v.get_control_widget().Signal_setlaseroff_405.connect(self.set_laseroff_405)
         # Main Image Control
+        self.v.get_control_widget().Signal_check_emccd_temperature.connect(self.check_emdccd_temperature)
+        self.v.get_control_widget().Signal_switch_emccd_cooler_on.connect(self.switch_emdccd_cooler_on)
+        self.v.get_control_widget().Signal_switch_emccd_cooler_off.connect(self.switch_emdccd_cooler_off)
         self.v.get_control_widget().Signal_setcoordinates.connect(self.set_ccd_camera_coordinates)
         self.v.get_control_widget().Signal_resetcoordinates.connect(self.reset_ccd_camera_coordinates)
         self.v.get_control_widget().Signal_plot_trigger.connect(self.plot_trigger)
@@ -120,8 +123,6 @@ class MainController:
         self.v.get_ao_widget().Signal_img_shwfs_correct_wf.connect(self.correct_img_wf)
         self.v.get_ao_widget().Signal_sensorlessAO_run.connect(self.ao_optimize)
 
-        temperature = self.m.ccdcam.get_ccd_temperature()
-        self.con_controller.display_camera_temperature(temperature)
         p = self.m.md.getPositionStepsTakenAxis(3)
         self.con_controller.display_deck_position(p)
         self.m.dm.SetDM(self.p.shwfsr._dm_cmd[1])
@@ -250,6 +251,15 @@ class MainController:
     def set_ccd_gain(self):
         gain = self.con_controller.get_emccd_gain()
         self.m.ccdcam.set_gain(gain)
+
+    def check_emdccd_temperature(self):
+        self.con_controller.display_camera_temperature(self.m.ccdcam.get_ccd_temperature())
+
+    def switch_emdccd_cooler_on(self):
+        self.m.ccdcam.cooler_on()
+
+    def switch_emdccd_cooler_off(self):
+        self.m.ccdcam.cooler_off()
 
     def generate_digital_trigger_sw(self):
         lasers = self.con_controller.get_lasers()

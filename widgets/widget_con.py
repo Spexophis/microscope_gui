@@ -4,6 +4,9 @@ from utilities import customized_widgets as cw
 
 
 class ConWidget(QtWidgets.QWidget):
+    Signal_check_emccd_temperature = QtCore.pyqtSignal()
+    Signal_switch_emccd_cooler_on = QtCore.pyqtSignal()
+    Signal_switch_emccd_cooler_off = QtCore.pyqtSignal()
     Signal_piezo_move_x = QtCore.pyqtSignal()
     Signal_piezo_move_y = QtCore.pyqtSignal()
     Signal_piezo_move_z = QtCore.pyqtSignal()
@@ -59,6 +62,8 @@ class ConWidget(QtWidgets.QWidget):
         self.QLabel_emccd = cw.label_widget(str('EMCCD'))
         self.QLabel_ccd_tempetature = cw.label_widget(str('CCD Temperature'))
         self.QLCDNumber_ccd_tempetature = cw.lcdnumber_widget(0, 3)
+        self.QPushButton_emccd_cooler_check = cw.pushbutton_widget('Check', False, True)
+        self.QPushButton_emccd_cooler_switch = cw.pushbutton_widget('OFF', True, True)
         self.QLabel_emccd_exposure_time = cw.label_widget(str('Exposure Time (s)'))
         self.QDoubleSpinBox_emccd_exposure_time = cw.doublespinbox_widget(0, 10, 0.005, 3, 0.02)
         self.QLabel_emccd_gain = cw.label_widget(str('EMCCD Gain'))
@@ -74,6 +79,7 @@ class ConWidget(QtWidgets.QWidget):
         self.emccd_scroll_area, emccd_scroll_layout = cw.create_scroll_area()
         emccd_scroll_layout.addRow(self.QLabel_emccd)
         emccd_scroll_layout.addRow(self.QLabel_ccd_tempetature, self.QLCDNumber_ccd_tempetature)
+        emccd_scroll_layout.addRow(self.QPushButton_emccd_cooler_check, self.QPushButton_emccd_cooler_switch)
         emccd_scroll_layout.addRow(self.QLabel_emccd_exposure_time, self.QDoubleSpinBox_emccd_exposure_time)
         emccd_scroll_layout.addRow(self.QLabel_emccd_gain, self.QSpinBox_emccd_gain)
         emccd_scroll_layout.addRow(self.QLabel_emccd_coordinate_x, self.QSpinBox_emccd_coordinate_x)
@@ -331,6 +337,8 @@ class ConWidget(QtWidgets.QWidget):
         Layout_DataAquisition.addWidget(self.QPushButton_save, 1, 3, 1, 1)
         group_DataAquisition.setLayout(Layout_DataAquisition)
 
+        self.QPushButton_emccd_cooler_check.clicked.connect(self.check_emccd_temperature)
+        self.QPushButton_emccd_cooler_switch.clicked.connect(self.switch_emccd_cooler)
         self.QDoubleSpinBox_stage_x.valueChanged.connect(self.Signal_piezo_move_x.emit)
         self.QDoubleSpinBox_stage_y.valueChanged.connect(self.Signal_piezo_move_y.emit)
         self.QDoubleSpinBox_stage_z.valueChanged.connect(self.Signal_piezo_move_z.emit)
@@ -353,6 +361,20 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_galvo_scan.clicked.connect(self.galvo_scan)
         self.QPushButton_2d_beadscan.clicked.connect(self.beadscan_2d)
         self.QComboBox_trigger_parameter.currentIndexChanged.connect(self.update_trigger_parameter_sets)
+
+    def check_emccd_temperature(self):
+        self.Signal_check_emccd_temperature.emit()
+
+    def switch_emccd_cooler(self, checked):
+        if checked:
+            self.QPushButton_emccd_cooler_switch.setText("Cooler ON")
+            self.Signal_switch_emccd_cooler_on.emit()
+            print("Cooler is ON")
+        else:
+            self.QPushButton_emccd_cooler_switch.setText("Cooler OFF")
+            self.Signal_switch_emccd_cooler_off.emit()
+            print("Cooler is OFF")
+
 
     def deck_move_up(self):
         self.Signal_deck_up.emit()

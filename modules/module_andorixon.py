@@ -54,10 +54,31 @@ class EMCCDCamera:
         else:
             print(atmcd_errors.Error_Codes(self.ret))
 
-    def cooler_off(self):
-        self.ret = self.sdk.CoolerOFF()
+    def cooler_on(self):
+        (self.ret, self.cooler_status) = self.sdk.IsCoolerOn()
         if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
-            print("Cooler OFF")
+            if not self.cooler_status:
+                self.ret = self.sdk.CoolerON()
+                if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
+                    print("Cooler ON")
+                else:
+                    print(atmcd_errors.Error_Codes(self.ret))
+            else:
+                print("Cooler is ON")
+        else:
+            print(atmcd_errors.Error_Codes(self.ret))
+
+    def cooler_off(self):
+        (self.ret, self.cooler_status) = self.sdk.IsCoolerOn()
+        if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
+            if self.cooler_status:
+                self.ret = self.sdk.CoolerOFF()
+                if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
+                    print("Cooler OFF")
+                else:
+                    print(atmcd_errors.Error_Codes(self.ret))
+            else:
+                print("Cooler is OFF")
         else:
             print(atmcd_errors.Error_Codes(self.ret))
 
