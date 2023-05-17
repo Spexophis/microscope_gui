@@ -102,7 +102,8 @@ class EMCCDCamera:
     def set_gain(self, emccdgain):
         self.ret = self.sdk.SetEMCCDGain(emccdgain)
         if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
-            print("Set CCD EMGain to {}".format(emccdgain))
+            gain = self.get_gain()
+            print("Set CCD EMGain to {}".format(gain))
         else:
             print(atmcd_errors.Error_Codes(self.ret))
 
