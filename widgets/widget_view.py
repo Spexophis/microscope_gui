@@ -46,11 +46,11 @@ class ViewWidget(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout()
         splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         dock_view, group_view = cw.create_dock('Camera View')
-        dock_console, group_console = cw.create_dock('Console')
         dock_plot, group_plot = cw.create_dock('Plot')
+        dock_console, group_console = cw.create_dock('Console')
         splitter.addWidget(dock_view)
-        splitter.addWidget(dock_console)
         splitter.addWidget(dock_plot)
+        splitter.addWidget(dock_console)
         layout.addWidget(splitter)
         self.setLayout(layout)
 
@@ -60,6 +60,13 @@ class ViewWidget(QtWidgets.QWidget):
         layout_view.addWidget(self.napariViewer.get_widget())
         group_view.setLayout(layout_view)
 
+        layout_plot = QtWidgets.QVBoxLayout()
+        self.canvas = MplCanvas(self, dpi=64)
+        toolbar = NavigationToolbar(self.canvas)
+        layout_plot.addWidget(toolbar)
+        layout_plot.addWidget(self.canvas)
+        group_plot.setLayout(layout_plot)
+
         layout_console = QtWidgets.QVBoxLayout()
         self.text_edit = cw.text_widget()
         self.console_redirector = ConsoleRedirector(self.text_edit)
@@ -67,13 +74,6 @@ class ViewWidget(QtWidgets.QWidget):
         sys.stderr = self.console_redirector
         layout_console.addWidget(self.text_edit)
         group_console.setLayout(layout_console)
-
-        layout_plot = QtWidgets.QVBoxLayout()
-        self.canvas = MplCanvas(self, dpi=128)
-        toolbar = NavigationToolbar(self.canvas)
-        layout_plot.addWidget(toolbar)
-        layout_plot.addWidget(self.canvas)
-        group_plot.setLayout(layout_plot)
 
         self.imgLayers = {}
 
