@@ -222,4 +222,4 @@ class TISCamera:
         ic.IC_ShowPropertyDialog(self.hGrabber)
 
     def save_img(self):
-        ic.IC_SaveImage(self.hGrabber, tis.T(r'C:\Users\ruizhe.lin\Desktop\test0.jpg'), tis.ImageFileTypes['JPEG'], 100)
+        ic.IC_SaveImage(self.hGrabber, tis.T(r'C:\Users\ruizhe.lin\Desktop\test.jpg'), tis.ImageFileTypes['JPEG'], 100)
