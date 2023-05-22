@@ -59,7 +59,7 @@ class MainController:
         self.wfsWorker.moveToThread(self.thread_wfs)
         self.thread_wfs.started.connect(self.wfsWorker.run)
         self.thread_wfs.finished.connect(self.wfsWorker.stop)
-        self.wfsWorker.signal_wfsshow.connect(self.imshow_img_wfs)
+        self.wfsWorker.signal_wfs_show.connect(self.imshow_img_wfs)
         # MCL Piezo
         self.v.get_control_widget().Signal_piezo_move_x.connect(self.set_piezo_position_x)
         self.v.get_control_widget().Signal_piezo_move_y.connect(self.set_piezo_position_y)
@@ -771,7 +771,7 @@ class FFTWorker(QtCore.QObject):
 
 
 class WFSWorker(QtCore.QObject):
-    signal_wfsshow = QtCore.pyqtSignal()
+    signal_wfs_show = QtCore.pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__()
@@ -780,7 +780,7 @@ class WFSWorker(QtCore.QObject):
     def run(self):
         self.timer = QtCore.QTimer()
         self.timer.setInterval(100)
-        self.timer.timeout.connect(self.signal_wfsshow.emit)
+        self.timer.timeout.connect(self.signal_wfs_show.emit)
         self.timer.start()
 
     def stop(self):
