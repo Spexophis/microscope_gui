@@ -35,10 +35,14 @@ class TISCamera:
                         print("SUCCESS: Set Brightness zero")
                     else:
                         print("FAIL: Set Brightness zero")
-                    if ic.IC_SetContinuousMode(self.hGrabber, 1) == tis.IC_SUCCESS:
-                        print("SUCCESS: Set Continuous Mode")
+                    if ic.IC_SetContinuousMode(self.hGrabber, 0) == tis.IC_SUCCESS:
+                        print("SUCCESS: Set Continuous Mode Off")
                     else:
-                        print("FAIL: Set Continuous Mode")
+                        print("FAIL: Set Continuous Mode Off")
+                    if ic.IC_SetFormat(self.hGrabber, ctypes.c_int(4)) == tis.IC_SUCCESS:
+                        print("SUCCESS: Set Format Y16")
+                    else:
+                        print("FAIL: Set Format Y16")
                     if ic.IC_SetVideoFormat(self.hGrabber, tis.T("Y16 (2448x2048)")) == tis.IC_SUCCESS:
                         print("SUCCESS: Set Video Format Y16 (2448x2048)")
                     else:
@@ -170,7 +174,7 @@ class TISCamera:
         img_depth = ctypes.c_int()
         color_format = ctypes.c_int()
         if ic.IC_GetImageDescription(self.hGrabber, img_width, img_height, img_depth, color_format) == tis.IC_SUCCESS:
-            img_depth = int(img_depth.value / 8.0)
+            img_depth = int(img_depth.value / 16.0) * ctypes.sizeof(ctypes.c_uint16)
             buffer_size = img_width.value * img_height.value * img_depth
             return buffer_size, img_width, img_height, img_depth
 
@@ -178,9 +182,9 @@ class TISCamera:
         buffer_size, width, height, depth = self.get_buffer()
         image_pointer = ic.IC_GetImagePtr(self.hGrabber)
         image_data = ctypes.cast(image_pointer, ctypes.POINTER(ctypes.c_ubyte * int(buffer_size)))
-        image = np.array(image_data.contents, dtype='float16')
+        image = np.array(image_data.contents)
         image = np.reshape(image, (int(height.value), int(width.value), depth))
-        return image[:, :, 0]
+        return image[:, :, 0] + image[:, :, 1] * (2 ** 8)
 
     def show_property(self):
         ic.IC_ShowPropertyDialog(self.hGrabber)
