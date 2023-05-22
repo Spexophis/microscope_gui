@@ -76,14 +76,27 @@ class TISCamera:
                         print("SUCCESS: Set Continuous Mode")
                     else:
                         print("FAIL: Set Continuous Mode")
-                    if ic.IC_SetVideoFormat(self.hGrabber, tis.T("Y800 (2448x2048)")) == tis.IC_SUCCESS:
-                        print("SUCCESS: Set Video Format Y800 (2448x2048)")
+                    if ic.IC_SetVideoFormat(self.hGrabber, tis.T("Y16 (2448x2048)")) == tis.IC_SUCCESS:
+                        print("SUCCESS: Set Video Format Y16 (2448x2048)")
                     else:
-                        print("FAIL: Set Video Format Y800 (2448x2048)")
+                        print("FAIL: Set Video Format Y16 (2448x2048)")
                     if ic.IC_SetFrameRate(self.hGrabber, ctypes.c_float(30.0)) == tis.IC_SUCCESS:
                         print("SUCCESS: Set Frame Rate 30fps")
                     else:
                         print("FAIL: Set Frame Rate 30fps")
+                    if ic.IC_SetPropertyValue(self.hGrabber, tis.T("Denoise"), tis.T("Value"),
+                                              ctypes.c_int(4)) == tis.IC_SUCCESS:
+                        print("SUCCESS: Set Denoise to 4")
+                    else:
+                        print("FAIL: Set Denoise")
+                    if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Gain"), tis.T("Auto"), 1) == tis.IC_SUCCESS:
+                        print("SUCCESS: Set Auto Gain")
+                    else:
+                        print("FAIL: Set Auto Gain")
+                    if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Exposure"), tis.T("Auto"), 1) == tis.IC_SUCCESS:
+                        print("SUCCESS: Set Exposure Auto")
+                    else:
+                        print("FAIL: Set Exposure Auto")
                     self.data = None
                 else:
                     print("Invalid TISGrabber")
@@ -101,7 +114,7 @@ class TISCamera:
                 print("TIS Camera OFF")
 
     def prepare_live(self):
-        pass
+        print('Live ready')
 
     def start_live(self):
         if ic.IC_IsDevValid(self.hGrabber):
@@ -204,3 +217,9 @@ class TISCamera:
         imagedata = ctypes.cast(image_pointer, ctypes.POINTER(ctypes.c_ubyte * buffer_size))
         image = np.ndarray(buffer=imagedata.contents, dtype=np.uint16, shape=(height.value, width.value, bpp))
         return image
+
+    def show_property(self):
+        ic.IC_ShowPropertyDialog(self.hGrabber)
+
+    def save_img(self):
+        ic.IC_SaveImage(self.hGrabber, tis.T(r'C:\Users\ruizhe.lin\Desktop\test0.jpg'), tis.ImageFileTypes['JPEG'], 100)
