@@ -159,6 +159,7 @@ class TISCamera:
     def get_last_image(self):
         self.snap_image()
         self.data = self.get_data()
+        return self.data
 
     def snap_image(self):
         if ic.IC_SnapImage(self.hGrabber, 2000) == tis.IC_SUCCESS:
