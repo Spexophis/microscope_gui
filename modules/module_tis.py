@@ -11,43 +11,6 @@ tis.declareFunctions(ic)
 ic.IC_InitLibrary(0)
 
 
-class CallbackUserdata(ctypes.Structure):
-    """ Example for user data passed to the callback function."""
-
-    def __init__(self, ):
-        self.unsused = ""
-
-
-def frameReadyCallback(hGrabber, pBuffer, framenumber, pData):
-    Width = ctypes.c_long()
-    Height = ctypes.c_long()
-    BitsPerPixel = ctypes.c_int()
-    colorformat = ctypes.c_int()
-
-    # Query the image description values
-    ic.IC_GetImageDescription(hGrabber, Width, Height, BitsPerPixel,
-                              colorformat)
-
-    # Calculate the buffer size
-    bpp = int(BitsPerPixel.value / 8.0)
-    buffer_size = Width.value * Height.value * bpp
-
-    if buffer_size > 0:
-        image = ctypes.cast(pBuffer,
-                            ctypes.POINTER(
-                                ctypes.c_ubyte * buffer_size))
-
-        cvMat = np.ndarray(buffer=image.contents,
-                           dtype=np.uint8,
-                           shape=(Height.value,
-                                  Width.value,
-                                  bpp))
-
-
-frameReadyCallbackfunc = ic.FRAMEREADYCALLBACK(frameReadyCallback)
-userdata = CallbackUserdata()
-
-
 class TISCamera:
 
     def __init__(self):
@@ -207,16 +170,17 @@ class TISCamera:
         img_depth = ctypes.c_int()
         color_format = ctypes.c_int()
         if ic.IC_GetImageDescription(self.hGrabber, img_width, img_height, img_depth, color_format) == tis.IC_SUCCESS:
-            bpp = int(img_depth.value / 8.0)
-            buffer_size = img_width.value * img_height.value * img_depth.value
-            return bpp, buffer_size, img_width, img_height, img_depth
+            img_depth = int(img_depth.value / 8.0)
+            buffer_size = img_width.value * img_height.value * img_depth
+            return buffer_size, img_width, img_height, img_depth
 
     def get_data(self):
-        bpp, buffer_size, width, height, depth = self.get_buffer()
+        buffer_size, width, height, depth = self.get_buffer()
         image_pointer = ic.IC_GetImagePtr(self.hGrabber)
-        imagedata = ctypes.cast(image_pointer, ctypes.POINTER(ctypes.c_ubyte * buffer_size))
-        image = np.ndarray(buffer=imagedata.contents, dtype=np.uint16, shape=(height.value, width.value, bpp))
-        return image
+        image_data = ctypes.cast(image_pointer, ctypes.POINTER(ctypes.c_ubyte * int(buffer_size)))
+        image = np.array(image_data.contents, dtype='float16')
+        image = np.reshape(image, (int(height.value), int(width.value), depth))
+        return image[:, :, 0]
 
     def show_property(self):
         ic.IC_ShowPropertyDialog(self.hGrabber)
