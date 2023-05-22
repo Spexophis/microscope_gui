@@ -494,7 +494,7 @@ class MainController:
         self.dm_cam.start_live()
         # self.m.daq.trig_run()
         time.sleep(0.1)
-        self.thread_wfs.start()
+        self.thread_dmwfs.start()
 
     def stop_dm_wfs(self):
         self.thread_dmwfs.quit()
