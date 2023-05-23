@@ -44,10 +44,10 @@ class NIDAQ:
             print(errBuff.value)
 
     def __del__(self):
-        self.Reset_daq()
+        self.reset_daq()
         del self.counterHandle, self.doHandle, self.piezoHandle, self.galvoHandle, self.rpHandle
 
-    def Reset_daq(self):
+    def reset_daq(self):
         try:
             PyDAQmx.DAQmxResetDevice("Dev1")
             print('DAQ board reset')

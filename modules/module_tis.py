@@ -5,6 +5,7 @@ sys.path.append(r'C:\Program Files\The Imaging Source Europe GmbH\sources')
 import ctypes
 import numpy as np
 import tisgrabber as tis
+import struct
 
 ic = ctypes.cdll.LoadLibrary(r'C:\Program Files\The Imaging Source Europe GmbH\sources\tisgrabber_x64.dll')
 tis.declareFunctions(ic)
@@ -25,20 +26,15 @@ class TISCamera:
             if ic.IC_OpenDevByUniqueName(self.hGrabber, tis.T(self.unique_name)) == tis.IC_SUCCESS:
                 print("SUCCESS: TIS Camera ON")
                 if ic.IC_IsDevValid(self.hGrabber):
-                    if ic.IC_SetPropertyAbsoluteValue(self.hGrabber, tis.T("Gain"), tis.T("Value"),
-                                                      ctypes.c_float(0)) == tis.IC_SUCCESS:
-                        print("SUCCESS: Set Gain zero")
-                    else:
-                        print("FAIL: Set Gain zero")
                     if ic.IC_SetPropertyValue(self.hGrabber, tis.T("Brightness"), tis.T("Value"),
                                               ctypes.c_int(0)) == tis.IC_SUCCESS:
                         print("SUCCESS: Set Brightness zero")
                     else:
                         print("FAIL: Set Brightness zero")
-                    if ic.IC_SetContinuousMode(self.hGrabber, 0) == tis.IC_SUCCESS:
-                        print("SUCCESS: Set Continuous Mode Off")
+                    if ic.IC_SetContinuousMode(self.hGrabber, 1) == tis.IC_SUCCESS:
+                        print("SUCCESS: Set Continuous Mode ON")
                     else:
-                        print("FAIL: Set Continuous Mode Off")
+                        print("FAIL: Set Continuous Mode ON")
                     if ic.IC_SetFormat(self.hGrabber, ctypes.c_int(4)) == tis.IC_SUCCESS:
                         print("SUCCESS: Set Format Y16")
                     else:
@@ -47,15 +43,10 @@ class TISCamera:
                         print("SUCCESS: Set Video Format Y16 (2448x2048)")
                     else:
                         print("FAIL: Set Video Format Y16 (2448x2048)")
-                    if ic.IC_SetFrameRate(self.hGrabber, ctypes.c_float(30.0)) == tis.IC_SUCCESS:
-                        print("SUCCESS: Set Frame Rate 30fps")
+                    if ic.IC_SetFrameRate(self.hGrabber, ctypes.c_float(37.5)) == tis.IC_SUCCESS:
+                        print("SUCCESS: Set Frame Rate 37.5fps")
                     else:
-                        print("FAIL: Set Frame Rate 30fps")
-                    if ic.IC_SetPropertyValue(self.hGrabber, tis.T("Denoise"), tis.T("Value"),
-                                              ctypes.c_int(4)) == tis.IC_SUCCESS:
-                        print("SUCCESS: Set Denoise to 4")
-                    else:
-                        print("FAIL: Set Denoise")
+                        print("FAIL: Set Frame Rate 37.5fps")
                     if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Gain"), tis.T("Auto"), 1) == tis.IC_SUCCESS:
                         print("SUCCESS: Set Auto Gain")
                     else:
@@ -64,6 +55,11 @@ class TISCamera:
                         print("SUCCESS: Set Exposure Auto")
                     else:
                         print("FAIL: Set Exposure Auto")
+                    if ic.IC_SetPropertyValue(self.hGrabber, tis.T("Denoise"), tis.T("Value"),
+                                              ctypes.c_int(25)) == tis.IC_SUCCESS:
+                        print("SUCCESS: Set Denoise to 16")
+                    else:
+                        print("FAIL: Set Denoise")
                     self.data = None
                 else:
                     print("Invalid TISGrabber")
@@ -183,9 +179,8 @@ class TISCamera:
         buffer_size, width, height, depth = self.get_buffer()
         image_pointer = ic.IC_GetImagePtr(self.hGrabber)
         image_data = ctypes.cast(image_pointer, ctypes.POINTER(ctypes.c_ubyte * int(buffer_size)))
-        image = np.array(image_data.contents)
-        image = np.reshape(image, (int(height.value), int(width.value), depth))
-        return image[:, :, 0] + image[:, :, 1] * (2 ** 8)
+        image = np.ndarray(shape=(height.value, width.value), buffer=image_data.contents, dtype=np.uint16)
+        return image
 
     def show_property(self):
         ic.IC_ShowPropertyDialog(self.hGrabber)

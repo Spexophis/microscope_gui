@@ -132,7 +132,7 @@ class MainController:
 
         p = self.m.md.getPositionStepsTakenAxis(3)
         self.con_controller.display_deck_position(p)
-        self.m.dm.SetDM(self.p.shwfsr._dm_cmd[1])
+        self.m.dm.set_dm(self.p.shwfsr._dm_cmd[1])
 
         # self.main_cam, self.wfs_cam = self.con_controller.get_camera_selections()
         self.main_camera = "EMCCD"
@@ -452,28 +452,28 @@ class MainController:
         n, a = self.ao_controller.get_actuator()
         values = [0.] * self.m.dm.nbAct
         values[n] = a
-        self.m.dm.SetDM(self.p.shwfsr._cmd_add(values, self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
+        self.m.dm.set_dm(self.p.shwfsr._cmd_add(values, self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
 
     def set_zernike(self):
         indz, amp = self.ao_controller.get_zernike_mode()
         # self.m.dm.SetDM(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(indz, amp),
         #                                         self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
-        self.m.dm.SetDM(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[indz]],
-                                               self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
+        self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[indz]],
+                                                self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
 
     def set_dm(self):
         i = int(self.ao_controller.get_cmd_index())
-        self.m.dm.SetDM(self.p.shwfsr._dm_cmd[i])
+        self.m.dm.set_dm(self.p.shwfsr._dm_cmd[i])
         self.p.shwfsr.current_cmd = i
 
     def update_dm(self):
         self.p.shwfsr._dm_cmd.append(self.p.shwfsr._temp_cmd[-1])
         self.ao_controller.update_cmd_index()
-        self.m.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
+        self.m.dm.set_dm(self.p.shwfsr._dm_cmd[-1])
 
     def load_dm(self, filename):
         self.p.shwfsr._dm_cmd.append(self.p.shwfsr._read_cmd(filename))
-        self.m.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
+        self.m.dm.set_dm(self.p.shwfsr._dm_cmd[-1])
         print('New DM cmd loaded')
 
     def save_dm(self):
@@ -504,7 +504,7 @@ class MainController:
         # self.lasers_off()
 
     def imshow_dm_wfs(self):
-        self.view_controller.plot_sh(self.dm_cam.get_last_image())
+        self.view_controller.plot_dm(self.dm_cam.get_last_image())
 
     def set_dm_wfs_base(self):
         self.p.shwfsr.base = self.view_controller.get_image_data('DM Calibration')
@@ -551,28 +551,28 @@ class MainController:
             shimg = []
             print(i)
             values = [0.] * self.m.dm.nbAct
-            self.m.dm.SetDM(values)
+            self.m.dm.set_dm(values)
             time.sleep(0.04)
             # self.m.daq.trig_run()
             # time.sleep(0.04)
             shimg.append(self.dm_cam.get_last_image())
             # self.m.daq.trig_stop()
             values[i] = amp
-            self.m.dm.SetDM(values)
+            self.m.dm.set_dm(values)
             time.sleep(0.04)
             # self.m.daq.trig_run()
             # time.sleep(0.04)
             shimg.append(self.dm_cam.get_last_image())
             # self.m.daq.trig_stop()
             values = [0.] * self.m.dm.nbAct
-            self.m.dm.SetDM(values)
+            self.m.dm.set_dm(values)
             time.sleep(0.04)
             # self.m.daq.trig_run()
             # time.sleep(0.04)
             shimg.append(self.dm_cam.get_last_image())
             # self.m.daq.trig_stop()
             values[i] = - amp
-            self.m.dm.SetDM(values)
+            self.m.dm.set_dm(values)
             # time.sleep(0.04)
             # self.m.daq.trig_run()
             time.sleep(0.04)
@@ -648,7 +648,7 @@ class MainController:
         time.sleep(0.05)
         self.p.shwfsr.get_correction(self.wfs_cam.get_last_image(), self.ao_controller.get_img_wfs_method())
         self.p.shwfsr.correct_cmd()
-        self.m.dm.SetDM(self.p.shwfsr._dm_cmd[-1])
+        self.m.dm.set_dm(self.p.shwfsr._dm_cmd[-1])
         self.ao_controller.update_cmd_index()
         i = int(self.ao_controller.get_cmd_index())
         self.p.shwfsr.current_cmd = i
@@ -683,7 +683,7 @@ class MainController:
         zp = [0] * self.p.shwfsr._n_zernikes
         cmd = self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]
         self.start_ao_iteration()
-        self.m.dm.SetDM(cmd)
+        self.m.dm.set_dm(cmd)
         time.sleep(0.1)
         self.m.daq.trig_run()
         time.sleep(0.1)
@@ -698,7 +698,7 @@ class MainController:
                 amp = amp_start + stnm * amp_step
                 amprange.append(amp)
                 # self.m.dm.SetDM(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
-                self.m.dm.SetDM(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[mode]], cmd))
+                self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[mode]], cmd))
                 time.sleep(0.1)
                 self.m.daq.trig_run()
                 time.sleep(0.1)
@@ -722,10 +722,10 @@ class MainController:
                 zp[mode] = pmax
                 print('--setting mode %d at value of %.4f--' % (mode, pmax))
                 cmd = self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, pmax), cmd)
-                self.m.dm.SetDM(cmd)
+                self.m.dm.set_dm(cmd)
             else:
                 print('----------------mode %d value equals %.4f----' % (mode, pmax))
-        self.m.dm.SetDM(cmd)
+        self.m.dm.set_dm(cmd)
         time.sleep(0.1)
         self.m.daq.trig_run()
         time.sleep(0.1)
