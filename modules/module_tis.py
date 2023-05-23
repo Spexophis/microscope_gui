@@ -57,7 +57,7 @@ class TISCamera:
                         print("FAIL: Set Exposure Auto")
                     if ic.IC_SetPropertyValue(self.hGrabber, tis.T("Denoise"), tis.T("Value"),
                                               ctypes.c_int(25)) == tis.IC_SUCCESS:
-                        print("SUCCESS: Set Denoise to 16")
+                        print("SUCCESS: Set Denoise to 25")
                     else:
                         print("FAIL: Set Denoise")
                     self.data = None
