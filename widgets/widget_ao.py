@@ -11,12 +11,6 @@ class AOWidget(QtWidgets.QWidget):
     Signal_img_shwfs_compute_wf = QtCore.pyqtSignal()
     Signal_img_shwfs_correct_wf = QtCore.pyqtSignal()
     Signal_img_shwfs_save_wf = QtCore.pyqtSignal(str)
-    Signal_dm_wfs_start = QtCore.pyqtSignal()
-    Signal_dm_wfs_stop = QtCore.pyqtSignal()
-    Signal_dm_shwfr_run = QtCore.pyqtSignal()
-    Signal_dm_shwfs_initiate = QtCore.pyqtSignal()
-    Signal_dm_shwfs_compute_wf = QtCore.pyqtSignal()
-    Signal_dm_shwfs_save_wf = QtCore.pyqtSignal(str)
     Signal_push_actuator = QtCore.pyqtSignal()
     Signal_influence_function = QtCore.pyqtSignal()
     Signal_set_zernike = QtCore.pyqtSignal()
@@ -58,20 +52,7 @@ class AOWidget(QtWidgets.QWidget):
         image_shwfs_scroll_layout.addRow(self.QLabel_wfmax_img, self.lcdNumber_wfmax_img)
         image_shwfs_scroll_layout.addRow(self.QLabel_wfmin_img, self.lcdNumber_wfmin_img)
         image_shwfs_scroll_layout.addRow(self.QLabel_wfrms_img, self.lcdNumber_wfrms_img)
-        self.QLabel_dm_shwfs = cw.label_widget(str('DM SHWFS'))
-        self.QLabel_wfmax_dm = cw.label_widget(str('Wavefront MAX'))
-        self.lcdNumber_wfmax_dm = cw.lcdnumber_widget()
-        self.QLabel_wfmin_dm = cw.label_widget(str('Wavefront MIN'))
-        self.lcdNumber_wfmin_dm = cw.lcdnumber_widget()
-        self.QLabel_wfrms_dm = cw.label_widget(str('Wavefront RMS'))
-        self.lcdNumber_wfrms_dm = cw.lcdnumber_widget()
-        self.dm_shwfs_scroll_area, dm_shwfs_scroll_layout = cw.create_scroll_area()
-        dm_shwfs_scroll_layout.addRow(self.QLabel_dm_shwfs)
-        dm_shwfs_scroll_layout.addRow(self.QLabel_wfmax_dm, self.lcdNumber_wfmax_dm)
-        dm_shwfs_scroll_layout.addRow(self.QLabel_wfmin_dm, self.lcdNumber_wfmin_dm)
-        dm_shwfs_scroll_layout.addRow(self.QLabel_wfrms_dm, self.lcdNumber_wfrms_dm)
         layout_image.addWidget(self.image_shwfs_scroll_area)
-        layout_image.addWidget(self.dm_shwfs_scroll_area)
         group_image.setLayout(layout_image)
 
         layout_parameters = QtWidgets.QHBoxLayout()
@@ -105,38 +86,7 @@ class AOWidget(QtWidgets.QWidget):
         image_shwfs_parameters_scroll_layout.addRow(self.QLabel_n_lenslets_y_img, self.QSpinBox_n_lenslets_y_img)
         image_shwfs_parameters_scroll_layout.addRow(self.QLabel_spacing_img, self.QSpinBox_spacing_img)
         image_shwfs_parameters_scroll_layout.addRow(self.QLabel_radius_img, self.QSpinBox_radius_img)
-        self.QLabel_dm_shwfs_parameters = cw.label_widget(str('DM SHWFS Parameters'))
-        self.QLabel_wfrmd_dm = cw.label_widget(str('Method'))
-        self.QComboBox_wfrmd_dm = cw.combobox_widget(list_items=['correlation', 'centerofmass'])
-        self.QLabel_base_xcenter_dm = cw.label_widget(str('X_center (Base)'))
-        self.QSpinBox_base_xcenter_dm = cw.spinbox_widget(0, 2048, 1, 1024)
-        self.QLabel_base_ycenter_dm = cw.label_widget(str('Y_center (Base)'))
-        self.QSpinBox_base_ycenter_dm = cw.spinbox_widget(0, 2048, 1, 1024)
-        self.QLabel_offset_xcenter_dm = cw.label_widget(str('X_center (Offset)'))
-        self.QSpinBox_offset_xcenter_dm = cw.spinbox_widget(0, 2048, 1, 1024)
-        self.QLabel_offset_ycenter_dm = cw.label_widget(str('Y_center (Offset)'))
-        self.QSpinBox_offset_ycenter_dm = cw.spinbox_widget(0, 2048, 1, 1024)
-        self.QLabel_n_lenslets_x_dm = cw.label_widget(str('Lenslet X'))
-        self.QSpinBox_n_lenslets_x_dm = cw.spinbox_widget(0, 64, 1, 14)
-        self.QLabel_n_lenslets_y_dm = cw.label_widget(str('Lenslet Y'))
-        self.QSpinBox_n_lenslets_y_dm = cw.spinbox_widget(0, 64, 1, 14)
-        self.QLabel_spacing_dm = cw.label_widget(str('Spacing'))
-        self.QSpinBox_spacing_dm = cw.spinbox_widget(0, 64, 1, 26)
-        self.QLabel_radius_dm = cw.label_widget(str('Radius'))
-        self.QSpinBox_radius_dm = cw.spinbox_widget(0, 64, 1, 12)
-        self.dm_shwfs_parameters_scroll_area, dm_shwfs_parameters_scroll_layout = cw.create_scroll_area()
-        dm_shwfs_parameters_scroll_layout.addRow(self.QLabel_dm_shwfs_parameters)
-        dm_shwfs_parameters_scroll_layout.addRow(self.QLabel_wfrmd_dm, self.QComboBox_wfrmd_dm)
-        dm_shwfs_parameters_scroll_layout.addRow(self.QLabel_base_xcenter_dm, self.QSpinBox_base_xcenter_dm)
-        dm_shwfs_parameters_scroll_layout.addRow(self.QLabel_base_ycenter_dm, self.QSpinBox_base_ycenter_dm)
-        dm_shwfs_parameters_scroll_layout.addRow(self.QLabel_offset_xcenter_dm, self.QSpinBox_offset_xcenter_dm)
-        dm_shwfs_parameters_scroll_layout.addRow(self.QLabel_offset_ycenter_dm, self.QSpinBox_offset_ycenter_dm)
-        dm_shwfs_parameters_scroll_layout.addRow(self.QLabel_n_lenslets_x_dm, self.QSpinBox_n_lenslets_x_dm)
-        dm_shwfs_parameters_scroll_layout.addRow(self.QLabel_n_lenslets_y_dm, self.QSpinBox_n_lenslets_y_dm)
-        dm_shwfs_parameters_scroll_layout.addRow(self.QLabel_spacing_dm, self.QSpinBox_spacing_dm)
-        dm_shwfs_parameters_scroll_layout.addRow(self.QLabel_radius_dm, self.QSpinBox_radius_dm)
         layout_parameters.addWidget(self.image_shwfs_parameters_scroll_area)
-        layout_parameters.addWidget(self.dm_shwfs_parameters_scroll_area)
         group_parameters.setLayout(layout_parameters)
 
         layout_shwfs = QtWidgets.QHBoxLayout()
@@ -152,18 +102,7 @@ class AOWidget(QtWidgets.QWidget):
         image_shwfs_scroll_layout.addRow(self.QPushButton_run_img_wfs, self.QPushButton_img_shwfs_base)
         image_shwfs_scroll_layout.addRow(self.QPushButton_run_img_wfr)
         image_shwfs_scroll_layout.addRow(self.QPushButton_img_shwfs_compute_wf, self.QPushButton_img_shwfs_save_wf)
-        self.dm_shwfs_scroll_area, dm_shwfs_scroll_layout = cw.create_scroll_area()
-        self.QLabel_dm_shwfs = cw.label_widget(str('DM SHWFS'))
-        self.QPushButton_dm_shwfs_base = cw.pushbutton_widget('SetBase', enable=False)
-        self.QPushButton_run_dm_wfs = cw.pushbutton_widget('RunWFS', checkable=True)
-        self.QPushButton_run_dm_wfr = cw.pushbutton_widget('RunWFR', enable=False)
-        self.QPushButton_dm_shwfs_save_wf = cw.pushbutton_widget('SaveWF', enable=False)
-        self.dm_shwfs_scroll_area, dm_shwfs_scroll_layout = cw.create_scroll_area()
-        dm_shwfs_scroll_layout.addRow(self.QLabel_dm_shwfs)
-        dm_shwfs_scroll_layout.addRow(self.QPushButton_run_dm_wfs, self.QPushButton_dm_shwfs_base)
-        dm_shwfs_scroll_layout.addRow(self.QPushButton_run_dm_wfr, self.QPushButton_dm_shwfs_save_wf)
         layout_shwfs.addWidget(self.image_shwfs_scroll_area)
-        layout_shwfs.addWidget(self.dm_shwfs_scroll_area)
         group_commands.setLayout(layout_shwfs)
 
         layout_deformablemirror = QtWidgets.QGridLayout()
@@ -259,10 +198,6 @@ class AOWidget(QtWidgets.QWidget):
         self.QPushButton_run_img_wfr.clicked.connect(self.run_img_wfr)
         self.QPushButton_img_shwfs_compute_wf.clicked.connect(self.Signal_img_shwfs_compute_wf.emit)
         self.QPushButton_img_shwfs_save_wf.clicked.connect(self.save_img_wf)
-        self.QPushButton_dm_shwfs_base.clicked.connect(self.set_dm_wfs_base)
-        self.QPushButton_run_dm_wfs.clicked.connect(self.run_dm_wfs)
-        self.QPushButton_run_dm_wfr.clicked.connect(self.run_dm_wfr)
-        self.QPushButton_dm_shwfs_save_wf.clicked.connect(self.save_dm_wf)
         self.QPushButton_push_actuator.clicked.connect(self.Signal_push_actuator.emit)
         self.QPushButton_influence_fuction_laser.clicked.connect(self.Signal_influence_function.emit)
         self.QPushButton_set_zernike_mode.clicked.connect(self.Signal_set_zernike.emit)
@@ -303,24 +238,6 @@ class AOWidget(QtWidgets.QWidget):
         self.QPushButton_img_shwfs_compute_wf.setEnabled(True)
         self.QPushButton_img_shwfs_save_wf.setEnabled(True)
 
-    def set_dm_wfs_base(self):
-        self.Signal_dm_shwfs_initiate.emit()
-        self.QPushButton_run_dm_wfr.setEnabled(True)
-
-    def run_dm_wfs(self):
-        if self.QPushButton_run_dm_wfs.isChecked():
-            self.Signal_dm_wfs_start.emit()
-            self.QPushButton_dm_shwfs_base.setEnabled(True)
-            self.QPushButton_dm_shwfs_save_wf.setEnabled(False)
-        else:
-            self.Signal_dm_wfs_stop.emit()
-            self.QPushButton_dm_shwfs_base.setEnabled(False)
-            self.QPushButton_run_dm_wfr.setEnabled(False)
-
-    def run_dm_wfr(self):
-        self.Signal_dm_shwfr_run.emit()
-        self.QPushButton_dm_shwfs_save_wf.setEnabled(True)
-
     def save_img_wf(self):
         dialog = cw.create_file_dialogue(name="Save File", file_filter="All Files (*)",
                                          default_dir=r"C:/Users/ruizhe.lin/Documents/data")
@@ -329,15 +246,6 @@ class AOWidget(QtWidgets.QWidget):
             if selected_file:
                 print(selected_file[0])
                 self.Signal_img_shwfs_save_wf.emit(selected_file[0])
-
-    def save_dm_wf(self):
-        dialog = cw.create_file_dialogue(name="Save File", file_filter="All Files (*)",
-                                         default_dir=r"C:/Users/ruizhe.lin/Documents/data")
-        if dialog.exec_() == QtWidgets.QFileDialog.Accepted:
-            selected_file = dialog.selectedFiles()
-            if selected_file:
-                print(selected_file[0])
-                self.Signal_dm_shwfs_save_wf.emit(selected_file[0])
 
     def load_dm_file(self):
         dialog = cw.create_file_dialogue(name="Open File", file_filter="All Files (*)",

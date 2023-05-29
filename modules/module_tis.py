@@ -4,8 +4,8 @@ sys.path.append(r'C:\Program Files\The Imaging Source Europe GmbH\sources')
 
 import ctypes
 import numpy as np
+import cv2
 import tisgrabber as tis
-import struct
 
 ic = ctypes.cdll.LoadLibrary(r'C:\Program Files\The Imaging Source Europe GmbH\sources\tisgrabber_x64.dll')
 tis.declareFunctions(ic)
@@ -56,8 +56,8 @@ class TISCamera:
                     else:
                         print("FAIL: Set Exposure Auto")
                     if ic.IC_SetPropertyValue(self.hGrabber, tis.T("Denoise"), tis.T("Value"),
-                                              ctypes.c_int(25)) == tis.IC_SUCCESS:
-                        print("SUCCESS: Set Denoise to 25")
+                                              ctypes.c_int(0)) == tis.IC_SUCCESS:
+                        print("SUCCESS: Set Denoise to 0")
                     else:
                         print("FAIL: Set Denoise")
                     self.data = None
@@ -152,14 +152,35 @@ class TISCamera:
             if r:
                 self.get_exposure(False)
 
+    # def get_last_image(self):
+    #     if self.snap_image():
+    #         avg = np.float32(self.get_data())
+    #         for i in range(16):
+    #             if self.snap_image():
+    #                 cv2.accumulateWeighted(np.float32(self.get_data()), avg, 0.2)
+    #             else:
+    #                 pass
+    #         return avg
+    #     else:
+    #         pass
+
     def get_last_image(self):
-        self.snap_image()
-        self.data = self.get_data()
-        return self.data
+        self.data = []
+        if self.snap_image():
+            self.data.append(self.get_data())
+            for i in range(16):
+                if self.snap_image():
+                    self.data.append(self.get_data())
+                else:
+                    pass
+            self.data = np.asarray(self.data)
+            self.data = np.mean(self.data, axis=0)
+            return self.data
+        else:
+            pass
 
     def snap_image(self):
         if ic.IC_SnapImage(self.hGrabber, 2000) == tis.IC_SUCCESS:
-            print("SUCCESS: Image Capture")
             return True
         else:
             print("FAIL: Image Capture")

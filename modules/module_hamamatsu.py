@@ -4,7 +4,8 @@ A ctypes based interface to Hamamatsu sCMOS Flash 4.0
 
 import ctypes
 import ctypes.util
-
+import threading
+from collections import deque
 import numpy
 
 dcam = ctypes.windll.dcamapi
@@ -300,10 +301,10 @@ class HamamatsuCamera(object):
                     self.setPropertyValue("binning", "1x1")
                     self.setPropertyValue("readout_speed", 2)
                     self.setPropertyValue('trigger_mode', 1)
-                    self.setPropertyValue('trigger_source', 2)
-                    self.setPropertyValue('trigger_active', 2)
-                    self.setPropertyValue('trigger_polarity', 2)
-                    self.setPropertyValue('trigger_global_exposure', 5)
+                    # self.setPropertyValue('trigger_source', 2)
+                    # self.setPropertyValue('trigger_active', 2)
+                    # self.setPropertyValue('trigger_polarity', 2)
+                    # self.setPropertyValue('trigger_global_exposure', 5)
                 else:
                     print('Hamamtsu CMOS camera not found')
             else:
@@ -713,9 +714,10 @@ class HamamatsuCameraMR(HamamatsuCamera):
     def __init__(self, **kwds):
         super().__init__(**kwds)
 
-        self.data = []
+        self.data = FixedLengthList(64)
         self.date_ptr = False
         self.old_frame_bytes = -1
+        self.camera_thread = None
 
     def startAcquisition(self):
         """
@@ -773,23 +775,22 @@ class HamamatsuCameraMR(HamamatsuCamera):
     def prepare_live(self):
         self.acquisition_mode = "run_till_abort"
         self.setACQMode(self.acquisition_mode)
+        self.camera_thread = CameraThread(self)
 
     def start_live(self):
         self.startAcquisition()
+        self.data.data_list.clear()
+        self.camera_thread.start()
 
     def stop_live(self):
+        self.camera_thread.stop()
+        self.camera_thread = None
         self.stopAcquisition()
         self.release_buffer()
 
     def get_last_image(self):
-        """
-        Gets the last available frame.
-        """
-        try:
-            temp = self.newFrames()
-            return self.hcam_data[temp[len(temp) - 1]].getData().reshape(self.frame_x, self.frame_y)
-        except Exception as e:
-            print("An error occurred:", e)
+        if not self.data.is_empty():
+            return self.data.get_last_element()
 
     def prepare_data_acquisition(self, num):
         self.acquisition_mode = "fixed_length"
@@ -798,26 +799,15 @@ class HamamatsuCameraMR(HamamatsuCamera):
     def start_data_acquisition(self):
         self.startAcquisition()
 
-    def get_images(self, verbose=False, avg=False):
+    def get_images(self):
         """
         Gets all of the available frames.
         This will block waiting for new frames even if there new frames available when it is called.
         FIXME: It does not always seem to block? The length of frames can be zero.
                Are frames getting dropped? Some sort of race condition?
         """
-        frames = []
         for n in self.newFrames():
-            frames.append(self.hcam_data[n])
-        if verbose:
-            imageframes = numpy.zeros((len(frames), self.frame_x, self.frame_y))
-            for i in range(len(frames)):
-                imageframes[i] = frames[i].getData().reshape(self.frame_x, self.frame_y)
-            if avg:
-                return numpy.average(imageframes, axis=0)
-            else:
-                return imageframes
-        else:
-            return [frames, [self.frame_x, self.frame_y]]
+            self.data.add_element(self.hcam_data[n].getData().reshape(self.frame_x, self.frame_y))
 
     def finish_data_acquisition(self):
         self.stopAcquisition()
@@ -829,6 +819,42 @@ class HamamatsuCameraMR(HamamatsuCamera):
             self.checkStatus(dcam.dcambuf_release(self.camera_handle, DCAMBUF_ATTACHKIND_FRAME), "dcambuf_release")
         print("max camera backlog was:", self.max_backlog)
         self.max_backlog = 0
+
+
+class CameraThread(threading.Thread):
+    def __init__(self, cam):
+        threading.Thread.__init__(self)
+        self.cam = cam
+        self.running = False
+        self.lock = threading.Lock()
+
+    def run(self):
+        self.running = True
+        while self.running:
+            with self.lock:
+                self.cam.get_images()
+
+    def stop(self):
+        self.running = False
+        self.join()
+
+
+class FixedLengthList:
+    def __init__(self, max_length):
+        self.max_length = max_length
+        self.data_list = deque(maxlen=max_length)
+
+    def add_element(self, element):
+        self.data_list.append(element)
+
+    def get_elements(self):
+        return list(self.data_list)
+
+    def get_last_element(self):
+        return self.data_list[-1] if self.data_list else None
+
+    def is_empty(self):
+        return len(self.data_list) == 0
 
 
 # The MIT License

@@ -60,13 +60,6 @@ class MainController:
         self.thread_wfs.started.connect(self.wfsWorker.run)
         self.thread_wfs.finished.connect(self.wfsWorker.stop)
         self.wfsWorker.signal_wfs_show.connect(self.imshow_img_wfs)
-        # DM wfs thread
-        self.thread_dmwfs = QtCore.QThread()
-        self.dmwfsWorker = WFSWorkerDM(parent=None)
-        self.dmwfsWorker.moveToThread(self.thread_dmwfs)
-        self.thread_dmwfs.started.connect(self.dmwfsWorker.run)
-        self.thread_dmwfs.finished.connect(self.dmwfsWorker.stop)
-        self.dmwfsWorker.signal_dmwfs_show.connect(self.imshow_dm_wfs)
         # MCL Piezo
         self.v.get_control_widget().Signal_piezo_move_x.connect(self.set_piezo_position_x)
         self.v.get_control_widget().Signal_piezo_move_y.connect(self.set_piezo_position_y)
@@ -92,8 +85,6 @@ class MainController:
         self.v.get_control_widget().Signal_check_emccd_temperature.connect(self.check_emdccd_temperature)
         self.v.get_control_widget().Signal_switch_emccd_cooler_on.connect(self.switch_emdccd_cooler_on)
         self.v.get_control_widget().Signal_switch_emccd_cooler_off.connect(self.switch_emdccd_cooler_off)
-        # self.v.get_control_widget().Signal_setcoordinates.connect(self.set_ccd_camera_coordinates)
-        # self.v.get_control_widget().Signal_resetcoordinates.connect(self.reset_ccd_camera_coordinates)
         self.v.get_control_widget().Signal_plot_trigger.connect(self.plot_trigger)
         self.v.get_control_widget().Signal_start_video.connect(self.start_video)
         self.v.get_control_widget().Signal_stop_video.connect(self.stop_video)
@@ -109,7 +100,6 @@ class MainController:
         self.v.get_control_widget().Signal_save_file.connect(self.save_data)
         # DM
         self.v.get_ao_widget().Signal_push_actuator.connect(self.push_actuator)
-        self.v.get_ao_widget().Signal_influence_function.connect(self.influence_function)
         self.v.get_ao_widget().Signal_set_zernike.connect(self.set_zernike)
         self.v.get_ao_widget().Signal_set_dm.connect(self.set_dm)
         self.v.get_ao_widget().Signal_load_dm.connect(self.load_dm)
@@ -121,11 +111,6 @@ class MainController:
         self.v.get_ao_widget().Signal_img_wfs_stop.connect(self.stop_img_wfs)
         self.v.get_ao_widget().Signal_img_shwfr_run.connect(self.run_img_wfr)
         self.v.get_ao_widget().Signal_img_shwfs_save_wf.connect(self.save_img_wf)
-        self.v.get_ao_widget().Signal_dm_shwfs_initiate.connect(self.set_dm_wfs_base)
-        self.v.get_ao_widget().Signal_dm_wfs_start.connect(self.start_dm_wfs)
-        self.v.get_ao_widget().Signal_dm_wfs_stop.connect(self.stop_dm_wfs)
-        self.v.get_ao_widget().Signal_dm_shwfr_run.connect(self.run_dm_wfr)
-        self.v.get_ao_widget().Signal_dm_shwfs_save_wf.connect(self.save_dm_wf)
         # AO
         self.v.get_ao_widget().Signal_img_shwfs_correct_wf.connect(self.correct_img_wf)
         self.v.get_ao_widget().Signal_sensorlessAO_run.connect(self.ao_optimize)
@@ -300,8 +285,8 @@ class MainController:
 
     def start_video(self):
         self.set_lasers()
-        self.main_cam.prepare_live()
         self.set_main_camera_roi()
+        self.main_cam.prepare_live()
         self.m.daq.trig_open(self.generate_digital_trigger_sw())
         self.main_cam.start_live()
         self.m.daq.trig_run()
@@ -316,10 +301,7 @@ class MainController:
         self.lasers_off()
 
     def imshow_main(self):
-        if self.main_cam.get_last_image():
-            self.view_controller.plot_main(self.main_cam.data)
-        else:
-            print('No Camera Data')
+        self.view_controller.plot_main(self.main_cam.get_last_image())
 
     def run_fft(self):
         self.thread_fft.start()
@@ -480,109 +462,6 @@ class MainController:
         t = time.strftime("%Y%m%d_%H%M%S_")
         self.p.shwfsr._write_cmd(self.path, t, flatfile=False)
         print('DM cmd saved')
-
-    def set_dm_wfs(self):
-        parameters = self.ao_controller.get_parameters_dm()
-        self.p.shwfsr.update_parameters(parameters)
-        print('SHWFS parameter updated')
-
-    def start_dm_wfs(self):
-        # self.set_lasers()
-        self.dm_cam.prepare_live()
-        # dgtr = self.generate_digital_trigger_sw()
-        # self.m.daq.trig_open(dgtr)
-        self.dm_cam.start_live()
-        # self.m.daq.trig_run()
-        time.sleep(0.1)
-        self.thread_dmwfs.start()
-
-    def stop_dm_wfs(self):
-        self.thread_dmwfs.quit()
-        self.thread_dmwfs.wait()
-        # self.m.daq.trig_stop()
-        self.dm_cam.stop_live()
-        # self.lasers_off()
-
-    def imshow_dm_wfs(self):
-        self.view_controller.plot_dm(self.dm_cam.get_last_image())
-
-    def set_dm_wfs_base(self):
-        self.p.shwfsr.base = self.view_controller.get_image_data('DM Calibration')
-        print('wfs base set')
-
-    def run_dm_wfr(self):
-        self.p.shwfsr.offset = self.view_controller.get_image_data('DM Calibration')
-        self.p.shwfsr.wavefront_reconstruction(self.p.shwfsr.base, self.p.shwfsr.offset,
-                                               self.ao_controller.get_gradient_method_dm())
-        self.view_controller.plot_dm(self.p.shwfsr.wf)
-        self.ao_controller.display_dm_wf_properties(self.p.imgprocess.wf_properties(self.p.shwfsr.wf))
-
-    def save_dm_wf(self, file_name):
-        t = time.strftime("%Y%m%d_%H%M%S_")
-        try:
-            tf.imwrite(file_name + '_shdm_base_raw.tif', self.p.shwfsr.base)
-        except:
-            print("NO SH Image")
-        try:
-            tf.imwrite(file_name + '_shdm_processed.tif', self.p.shwfsr.im)
-        except:
-            print("NO SH Image")
-        try:
-            tf.imwrite(file_name + '_reconstruted_wf.tif', self.p.shwfsr.wf)
-        except:
-            print("NO WF Image")
-        print('WF Data saved')
-
-    def influence_function(self):
-        t = time.strftime("%Y%m%d_%H%M%S")
-        newfold = self.path + '/' + t + '_influence_function' + '/'
-        try:
-            os.mkdir(newfold)
-        except:
-            print('Directory already exists')
-        n, amp = self.ao_controller.get_actuator()
-        self.set_dm_wfs()
-        # self.set_lasers()
-        self.wfs_cam.prepare_live()
-        # dgtr = self.generate_digital_trigger_sw()
-        # self.m.daq.trig_open_ao(dgtr)
-        self.dm_cam.start_live()
-        for i in range(self.m.dm.nbAct):
-            shimg = []
-            print(i)
-            values = [0.] * self.m.dm.nbAct
-            self.m.dm.set_dm(values)
-            time.sleep(0.04)
-            # self.m.daq.trig_run()
-            # time.sleep(0.04)
-            shimg.append(self.dm_cam.get_last_image())
-            # self.m.daq.trig_stop()
-            values[i] = amp
-            self.m.dm.set_dm(values)
-            time.sleep(0.04)
-            # self.m.daq.trig_run()
-            # time.sleep(0.04)
-            shimg.append(self.dm_cam.get_last_image())
-            # self.m.daq.trig_stop()
-            values = [0.] * self.m.dm.nbAct
-            self.m.dm.set_dm(values)
-            time.sleep(0.04)
-            # self.m.daq.trig_run()
-            # time.sleep(0.04)
-            shimg.append(self.dm_cam.get_last_image())
-            # self.m.daq.trig_stop()
-            values[i] = - amp
-            self.m.dm.set_dm(values)
-            # time.sleep(0.04)
-            # self.m.daq.trig_run()
-            time.sleep(0.04)
-            shimg.append(self.dm_cam.get_last_image())
-            # self.m.daq.trig_stop()
-            tf.imwrite(newfold + t + '_actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
-        self.dm_cam.stop_live()
-        influfunc = self.p.shwfsr.generate_influence_matrix(newfold, self.ao_controller.get_img_wfs_method())
-        ctrlmat = self.p.shwfsr.get_control_matrix(influfunc)
-        tf.imwrite(newfold + t + '_control_matrix.tif', ctrlmat)
 
     def set_img_wfs(self):
         parameters = self.ao_controller.get_parameters_img()
@@ -788,24 +667,6 @@ class WFSWorker(QtCore.QObject):
         self.timer = QtCore.QTimer()
         self.timer.setInterval(100)
         self.timer.timeout.connect(self.signal_wfs_show.emit)
-        self.timer.start()
-
-    def stop(self):
-        if self.timer is not None:
-            self.timer.stop()
-
-
-class WFSWorkerDM(QtCore.QObject):
-    signal_dmwfs_show = QtCore.pyqtSignal()
-
-    def __init__(self, parent=None):
-        super().__init__()
-        self.timer = None
-
-    def run(self):
-        self.timer = QtCore.QTimer()
-        self.timer.setInterval(100)
-        self.timer.timeout.connect(self.signal_dmwfs_show.emit)
         self.timer.start()
 
     def stop(self):

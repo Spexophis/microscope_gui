@@ -77,11 +77,6 @@ class ViewWidget(QtWidgets.QWidget):
 
         self.imgLayers = {}
 
-        self.name_dm = 'DM Calibration'
-        self.imgLayers[self.name_dm] = self.napariViewer.add_image(
-            np.zeros((1024, 1024)), rgb=False, name=self.name_dm, blending='additive',
-            colormap=None, protected=True)
-
         self.name_wf = 'Wavefront'
         self.imgLayers[self.name_wf] = self.napariViewer.add_image(
             np.zeros((1024, 1024)), rgb=False, name=self.name_wf, blending='additive',
@@ -103,7 +98,8 @@ class ViewWidget(QtWidgets.QWidget):
             colormap=None, protected=True)
 
     def show_image(self, name, im):
-        self.imgLayers[name].data = im
+        if isinstance(im, np.ndarray):
+            self.imgLayers[name].data = im
 
     def get_image(self, name):
         return self.imgLayers[name].data
