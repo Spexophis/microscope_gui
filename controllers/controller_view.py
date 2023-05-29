@@ -15,9 +15,6 @@ class ViewController:
     def plot_wf(self, data):
         self.v.show_image('Wavefront', data)
 
-    def plot_dm(self, data):
-        self.v.show_image('DM Calibration', data)
-
     def get_image_data(self, layer):
         return self.v.get_image(layer)
 

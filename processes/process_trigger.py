@@ -17,8 +17,8 @@ class TriggerSequence:
         self.galvo_stops = [1.0, 1.0]
         self.galvo_step_sizes = [0.04, 0.04]
         self.galvo_prep = 0.4
-        self.digital_starts = [0.002, 0.007, 0.007, 0.012, 0.012, 0.012, 0.012]
-        self.digital_ends = [0.004, 0.01, 0.01, 0.015, 0.015, 0.015, 0.015]
+        self.digital_starts = [0.002, 0.007, 0.007, 0.012, 0.012, 0.012]
+        self.digital_ends = [0.004, 0.01, 0.01, 0.015, 0.015, 0.015]
         self.bp_increase = BPoly.from_derivatives([0, 1], [[0., 0., 0.], [1., 0., 0.]])
         self.bp_decrease = BPoly.from_derivatives([0, 1], [[1., 0., 0.], [0., 0., 0.]])
 

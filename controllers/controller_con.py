@@ -51,15 +51,13 @@ class ConController:
                           self.v.QDoubleSpinBox_ttl_start_off_488_1.value(),
                           self.v.QDoubleSpinBox_ttl_start_read_488_2.value(),
                           self.v.QDoubleSpinBox_ttl_start_camera_main.value(),
-                          self.v.QDoubleSpinBox_ttl_start_camera_wfs.value(),
-                          self.v.QDoubleSpinBox_ttl_start_camera_dm.value()]
+                          self.v.QDoubleSpinBox_ttl_start_camera_wfs.value()]
         digital_ends = [self.v.QDoubleSpinBox_ttl_stop_on_405.value(),
                         self.v.QDoubleSpinBox_ttl_stop_off_488_0.value(),
                         self.v.QDoubleSpinBox_ttl_stop_off_488_1.value(),
                         self.v.QDoubleSpinBox_ttl_stop_read_488_2.value(),
                         self.v.QDoubleSpinBox_ttl_stop_camera_main.value(),
-                        self.v.QDoubleSpinBox_ttl_stop_camera_wfs.value(),
-                        self.v.QDoubleSpinBox_ttl_start_camera_dm.value()]
+                        self.v.QDoubleSpinBox_ttl_stop_camera_wfs.value()]
         return detection_device, sequence_time, digital_starts, digital_ends
 
     def get_piezo_scan_parameters(self):
