@@ -11,7 +11,7 @@ class MainModule:
 
     def __init__(self):
         self.ccdcam = module_andorixon.EMCCDCamera()
-        self.scmoscam = module_hamamatsu.HamamatsuCameraMR()
+        self.scmoscam = module_hamamatsu.HamamatsuCamera()
         self.dm = module_deformablemirror.DeformableMirror()
         self.laser = module_laser.CoboltLaser()
         self.daq = module_nidaq.NIDAQ()
