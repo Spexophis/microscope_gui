@@ -105,6 +105,7 @@ class MainController:
         self.v.get_ao_widget().Signal_load_dm.connect(self.load_dm)
         self.v.get_ao_widget().Signal_update_cmd.connect(self.update_dm)
         self.v.get_ao_widget().Signal_save_dm.connect(self.save_dm)
+        self.v.get_ao_widget().Signal_influence_function.connect(self.influence_function)
         # WFS
         self.v.get_ao_widget().Signal_img_shwfs_initiate.connect(self.set_img_wfs_base)
         self.v.get_ao_widget().Signal_img_wfs_start.connect(self.start_img_wfs)
