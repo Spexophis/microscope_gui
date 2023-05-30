@@ -462,6 +462,53 @@ class MainController:
         self.p.shwfsr._write_cmd(self.path, t, flatfile=False)
         print('DM cmd saved')
 
+    def influence_function(self):
+        t = time.strftime("%Y%m%d_%H%M%S")
+        newfold = self.path + '/' + t + '_influence_function' + '/'
+        try:
+            os.mkdir(newfold)
+        except:
+            print('Directory already exists')
+        n, amp = self.ao_controller.get_actuator()
+        self.start_img_wfs()
+        for i in range(self.m.dm.nbAct):
+            shimg = []
+            print(i)
+            values = [0.] * self.m.dm.nbAct
+            self.m.dm.set_dm(values)
+            time.sleep(0.04)
+            # self.m.daq.trig_run()
+            # time.sleep(0.04)
+            shimg.append(self.wfs_cam.get_last_image())
+            # self.m.daq.trig_stop()
+            values[i] = amp
+            self.m.dm.set_dm(values)
+            time.sleep(0.04)
+            # self.m.daq.trig_run()
+            # time.sleep(0.04)
+            shimg.append(self.wfs_cam.get_last_image())
+            # self.m.daq.trig_stop()
+            values = [0.] * self.m.dm.nbAct
+            self.m.dm.set_dm(values)
+            time.sleep(0.04)
+            # self.m.daq.trig_run()
+            # time.sleep(0.04)
+            shimg.append(self.wfs_cam.get_last_image())
+            # self.m.daq.trig_stop()
+            values[i] = - amp
+            self.m.dm.set_dm(values)
+            # time.sleep(0.04)
+            # self.m.daq.trig_run()
+            time.sleep(0.04)
+            shimg.append(self.wfs_cam.get_last_image())
+            # self.m.daq.trig_stop()
+            tf.imwrite(newfold + t + '_actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
+        self.stop_img_wfs()
+        influfunc = self.p.shwfsr.generate_influence_matrix(newfold, self.ao_controller.get_img_wfs_method())
+        tf.imwrite(newfold + t + '_influence_function.tif', influfunc)
+        # ctrlmat = self.p.shwfsr.get_control_matrix(influfunc)
+        # tf.imwrite(newfold + t + '_control_matrix.tif', ctrlmat)
+
     def set_img_wfs(self):
         parameters = self.ao_controller.get_parameters_img()
         self.p.shwfsr.update_parameters(parameters)
