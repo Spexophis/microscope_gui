@@ -301,10 +301,10 @@ class HamamatsuCamera(object):
                     self.setPropertyValue("binning", "1x1")
                     self.setPropertyValue("readout_speed", 2)
                     self.setPropertyValue('trigger_mode', 1)
-                    # self.setPropertyValue('trigger_source', 2)
-                    # self.setPropertyValue('trigger_active', 2)
-                    # self.setPropertyValue('trigger_polarity', 2)
-                    # self.setPropertyValue('trigger_global_exposure', 5)
+                    self.setPropertyValue('trigger_source', 2)
+                    self.setPropertyValue('trigger_active', 2)
+                    self.setPropertyValue('trigger_polarity', 2)
+                    self.setPropertyValue('trigger_global_exposure', 5)
                 else:
                     print('Hamamtsu CMOS camera not found')
             else:
