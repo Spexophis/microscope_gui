@@ -130,7 +130,6 @@ class MainController:
             self.wfs_cam = self.m.scmoscam
         elif "EMCCD" == self.wfs_camera:
             self.wfs_cam = self.m.ccdcam
-        self.dm_cam = self.m.tiscam
 
     def move_deck_up(self):
         if not self.m.md.isMoving():
