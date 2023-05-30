@@ -552,25 +552,23 @@ class MainController:
         print('wfs base set')
 
     def run_img_wfr(self):
+        self.p.shwfsr.method = self.ao_controller.get_gradient_method_img()
         self.p.shwfsr.offset = self.view_controller.get_image_data('ShackHartmann')
-        self.p.shwfsr.wavefront_reconstruction(self.p.shwfsr.base, self.p.shwfsr.offset,
-                                               self.ao_controller.get_gradient_method_img())
-        self.view_controller.plot_wf(self.p.shwfsr.wf)
-        self.ao_controller.display_img_wf_properties(self.p.imgprocess.wf_properties(self.p.shwfsr.wf))
+        self.p.shwfsr.run_wf_recon(callback=self.imshow_img_wfr)
+
+    def imshow_img_wfr(self):
+        if isinstance(self.p.shwfsr.wf, np.ndarray):
+            if self.p.shwfsr.wf.size > 0:
+                self.view_controller.plot_wf(self.p.shwfsr.wf)
+                self.ao_controller.display_img_wf_properties(self.p.imgprocess.wf_properties(self.p.shwfsr.wf))
 
     def save_img_wf(self, file_name):
-        try:
+        if isinstance(self.p.shwfsr.base, np.ndarray) and self.p.shwfsr.base.size > 0:
             tf.imwrite(file_name + '_shimg_base_raw.tif', self.p.shwfsr.base)
-        except:
-            print("NO SH Image")
-        try:
+        if isinstance(self.p.shwfsr.im, np.ndarray) and self.p.shwfsr.im.size > 0:
             tf.imwrite(file_name + '_shimg_processed.tif', self.p.shwfsr.im)
-        except:
-            print("NO SH Image")
-        try:
-            tf.imwrite(file_name + '_reconstruted_wf.tif', self.p.shwfsr.wf)
-        except:
-            print("NO WF Image")
+        if isinstance(self.p.shwfsr.wf, np.ndarray) and self.p.shwfsr.wf.size > 0:
+            tf.imwrite(file_name + '_reconstructed_wf.tif', self.p.shwfsr.wf)
         print('WF Data saved')
 
     def correct_img_wf(self):

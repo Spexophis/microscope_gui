@@ -1,6 +1,6 @@
 import os
+import threading
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import tifffile as tf
@@ -24,17 +24,17 @@ class WavefrontSensing:
 
     def __init__(self):
         self._n_actuators = 97
-        self._n_lenslets_x = 19
-        self._n_lenslets_y = 18
+        self._n_lenslets_x = 35
+        self._n_lenslets_y = 35
         self._n_lenslets = self._n_lenslets_x * self._n_lenslets_y
-        self.x_center_base = 983
-        self.y_center_base = 1081
-        self.x_center_offset = 983
-        self.y_center_offset = 1081
-        self._lenslet_spacing = 61  # spacing between each lenslet
+        self.x_center_base = 958
+        self.y_center_base = 1001
+        self.x_center_offset = 958
+        self.y_center_offset = 1001
+        self._lenslet_spacing = 45  # spacing between each lenslet
         self.hsp = 24  # size of subimage is 2 * hsp
         self.calfactor = (.0065 / 5.2) * 150  # pixel size * focalLength * pitch
-        self.md = 'centerofmass'  # 'correlation'
+        self.method = 'correlation'
         self.mag = 2
         section = np.ones((2 * self.hsp, 2 * self.hsp))
         sectioncorr = corr(1.0 * section, 1.0 * section[::-1, ::-1], mode='full')
@@ -42,6 +42,7 @@ class WavefrontSensing:
         self.base = np.array([])
         self.offset = np.array([])
         self.wf = np.array([])
+        self.recon_thread = None
         self.amp = 0.1 * 2
         self._n_zernikes = 60
         self._az = None
@@ -82,8 +83,12 @@ class WavefrontSensing:
             zernike[j, :, :] = msk * self._zernike(n, m, rho, phi)
         return self._gs_orthogonalisation(zernike)
 
-    def wavefront_reconstruction(self, base, offset, rt=False):
-        gradx, grady = self._get_gradient_xy(base, offset)
+    def run_wf_recon(self, callback=None):
+        self.recon_thread = ReconstructionThread(self, callback)
+        self.recon_thread.start()
+
+    def wavefront_reconstruction(self, rt=False):
+        gradx, grady = self._get_gradient_xy(self.base, self.offset)
         gradx = np.pad(gradx, ((1, 1), (1, 1)), 'constant')
         grady = np.pad(grady, ((1, 1), (1, 1)), 'constant')
         extx, exty = self._hudgins_extend_mask(gradx, grady)
@@ -472,3 +477,19 @@ class WavefrontSensing:
             norm = np.linalg.norm(ortharray[ii], axis=(0, 1))
             ortharray[ii] = ortharray[ii] / norm
         return ortharray
+
+
+class ReconstructionThread(threading.Thread):
+    def __init__(self, shwfs, callback):
+        threading.Thread.__init__(self)
+        self.wfr = shwfs
+        self.lock = threading.Lock()
+        self.is_finished = threading.Event()
+        self.callback = callback
+
+    def run(self):
+        with self.lock:
+            self.wfr.wavefront_reconstruction()
+        self.is_finished.set()
+        if self.callback is not None:
+            self.callback()
