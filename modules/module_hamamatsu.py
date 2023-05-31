@@ -291,14 +291,12 @@ class HamamatsuCamera(object):
                     paramwait.size = ctypes.sizeof(paramwait)
                     self.checkStatus(dcam.dcamwait_open(ctypes.byref(paramwait)), "dcamwait_open")
                     self.wait_handle = ctypes.c_void_p(paramwait.hwait)
-                    # Get camera properties.
-                    self.properties = self.getCameraProperties()
                     # Get camera max width, height.
                     self.max_width = self.getPropertyValue("image_width")[0]
                     self.max_height = self.getPropertyValue("image_height")[0]
                     # Setup camera properties
                     self.setACQMode(self.acquisition_mode)
-                    self.setPropertyValue("defect_correct_mode", 1)
+                    self.setPropertyValue("defect_correct_mode", 2)
                     self.setPropertyValue("binning", "1x1")
                     self.setPropertyValue("readout_speed", 2)
                     self.setPropertyValue('trigger_mode', 1)
@@ -415,8 +413,8 @@ class HamamatsuCamera(object):
         self.camera_thread = CameraThread(self)
 
     def start_live(self):
-        self.startAcquisition()
         self.data.data_list.clear()
+        self.startAcquisition()
         self.camera_thread.start()
 
     def stop_live(self):
@@ -559,13 +557,6 @@ class HamamatsuCamera(object):
         self.checkStatus(dcam.dcamdev_getstring(ctypes.c_int32(camera_id), ctypes.byref(paramstring)),
                          "dcamdev_getstring")
         return string_value.value.decode(self.encoding)
-
-    def getProperties(self):
-        """
-        Return the list of camera properties. This is the one to call if you
-        want to know the camera properties.
-        """
-        return self.properties
 
     def getPropertyAttribute(self, property_name):
         """

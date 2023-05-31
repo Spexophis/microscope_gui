@@ -123,6 +123,7 @@ class NIDAQ:
             PyDAQmx.DAQmxWriteDigitalLines(self.doHandle, do_samples, False, -1,
                                            DAQmxConstants.DAQmx_Val_GroupByChannel,
                                            do_sequences.astype(np.uint8), None, None)
+            print("Trigger Sequence Loaded")
         except:
             errBuff = DAQmxTypes.create_string_buffer(b"", 2048)
             PyDAQmx.DAQmxGetExtendedErrorInfo(errBuff, 2048)
@@ -153,6 +154,7 @@ class NIDAQ:
             PyDAQmx.DAQmxWriteDigitalLines(self.doHandle, do_samples, False, -1,
                                            DAQmxConstants.DAQmx_Val_GroupByChannel,
                                            do_sequences.astype(np.uint8), None, None)
+            print("Trigger Sequence Loaded")
         except:
             errBuff = DAQmxTypes.create_string_buffer(b"", 2048)
             PyDAQmx.DAQmxGetExtendedErrorInfo(errBuff, 2048)
@@ -175,6 +177,7 @@ class NIDAQ:
             PyDAQmx.DAQmxWriteDigitalLines(self.doHandle, do_samples, False, -1,
                                            DAQmxConstants.DAQmx_Val_GroupByChannel,
                                            do_sequences.astype(np.uint8), None, None)
+            print("Trigger Sequence Loaded")
         except:
             errBuff = DAQmxTypes.create_string_buffer(b"", 2048)
             PyDAQmx.DAQmxGetExtendedErrorInfo(errBuff, 2048)
@@ -211,6 +214,7 @@ class NIDAQ:
             PyDAQmx.DAQmxWriteDigitalLines(self.doHandle, do_samples, False, -1,
                                            DAQmxConstants.DAQmx_Val_GroupByChannel,
                                            do_sequences.astype(np.uint8), None, None)
+            print("Trigger Sequence Loaded")
         except:
             errBuff = DAQmxTypes.create_string_buffer(b"", 2048)
             PyDAQmx.DAQmxGetExtendedErrorInfo(errBuff, 2048)

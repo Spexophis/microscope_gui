@@ -472,8 +472,8 @@ class MainController:
             print('Directory already exists')
         n, amp = self.ao_controller.get_actuator()
         self.set_lasers()
-        self.wfs_cam.prepare_live()
         self.set_wfs_camera_roi()
+        self.wfs_cam.prepare_live()
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open_ao(dgtr)
         self.wfs_cam.start_live()
@@ -526,8 +526,8 @@ class MainController:
     def start_img_wfs(self):
         self.set_lasers()
         self.set_img_wfs()
-        self.wfs_cam.prepare_live()
         self.set_wfs_camera_roi()
+        self.wfs_cam.prepare_live()
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open(dgtr)
         self.wfs_cam.start_live()
@@ -544,6 +544,7 @@ class MainController:
 
     def imshow_img_wfs(self):
         self.view_controller.plot_sh(self.wfs_cam.get_last_image())
+        print("show")
 
     def set_img_wfs_base(self):
         self.p.shwfsr.base = self.view_controller.get_image_data('ShackHartmann')
