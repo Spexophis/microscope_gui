@@ -114,7 +114,7 @@ class MainController:
         self.v.get_ao_widget().Signal_img_shwfs_save_wf.connect(self.save_img_wf)
         # AO
         self.v.get_ao_widget().Signal_img_shwfs_correct_wf.connect(self.correct_img_wf)
-        self.v.get_ao_widget().Signal_sensorlessAO_run.connect(self.ao_optimize)
+        self.v.get_ao_widget().Signal_sensorlessAO_run.connect(self.run_ao_optimize)
 
         p = self.m.md.getPositionStepsTakenAxis(3)
         self.con_controller.display_deck_position(p)
@@ -606,6 +606,10 @@ class MainController:
         self.lasers_off()
         self.main_cam.stop_live()
 
+    def run_ao_optimize(self):
+        ao_optimize_thread = TaskThread(self.ao_optimize, callback=None)
+        ao_optimize_thread.start()
+        
     def ao_optimize(self):
         mode_start, mode_stop, amp_start, amp_step, amp_step_number = self.ao_controller.get_ao_iteration()
         lpr, hpr, mindex, metric = self.ao_controller.get_ao_parameters()
