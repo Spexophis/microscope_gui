@@ -291,6 +291,8 @@ class HamamatsuCamera(object):
                     paramwait.size = ctypes.sizeof(paramwait)
                     self.checkStatus(dcam.dcamwait_open(ctypes.byref(paramwait)), "dcamwait_open")
                     self.wait_handle = ctypes.c_void_p(paramwait.hwait)
+                    # Get camera properties.
+                    self.properties = self.getCameraProperties()
                     # Get camera max width, height.
                     self.max_width = self.getPropertyValue("image_width")[0]
                     self.max_height = self.getPropertyValue("image_height")[0]
@@ -557,6 +559,13 @@ class HamamatsuCamera(object):
         self.checkStatus(dcam.dcamdev_getstring(ctypes.c_int32(camera_id), ctypes.byref(paramstring)),
                          "dcamdev_getstring")
         return string_value.value.decode(self.encoding)
+
+    def getProperties(self):
+        """
+        Return the list of camera properties. This is the one to call if you
+        want to know the camera properties.
+        """
+        return self.properties
 
     def getPropertyAttribute(self, property_name):
         """
