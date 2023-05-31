@@ -1,7 +1,7 @@
 import os
 import time
 from getpass import getuser
-
+import threading
 import numpy as np
 import tifffile as tf
 from PyQt5 import QtCore
@@ -105,7 +105,7 @@ class MainController:
         self.v.get_ao_widget().Signal_load_dm.connect(self.load_dm)
         self.v.get_ao_widget().Signal_update_cmd.connect(self.update_dm)
         self.v.get_ao_widget().Signal_save_dm.connect(self.save_dm)
-        self.v.get_ao_widget().Signal_influence_function.connect(self.influence_function)
+        self.v.get_ao_widget().Signal_influence_function.connect(self.run_influence_function)
         # WFS
         self.v.get_ao_widget().Signal_img_shwfs_initiate.connect(self.set_img_wfs_base)
         self.v.get_ao_widget().Signal_img_wfs_start.connect(self.start_img_wfs)
@@ -463,6 +463,10 @@ class MainController:
         self.p.shwfsr._write_cmd(self.path, t, flatfile=False)
         print('DM cmd saved')
 
+    def run_influence_function(self):
+        influence_function_thread = TaskThread(self.influence_function, callback=None)
+        influence_function_thread.start()
+
     def influence_function(self):
         t = time.strftime("%Y%m%d_%H%M%S")
         newfold = self.path + '/' + t + '_influence_function' + '/'
@@ -475,8 +479,9 @@ class MainController:
         self.set_wfs_camera_roi()
         self.wfs_cam.prepare_live()
         dgtr = self.generate_digital_trigger_sw()
-        self.m.daq.trig_open_ao(dgtr)
+        self.m.daq.trig_open(dgtr)
         self.wfs_cam.start_live()
+        self.m.daq.trig_run()
         time.sleep(0.05)
         for i in range(self.m.dm.nbAct):
             shimg = []
@@ -484,37 +489,38 @@ class MainController:
             values = [0.] * self.m.dm.nbAct
             self.m.dm.set_dm(values)
             time.sleep(0.05)
-            self.m.daq.trig_run()
-            time.sleep(0.04)
+            # self.m.daq.trig_run()
+            # time.sleep(0.04)
             shimg.append(self.wfs_cam.get_last_image())
-            self.m.daq.trig_stop()
+            # self.m.daq.trig_stop()
             values[i] = amp
             self.m.dm.set_dm(values)
             time.sleep(0.05)
-            self.m.daq.trig_run()
-            time.sleep(0.04)
+            # self.m.daq.trig_run()
+            # time.sleep(0.04)
             shimg.append(self.wfs_cam.get_last_image())
-            self.m.daq.trig_stop()
+            # self.m.daq.trig_stop()
             values = [0.] * self.m.dm.nbAct
             self.m.dm.set_dm(values)
             time.sleep(0.05)
-            self.m.daq.trig_run()
-            time.sleep(0.04)
+            # self.m.daq.trig_run()
+            # time.sleep(0.04)
             shimg.append(self.wfs_cam.get_last_image())
-            self.m.daq.trig_stop()
+            # self.m.daq.trig_stop()
             values[i] = - amp
             self.m.dm.set_dm(values)
             time.sleep(0.04)
-            self.m.daq.trig_run()
-            time.sleep(0.05)
+            # self.m.daq.trig_run()
+            # time.sleep(0.05)
             shimg.append(self.wfs_cam.get_last_image())
-            self.m.daq.trig_stop()
+            # self.m.daq.trig_stop()
             tf.imwrite(newfold + t + '_actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
+        self.m.daq.trig_stop()
         self.wfs_cam.stop_live()
         self.lasers_off()
         self.set_img_wfs()
-        influfunc = self.p.shwfsr.generate_influence_matrix(newfold, self.ao_controller.get_img_wfs_method())
-        tf.imwrite(newfold + t + '_influence_function.tif', influfunc)
+        # influfunc = self.p.shwfsr.generate_influence_matrix(newfold, self.ao_controller.get_img_wfs_method())
+        # tf.imwrite(newfold + t + '_influence_function.tif', influfunc)
         # ctrlmat = self.p.shwfsr.get_control_matrix(influfunc)
         # tf.imwrite(newfold + t + '_control_matrix.tif', ctrlmat)
 
@@ -743,3 +749,19 @@ class PlotWorker(QtCore.QObject):
     def stop(self):
         if self.timer is not None:
             self.timer.stop()
+
+
+class TaskThread(threading.Thread):
+    def __init__(self, task, callback):
+        threading.Thread.__init__(self)
+        self.task = task
+        self.lock = threading.Lock()
+        self.is_finished = threading.Event()
+        self.callback = callback
+
+    def run(self):
+        with self.lock:
+            self.task()
+        self.is_finished.set()
+        if self.callback is not None:
+            self.callback()
