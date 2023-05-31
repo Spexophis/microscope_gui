@@ -609,7 +609,7 @@ class MainController:
     def run_ao_optimize(self):
         ao_optimize_thread = TaskThread(self.ao_optimize, callback=None)
         ao_optimize_thread.start()
-        
+
     def ao_optimize(self):
         mode_start, mode_stop, amp_start, amp_step, amp_step_number = self.ao_controller.get_ao_iteration()
         lpr, hpr, mindex, metric = self.ao_controller.get_ao_parameters()
