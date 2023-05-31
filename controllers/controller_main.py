@@ -544,7 +544,7 @@ class MainController:
 
     def imshow_img_wfs(self):
         self.view_controller.plot_sh(self.wfs_cam.get_last_image())
-        print("show")
+        print(self.wfs_cam.get_last_image())
 
     def set_img_wfs_base(self):
         self.p.shwfsr.base = self.view_controller.get_image_data('ShackHartmann')
