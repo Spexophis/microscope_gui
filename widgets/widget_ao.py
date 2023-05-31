@@ -225,13 +225,8 @@ class AOWidget(QtWidgets.QWidget):
     def run_img_wfs(self):
         if self.QPushButton_run_img_wfs.isChecked():
             self.Signal_img_wfs_start.emit()
-            self.QPushButton_img_shwfs_base.setEnabled(True)
-            self.QPushButton_img_shwfs_compute_wf.setEnabled(False)
-            self.QPushButton_img_shwfs_save_wf.setEnabled(False)
         else:
             self.Signal_img_wfs_stop.emit()
-            self.QPushButton_img_shwfs_base.setEnabled(False)
-            self.QPushButton_run_img_wfr.setEnabled(False)
 
     def run_img_wfr(self):
         self.Signal_img_shwfr_run.emit()

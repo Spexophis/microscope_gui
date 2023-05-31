@@ -13,8 +13,7 @@ ifft2 = np.fft.ifft2
 fftshift = np.fft.fftshift
 pi = np.pi
 
-control_matrix_wavefront = tf.imread(
-    r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_wavefront_20230413_1125.tif')
+control_matrix_wavefront = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\20230531_control_matrix.tif')
 control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_20230413_1125.tif')
 control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230407_2027.tif')
 initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\20230411_2047_flatfile.xlsx'
@@ -27,10 +26,10 @@ class WavefrontSensing:
         self._n_lenslets_x = 35
         self._n_lenslets_y = 35
         self._n_lenslets = self._n_lenslets_x * self._n_lenslets_y
-        self.x_center_base = 958
-        self.y_center_base = 1001
-        self.x_center_offset = 958
-        self.y_center_offset = 1001
+        self.x_center_base = 953
+        self.y_center_base = 1004
+        self.x_center_offset = 953
+        self.y_center_offset = 1004
         self._lenslet_spacing = 45  # spacing between each lenslet
         self.hsp = 24  # size of subimage is 2 * hsp
         self.calfactor = (.0065 / 5.2) * 150  # pixel size * focalLength * pitch
@@ -262,7 +261,9 @@ class WavefrontSensing:
                 if n != 4:
                     raise "The image number has to be 4"
                 if method == 'wavefront':
-                    wfp = self.wavefront_reconstruction(data_stack[0], data_stack[1], rt=True)
+                    self.base = data_stack[0]
+                    self.offset = data_stack[1]
+                    wfp = self.wavefront_reconstruction(rt=True)
                     # wfn = self.wavefront_reconstruction(data_stack[2], data_stack[3], rt=True)
                     # _influence_matrix[:, ind] = ((wfp - wfn) / self.amp).reshape(self._n_lenslets)
                     msk = (wfp != 0.0).astype(np.float32)
@@ -286,7 +287,8 @@ class WavefrontSensing:
 
     def get_correction(self, measurement, method='wavefront'):
         if method == 'wavefront':
-            mwf = self.wavefront_reconstruction(self.base, measurement, rt=True)
+            self.offset = measurement
+            mwf = self.wavefront_reconstruction(rt=True)
             self._correction.append(
                 list(0.5 * self.amp * np.dot(control_matrix_wavefront, mwf.reshape(self._n_lenslets))))
         else:
