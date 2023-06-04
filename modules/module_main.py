@@ -10,19 +10,58 @@ from modules import module_mclpiezo
 class MainModule:
 
     def __init__(self):
-        self.ccdcam = module_andorixon.EMCCDCamera()
-        self.scmoscam = module_hamamatsu.HamamatsuCameraMR()
-        self.dm = module_deformablemirror.DeformableMirror()
-        self.laser = module_laser.CoboltLaser()
-        self.daq = module_nidaq.NIDAQ()
-        self.md = module_mcldeck.MCLMicroDrive()
-        self.pz = module_mclpiezo.MCLNanoDrive()
+        try:
+            self.ccdcam = module_andorixon.EMCCDCamera()
+        except Exception as e:
+            print("An error occurred:", str(e))
+        try:
+            self.scmoscam = module_hamamatsu.HamamatsuCameraMR()
+        except Exception as e:
+            print("An error occurred:", str(e))
+        try:
+            self.dm = module_deformablemirror.DeformableMirror()
+        except Exception as e:
+            print("An error occurred:", str(e))
+            self.laser = module_laser.CoboltLaser()
+        try:
+            self.daq = module_nidaq.NIDAQ()
+        except Exception as e:
+            print("An error occurred:", str(e))
+        try:
+            self.md = module_mcldeck.MCLMicroDrive()
+        except Exception as e:
+            print("An error occurred:", str(e))
+        try:
+            self.pz = module_mclpiezo.MCLNanoDrive()
+        except Exception as e:
+            print("An error occurred:", str(e))
 
     def close(self):
-        self.ccdcam.close()
-        self.scmoscam.close()
-        self.laser.all_off()
-        self.dm.reset_dm()
-        self.daq.reset_daq()
-        self.md.close()
-        self.pz.close()
+        try:
+            self.ccdcam.close()
+        except Exception as e:
+            print("An error occurred:", str(e))
+        try:
+            self.scmoscam.close()
+        except Exception as e:
+            print("An error occurred:", str(e))
+        try:
+            self.laser.all_off()
+        except Exception as e:
+            print("An error occurred:", str(e))
+        try:
+            self.dm.reset_dm()
+        except Exception as e:
+            print("An error occurred:", str(e))
+        try:
+            self.daq.reset_daq()
+        except Exception as e:
+            print("An error occurred:", str(e))
+        try:
+            self.md.close()
+        except Exception as e:
+            print("An error occurred:", str(e))
+        try:
+            self.pz.close()
+        except Exception as e:
+            print("An error occurred:", str(e))

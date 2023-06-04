@@ -42,7 +42,7 @@ class WavefrontSensing:
         self.offset = np.array([])
         self.wf = np.array([])
         self.recon_thread = None
-        self.amp = 0.1 * 2
+        self.amp = 0.1
         self._n_zernikes = 60
         self._az = None
         self.zernike = self.get_zernike_polynomials(nz=self._n_zernikes, size=[self._n_lenslets_y, self._n_lenslets_x])
@@ -128,7 +128,7 @@ class WavefrontSensing:
                 self.im[1, iy * 2 * hsp: (iy + 1) * 2 * hsp, ix * 2 * hsp: (ix + 1) * 2 * hsp] = sec
                 if md == 'correlation':
                     seccorr = corr(1.0 * secbase, 1.0 * sec[::-1, ::-1], mode='full')
-                    py, px = self._parabolicfit(seccorr)
+                    py, px = self._parabolic_fit(seccorr)
                     gradx[iy, ix] = (self.CorrCenter[1] - px) * self.calfactor
                     grady[iy, ix] = (self.CorrCenter[0] - py) * self.calfactor
                 elif md == 'centerofmass':
@@ -206,31 +206,15 @@ class WavefrontSensing:
         constant = constant_num / constant_den
         return phi - constant * wmode
 
-    def wavefront_decomposition(self, wf):
-        self._az = np.zeros(self._n_zernikes)
-        for i in range(self._n_zernikes):
-            wz = self.zernike[i]
-            self._az[i] = (wf * wz.conj()).sum() / (wz * wz.conj()).sum()
-
-    def wavefront_recomposition(self, size=None):
-        if size is None:
-            ny = self._n_lenslets_y
-            nx = self._n_lenslets_x
-        else:
-            ny, nx = size
-        self.wf = np.zeros((ny, nx))
-        for i in range(self._n_zernikes):
-            self.wf += self._az[i] * self.zernike[i]
-
-    def _parabolicfit(self, sec):
+    def _parabolic_fit(self, sec):
         try:
-            MaxIntLoc = np.unravel_index(sec.argmax(), sec.shape)
-            secsmall = sec[(MaxIntLoc[0] - 1):(MaxIntLoc[0] + 2), (MaxIntLoc[1] - 1):(MaxIntLoc[1] + 2)]
-            gradx = MaxIntLoc[1] + 0.5 * (1.0 * secsmall[1, 0] - 1.0 * secsmall[1, 2]) / (
-                    1.0 * secsmall[1, 0] + 1.0 * secsmall[1, 2] - 2.0 * secsmall[1, 1])
-            grady = MaxIntLoc[0] + 0.5 * (1.0 * secsmall[0, 1] - 1.0 * secsmall[2, 1]) / (
-                    1.0 * secsmall[0, 1] + 1.0 * secsmall[2, 1] - 2.0 * secsmall[1, 1])
-        except:  # IndexError
+            init_max_loc = np.unravel_index(sec.argmax(), sec.shape)
+            sec_zoom = sec[(init_max_loc[0] - 1):(init_max_loc[0] + 2), (init_max_loc[1] - 1):(init_max_loc[1] + 2)]
+            gradx = init_max_loc[0] + 0.5 * (1.0 * sec_zoom[1, 0] - 1.0 * sec_zoom[1, 2]) / (
+                    1.0 * sec_zoom[1, 0] + 1.0 * sec_zoom[1, 2] - 2.0 * sec_zoom[1, 1])
+            grady = init_max_loc[1] + 0.5 * (1.0 * sec_zoom[0, 1] - 1.0 * sec_zoom[2, 1]) / (
+                    1.0 * sec_zoom[0, 1] + 1.0 * sec_zoom[2, 1] - 2.0 * sec_zoom[1, 1])
+        except:
             gradx = self.CorrCenter[0]
             grady = self.CorrCenter[1]
         return grady, gradx
@@ -264,18 +248,18 @@ class WavefrontSensing:
                     self.base = data_stack[0]
                     self.offset = data_stack[1]
                     wfp = self.wavefront_reconstruction(rt=True)
-                    # wfn = self.wavefront_reconstruction(data_stack[2], data_stack[3], rt=True)
-                    # _influence_matrix[:, ind] = ((wfp - wfn) / self.amp).reshape(self._n_lenslets)
                     msk = (wfp != 0.0).astype(np.float32)
                     mn = wfp.sum() / msk.sum()
                     wfp = msk * (wfp - mn)
-                    _influence_matrix[:, ind] = (wfp / (0.5 * self.amp)).reshape(self._n_lenslets)
+                    _influence_matrix[:, ind] = wfp.reshape(self._n_lenslets)
                 else:
                     gdxp, gdyp = self._get_gradient_xy(data_stack[0], data_stack[1])
                     gdxn, gdyn = self._get_gradient_xy(data_stack[2], data_stack[3])
                     if method == 'zonal':
-                        _influence_matrix[:self._n_lenslets, ind] = ((gdxp - gdxn) / self.amp).reshape(self._n_lenslets)
-                        _influence_matrix[self._n_lenslets:, ind] = ((gdyp - gdyn) / self.amp).reshape(self._n_lenslets)
+                        _influence_matrix[:self._n_lenslets, ind] = ((gdxp - gdxn) / (self.amp * 2)).reshape(
+                            self._n_lenslets)
+                        _influence_matrix[self._n_lenslets:, ind] = ((gdyp - gdyn) / (self.amp * 2)).reshape(
+                            self._n_lenslets)
                     if method == 'modal':
                         a1 = self._zernike_coefficients(np.concatenate((gdxp.flatten(), gdyp.flatten())), self.zslopes)
                         a2 = self._zernike_coefficients(np.concatenate((gdxn.flatten(), gdyn.flatten())), self.zslopes)
@@ -290,7 +274,7 @@ class WavefrontSensing:
             self.offset = measurement
             mwf = self.wavefront_reconstruction(rt=True)
             self._correction.append(
-                list(0.5 * self.amp * np.dot(control_matrix_wavefront, mwf.reshape(self._n_lenslets))))
+                list(self.amp * np.dot(control_matrix_wavefront, mwf.reshape(self._n_lenslets))))
         else:
             gradx, grady = self._get_gradient_xy(self.base, measurement)
             _measurement = np.concatenate((gradx.reshape(self._n_lenslets), grady.reshape(self._n_lenslets)))
@@ -329,6 +313,22 @@ class WavefrontSensing:
                 for sheet_name, list_data in data.items():
                     df = pd.DataFrame(list_data, index=np.arange(97), columns=['Push'])
                     df.to_excel(writer, sheet_name=sheet_name, index_label='Actuator')
+
+    def wavefront_decomposition(self, wf):
+        self._az = np.zeros(self._n_zernikes)
+        for i in range(self._n_zernikes):
+            wz = self.zernike[i]
+            self._az[i] = (wf * wz.conj()).sum() / (wz * wz.conj()).sum()
+
+    def wavefront_recomposition(self, size=None):
+        if size is None:
+            ny = self._n_lenslets_y
+            nx = self._n_lenslets_x
+        else:
+            ny, nx = size
+        self.wf = np.zeros((ny, nx))
+        for i in range(self._n_zernikes):
+            self.wf += self._az[i] * self.zernike[i]
 
     def _save_sensorless_results(self, fd, a, v, p):
         df1 = pd.DataFrame(v, index=a, columns=['Values'])

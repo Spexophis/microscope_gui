@@ -518,10 +518,11 @@ class MainController:
         self.wfs_cam.stop_live()
         self.lasers_off()
         self.set_img_wfs()
-        # influfunc = self.p.shwfsr.generate_influence_matrix(newfold, self.ao_controller.get_img_wfs_method())
-        # tf.imwrite(newfold + t + '_influence_function.tif', influfunc)
-        # ctrlmat = self.p.shwfsr.get_control_matrix(influfunc)
-        # tf.imwrite(newfold + t + '_control_matrix.tif', ctrlmat)
+        md = self.ao_controller.get_img_wfs_method()
+        influfunc = self.p.shwfsr.generate_influence_matrix(newfold, md)
+        tf.imwrite(newfold + t + '_' + md + '_influence_function.tif', influfunc)
+        ctrlmat = self.p.shwfsr.get_control_matrix(influfunc)
+        tf.imwrite(newfold + t + '_' + md + '_control_matrix.tif', ctrlmat)
 
     def set_img_wfs(self):
         parameters = self.ao_controller.get_parameters_img()
