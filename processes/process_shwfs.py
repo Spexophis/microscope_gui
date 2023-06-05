@@ -65,6 +65,8 @@ class WavefrontSensing:
         section = np.ones((2 * self.hsp, 2 * self.hsp))
         sectioncorr = corr(1.0 * section, 1.0 * section[::-1, ::-1], mode='full')
         self.CorrCenter = np.unravel_index(sectioncorr.argmax(), sectioncorr.shape)
+        self.zernike = self.get_zernike_polynomials(nz=self._n_zernikes, size=[self._n_lenslets_y, self._n_lenslets_x])
+        self.zslopes = self.get_zernike_slopes(nz=self._n_zernikes, size=[self._n_lenslets_y, self._n_lenslets_x])
 
     def get_zernike_polynomials(self, nz=60, size=None):
         if size is None:
@@ -97,6 +99,23 @@ class WavefrontSensing:
             zernike_derivatives[j, 0, :, :] = dy * msk
             zernike_derivatives[j, 1, :, :] = dx * msk
         return zernike_derivatives
+
+    def get_zernike_slopes(self, nz=58, size=None):
+        if size is None:
+            size = [64, 64]
+        x, y = size
+        xv, yv = self._cartesian_grid(x, y)
+        rho, phi = self._polar_grid(xv, yv)
+        phi = np.pi / 2 - phi
+        phi = np.mod(phi, 2 * np.pi)
+        msk = 1
+        zs = np.zeros((2 * x * y, nz))
+        for j in range(nz):
+            n, m = self._zernike_j_nm(j + 3)
+            zdx, zdy = msk * self._zernike_derivatives(n, m, rho, phi)
+            zs[:x * y, j] = zdx.flatten()
+            zs[x * y:, j] = zdy.flatten()
+        return zs
 
     def run_wf_recon(self, callback=None):
         self.recon_thread = ReconstructionThread(self.wavefront_reconstruction, callback)
@@ -307,8 +326,10 @@ class WavefrontSensing:
                         _influence_matrix[self._n_lenslets:, ind] = ((gdyp - gdyn) / (2 * self.amp)).reshape(
                             self._n_lenslets)
                     if method == 'modal':
-                        a1 = self._zernike_coefficients(np.concatenate((gdxp.flatten(), gdyp.flatten())), self.zslopes)
-                        a2 = self._zernike_coefficients(np.concatenate((gdxn.flatten(), gdyn.flatten())), self.zslopes)
+                        a1 = self.get_zernike_coefficients(np.concatenate((gdxp.flatten(), gdyp.flatten())),
+                                                           self.zslopes)
+                        a2 = self.get_zernike_coefficients(np.concatenate((gdxn.flatten(), gdyn.flatten())),
+                                                           self.zslopes)
                         _influence_matrix[:, ind] = ((a1 - a2) / (2 * self.amp)).flatten()
         _control_matrix = self._pseudo_inverse(_influence_matrix, n=81)
         if sv:
@@ -330,7 +351,7 @@ class WavefrontSensing:
             if method == 'zonal':
                 self._correction.append(list(np.dot(control_matrix_zonal, -_measurement)))
             elif method == 'modal':
-                a = self._zernike_coefficients(-_measurement, self.zslopes)
+                a = self.get_zernike_coefficients(-_measurement, self.zslopes)
                 self._correction.append(list(np.dot(control_matrix_modal, a)))
             else:
                 raise ValueError("Invalid method")
@@ -338,6 +359,10 @@ class WavefrontSensing:
     def correct_cmd(self):
         _c = self._cmd_add(self._dm_cmd[self.current_cmd], self._correction[-1])
         self._dm_cmd.append(_c)
+
+    def get_zernike_coefficients(self, gradxy, gradz):
+        zplus = self._pseudo_inverse(gradz)
+        return np.matmul(zplus, gradxy)
 
     def get_zernike_cmd(self, j, a):
         zerphs = a * self.zernike[j]
@@ -485,28 +510,6 @@ class WavefrontSensing:
         zdx = _dR * _O * np.cos(phi) - (_R / rho) * _dO * np.sin(phi)
         zdy = _dR * _O * np.sin(phi) + (_R / rho) * _dO * np.cos(phi)
         return zdx, zdy
-
-    def get_zernike_slopes(self, nz=58, size=None):
-        # Compute the Zernike polynomials on a grid.
-        if size is None:
-            size = [64, 64]
-        x, y = size
-        xv, yv = self._cartesian_grid(x, y)
-        rho, phi = self._polar_grid(xv, yv)
-        phi = np.pi / 2 - phi
-        phi = np.mod(phi, 2 * np.pi)
-        msk = 1
-        zs = np.zeros((2 * x * y, nz))
-        for j in range(nz):
-            n, m = self._zernike_j_nm(j + 3)
-            zdx, zdy = msk * self._zernike_derivatives(n, m, rho, phi)
-            zs[:x * y, j] = zdx.flatten()
-            zs[x * y:, j] = zdy.flatten()
-        return zs
-
-    def _zernike_coefficients(self, gradxy, gradz):
-        zplus = self._pseudo_inverse(gradz)
-        return np.matmul(zplus, gradxy)
 
     @staticmethod
     def _gs_orthogonalisation(arrays):
