@@ -11,7 +11,6 @@ import numpy as np
 from utilities import customized_widgets as cw
 from utilities import napari_tools
 from PyQt5 import QtWidgets, QtCore, QtGui
-from io import StringIO
 
 
 class ConsoleRedirector:

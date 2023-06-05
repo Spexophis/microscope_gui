@@ -22,7 +22,10 @@ class MainModule:
             self.dm = module_deformablemirror.DeformableMirror()
         except Exception as e:
             print("An error occurred:", str(e))
+        try:
             self.laser = module_laser.CoboltLaser()
+        except Exception as e:
+            print("An error occurred:", str(e))
         try:
             self.daq = module_nidaq.NIDAQ()
         except Exception as e:
