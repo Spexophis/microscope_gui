@@ -128,7 +128,7 @@ class WavefrontSensing:
                 self.im[1, iy * 2 * hsp: (iy + 1) * 2 * hsp, ix * 2 * hsp: (ix + 1) * 2 * hsp] = sec
                 if md == 'correlation':
                     seccorr = corr(1.0 * secbase, 1.0 * sec[::-1, ::-1], mode='full')
-                    py, px = self._parabolicfit(seccorr)
+                    py, px = self._parabolic_fit(seccorr)
                     gradx[iy, ix] = (self.CorrCenter[1] - px) * self.calfactor
                     grady[iy, ix] = (self.CorrCenter[0] - py) * self.calfactor
                 elif md == 'centerofmass':
@@ -222,7 +222,7 @@ class WavefrontSensing:
         for i in range(self._n_zernikes):
             self.wf += self._az[i] * self.zernike[i]
 
-    def _parabolicfit(self, sec):
+    def _parabolic_fit(self, sec):
         try:
             MaxIntLoc = np.unravel_index(sec.argmax(), sec.shape)
             secsmall = sec[(MaxIntLoc[0] - 1):(MaxIntLoc[0] + 2), (MaxIntLoc[1] - 1):(MaxIntLoc[1] + 2)]
