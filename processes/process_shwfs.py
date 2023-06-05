@@ -13,7 +13,7 @@ ifft2 = np.fft.ifft2
 fftshift = np.fft.fftshift
 pi = np.pi
 
-control_matrix_wavefront = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\20230531_control_matrix.tif')
+control_matrix_wavefront = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\20230601_control_matrix.tif')
 control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_20230413_1125.tif')
 control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230407_2027.tif')
 initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\20230411_2047_flatfile.xlsx'
@@ -26,10 +26,10 @@ class WavefrontSensing:
         self._n_lenslets_x = 35
         self._n_lenslets_y = 35
         self._n_lenslets = self._n_lenslets_x * self._n_lenslets_y
-        self.x_center_base = 953
-        self.y_center_base = 1004
-        self.x_center_offset = 953
-        self.y_center_offset = 1004
+        self.x_center_base = 973
+        self.y_center_base = 999
+        self.x_center_offset = 973
+        self.y_center_offset = 999
         self._lenslet_spacing = 45  # spacing between each lenslet
         self.hsp = 24  # size of subimage is 2 * hsp
         self.calfactor = (.0065 / 5.2) * 150  # pixel size * focalLength * pitch
@@ -244,6 +244,7 @@ class WavefrontSensing:
     def generate_influence_matrix(self, data_folder, method='wavefront'):
         if method == 'wavefront':
             _influence_matrix = np.zeros((self._n_lenslets, self._n_actuators))
+            wfs = np.zeros((self._n_actuators, self._n_lenslets_y, self._n_lenslets_x))
         elif method == 'zonal':
             _influence_matrix = np.zeros((2 * self._n_lenslets, self._n_actuators))
         elif method == 'modal':
@@ -264,6 +265,7 @@ class WavefrontSensing:
                     self.base = data_stack[0]
                     self.offset = data_stack[1]
                     wfp = self.wavefront_reconstruction(rt=True)
+                    wfs[ind] = wfp
                     # wfn = self.wavefront_reconstruction(data_stack[2], data_stack[3], rt=True)
                     # _influence_matrix[:, ind] = ((wfp - wfn) / self.amp).reshape(self._n_lenslets)
                     msk = (wfp != 0.0).astype(np.float32)
@@ -280,17 +282,17 @@ class WavefrontSensing:
                         a1 = self._zernike_coefficients(np.concatenate((gdxp.flatten(), gdyp.flatten())), self.zslopes)
                         a2 = self._zernike_coefficients(np.concatenate((gdxn.flatten(), gdyn.flatten())), self.zslopes)
                         _influence_matrix[:, ind] = ((a1 - a2) / self.amp).flatten()
-        return _influence_matrix
-
-    def get_control_matrix(self, influence_matrix, n=81):
-        return self._pseudo_inverse(influence_matrix, n=n)
+        _control_matrix = self._pseudo_inverse(_influence_matrix, n=81)
+        tf.imwrite(os.path.join(data_folder, "influence_function.tif"), _influence_matrix)
+        tf.imwrite(os.path.join(data_folder, "control_matrix.tif"), _control_matrix)
+        tf.imwrite(os.path.join(data_folder, "influence_function_images.tif"), wfs)
 
     def get_correction(self, measurement, method='wavefront'):
         if method == 'wavefront':
             self.offset = measurement
             mwf = self.wavefront_reconstruction(rt=True)
             self._correction.append(
-                list(0.5 * self.amp * np.dot(control_matrix_wavefront, mwf.reshape(self._n_lenslets))))
+                list(self.amp * np.dot(control_matrix_wavefront, -mwf.reshape(self._n_lenslets))))
         else:
             gradx, grady = self._get_gradient_xy(self.base, measurement)
             _measurement = np.concatenate((gradx.reshape(self._n_lenslets), grady.reshape(self._n_lenslets)))
@@ -304,7 +306,7 @@ class WavefrontSensing:
 
     def correct_cmd(self):
         _c = self._cmd_add(self._dm_cmd[self.current_cmd], self._correction[-1])
-        self._dm_cmd.append(list(_c))
+        self._dm_cmd.append(_c)
 
     def get_zernike_cmd(self, j, a):
         zerphs = a * self.zernike[j]
@@ -355,7 +357,7 @@ class WavefrontSensing:
         return x * x + y * y <= radius * radius
 
     @staticmethod
-    def _pseudo_inverse(A, n=52):
+    def _pseudo_inverse(A, n=64):
         U, s, Vt = np.linalg.svd(A)
         s_inv = np.zeros_like(A.T)
         if n is None:
@@ -390,15 +392,16 @@ class WavefrontSensing:
 
     @staticmethod
     def _zernike_j_nm(j):
-        if j < 1:
-            raise ValueError("j must be a positive integer")
-        n = 0
-        while j > n:
-            n += 1
-            j -= n
-        m = -2 * j + n
-        if n % 2 == 0:
-            m = -m
+        n = int((-1. + np.sqrt(8 * (j - 1) + 1)) / 2.)
+        p = (j - (n * (n + 1)) / 2.)
+        k = n % 2
+        m = int((p + k) / 2.) * 2 - k
+        if m != 0:
+            if j % 2 == 0:
+                s = 1
+            else:
+                s = -1
+            m *= s
         return n, m
 
     @staticmethod

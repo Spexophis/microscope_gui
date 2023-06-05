@@ -438,10 +438,10 @@ class MainController:
 
     def set_zernike(self):
         indz, amp = self.ao_controller.get_zernike_mode()
-        self.m.dm.set_dm(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(indz, amp),
-                                               self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
-        # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[indz]],
-        #                                         self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
+        # self.m.dm.set_dm(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(indz, amp),
+        #                                        self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
+        self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[indz]],
+                                                self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
 
     def set_dm(self):
         i = int(self.ao_controller.get_cmd_index())
@@ -579,11 +579,11 @@ class MainController:
         self.set_lasers()
         self.set_wfs_camera_roi()
         self.wfs_cam.prepare_live()
+        self.wfs_cam.start_live()
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open_ao(dgtr)
-        self.wfs_cam.start_live()
-        time.sleep(0.05)
-        self.m.daq.trig_run()
+        time.sleep(0.1)
+        self.m.daq.trig_run_ao()
         time.sleep(0.2)
         self.p.shwfsr.get_correction(self.wfs_cam.get_last_image(), self.ao_controller.get_img_wfs_method())
         self.p.shwfsr.correct_cmd()
@@ -592,7 +592,6 @@ class MainController:
         i = int(self.ao_controller.get_cmd_index())
         self.p.shwfsr.current_cmd = i
         self.run_img_wfr()
-        self.m.daq.trig_stop()
         self.wfs_cam.stop_live()
 
     def start_ao_iteration(self):

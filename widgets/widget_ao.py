@@ -91,12 +91,12 @@ class AOWidget(QtWidgets.QWidget):
 
         layout_shwfs = QtWidgets.QHBoxLayout()
         self.QLabel_image_shwfs = cw.label_widget(str('Image SHWFS'))
-        self.QPushButton_img_shwfs_base = cw.pushbutton_widget('SetBase', enable=False)
+        self.QPushButton_img_shwfs_base = cw.pushbutton_widget('SetBase', enable=True)
         self.QPushButton_run_img_wfs = cw.pushbutton_widget('RunWFS', checkable=True)
-        self.QPushButton_run_img_wfr = cw.pushbutton_widget('RunWFR', enable=False)
+        self.QPushButton_run_img_wfr = cw.pushbutton_widget('RunWFR', enable=True)
         # self.radioButton_exclude_zm = cw.radiobutton_widget("Exclude", f"rgb(220, 20, 60)")
-        self.QPushButton_img_shwfs_compute_wf = cw.pushbutton_widget('ComputeWF', enable=False)
-        self.QPushButton_img_shwfs_save_wf = cw.pushbutton_widget('SaveWF', enable=False)
+        self.QPushButton_img_shwfs_compute_wf = cw.pushbutton_widget('ComputeWF', enable=True)
+        self.QPushButton_img_shwfs_save_wf = cw.pushbutton_widget('SaveWF', enable=True)
         self.image_shwfs_scroll_area, image_shwfs_scroll_layout = cw.create_scroll_area()
         image_shwfs_scroll_layout.addRow(self.QLabel_image_shwfs)
         image_shwfs_scroll_layout.addRow(self.QPushButton_run_img_wfs, self.QPushButton_img_shwfs_base)
@@ -220,7 +220,6 @@ class AOWidget(QtWidgets.QWidget):
 
     def set_img_wfs_base(self):
         self.Signal_img_shwfs_initiate.emit()
-        self.QPushButton_run_img_wfr.setEnabled(True)
 
     def run_img_wfs(self):
         if self.QPushButton_run_img_wfs.isChecked():
@@ -230,8 +229,6 @@ class AOWidget(QtWidgets.QWidget):
 
     def run_img_wfr(self):
         self.Signal_img_shwfr_run.emit()
-        self.QPushButton_img_shwfs_compute_wf.setEnabled(True)
-        self.QPushButton_img_shwfs_save_wf.setEnabled(True)
 
     def save_img_wf(self):
         dialog = cw.create_file_dialogue(name="Save File", file_filter="All Files (*)",

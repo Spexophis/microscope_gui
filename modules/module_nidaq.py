@@ -160,6 +160,16 @@ class NIDAQ:
             PyDAQmx.DAQmxGetExtendedErrorInfo(errBuff, 2048)
             print(errBuff.value)
 
+    def trig_run_ao(self):
+        try:
+            PyDAQmx.DAQmxStartTask(self.doHandle)
+            PyDAQmx.DAQmxWaitUntilTaskDone(self.doHandle, -1)
+            PyDAQmx.DAQmxStopTask(self.doHandle)
+        except:
+            errBuff = DAQmxTypes.create_string_buffer(b"", 2048)
+            PyDAQmx.DAQmxGetExtendedErrorInfo(errBuff, 2048)
+            print(errBuff.value)
+
     def trigger_sequence(self, ao_sequences, do_sequences):
         try:
             ao_channels, ao_samples = ao_sequences.shape
