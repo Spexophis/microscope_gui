@@ -111,6 +111,7 @@ class MainController:
         self.v.get_ao_widget().Signal_img_wfs_start.connect(self.start_img_wfs)
         self.v.get_ao_widget().Signal_img_wfs_stop.connect(self.stop_img_wfs)
         self.v.get_ao_widget().Signal_img_shwfr_run.connect(self.run_img_wfr)
+        self.v.get_ao_widget().Signal_img_shwfs_compute_wf.connect(self.compute_img_wf)
         self.v.get_ao_widget().Signal_img_shwfs_save_wf.connect(self.save_img_wf)
         # AO
         self.v.get_ao_widget().Signal_img_shwfs_correct_wf.connect(self.correct_img_wf)
@@ -427,7 +428,7 @@ class MainController:
         self.lasers_off()
 
     def save_data(self, file_name):
-        tf.imwrite(file_name + '.tif', self.main_cam.data)
+        tf.imwrite(file_name + '.tif', self.main_cam.get_last_image())
         print('Data saved')
 
     def push_actuator(self):
@@ -549,15 +550,15 @@ class MainController:
         self.lasers_off()
 
     def imshow_img_wfs(self):
-        self.view_controller.plot_sh(self.wfs_cam.get_last_image())
+        self.p.shwfsr.offset = self.wfs_cam.get_last_image()
+        self.view_controller.plot_sh(self.p.shwfsr.offset)
 
     def set_img_wfs_base(self):
-        self.p.shwfsr.base = self.view_controller.get_image_data('ShackHartmann')
+        self.p.shwfsr.base = self.p.shwfsr.offset
         print('wfs base set')
 
     def run_img_wfr(self):
         self.p.shwfsr.method = self.ao_controller.get_gradient_method_img()
-        self.p.shwfsr.offset = self.view_controller.get_image_data('ShackHartmann')
         self.p.shwfsr.run_wf_recon(callback=self.imshow_img_wfr)
 
     def imshow_img_wfr(self):
@@ -566,9 +567,16 @@ class MainController:
                 self.view_controller.plot_wf(self.p.shwfsr.wf)
                 self.ao_controller.display_img_wf_properties(self.p.imgprocess.wf_properties(self.p.shwfsr.wf))
 
+    def compute_img_wf(self):
+        self.p.shwfsr.run_wf_modal_recon()
+        self.view_controller.plot_update(self.p.shwfsr._az)
+        self.imshow_img_wfr()
+
     def save_img_wf(self, file_name):
         if isinstance(self.p.shwfsr.base, np.ndarray) and self.p.shwfsr.base.size > 0:
             tf.imwrite(file_name + '_shimg_base_raw.tif', self.p.shwfsr.base)
+        if isinstance(self.p.shwfsr.offset, np.ndarray) and self.p.shwfsr.offset.size > 0:
+            tf.imwrite(file_name + '_shimg_offset_raw.tif', self.p.shwfsr.offset)
         if isinstance(self.p.shwfsr.im, np.ndarray) and self.p.shwfsr.im.size > 0:
             tf.imwrite(file_name + '_shimg_processed.tif', self.p.shwfsr.im)
         if isinstance(self.p.shwfsr.wf, np.ndarray) and self.p.shwfsr.wf.size > 0:

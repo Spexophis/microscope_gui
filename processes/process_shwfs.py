@@ -14,7 +14,7 @@ fftshift = np.fft.fftshift
 pi = np.pi
 
 control_matrix_wavefront = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\20230601_control_matrix.tif')
-control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230601.tif')
+control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230605.tif')
 control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230407_2027.tif')
 initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\20230411_2047_flatfile.xlsx'
 
@@ -23,8 +23,8 @@ class WavefrontSensing:
 
     def __init__(self):
         self._n_actuators = 97
-        self._n_lenslets_x = 35
-        self._n_lenslets_y = 35
+        self._n_lenslets_x = 36
+        self._n_lenslets_y = 36
         self._n_lenslets = self._n_lenslets_x * self._n_lenslets_y
         self.x_center_base = 973
         self.y_center_base = 999
@@ -46,7 +46,7 @@ class WavefrontSensing:
         self._n_zernikes = 60
         self._az = None
         self.zernike = self.get_zernike_polynomials(nz=self._n_zernikes, size=[self._n_lenslets_y, self._n_lenslets_x])
-        self.zslopes = self._zernike_slopes(nz=self._n_zernikes, size=[self._n_lenslets_y, self._n_lenslets_x])
+        self.zslopes = self.get_zernike_slopes(nz=self._n_zernikes, size=[self._n_lenslets_y, self._n_lenslets_x])
         self._correction = []
         self._temp_cmd = []
         self._dm_cmd = [[0.] * 97]
@@ -67,7 +67,6 @@ class WavefrontSensing:
         self.CorrCenter = np.unravel_index(sectioncorr.argmax(), sectioncorr.shape)
 
     def get_zernike_polynomials(self, nz=60, size=None):
-        # Compute the Zernike polynomials on a grid.
         if size is None:
             size = [16, 16]
         y, x = size
@@ -82,8 +81,25 @@ class WavefrontSensing:
             zernike[j, :, :] = msk * self._zernike(n, m, rho, phi)
         return self._gs_orthogonalisation(zernike)
 
+    def get_zernike_derivatives(self, nz=60, size=None):
+        if size is None:
+            size = [16, 16]
+        y, x = size
+        yv, xv = self._cartesian_grid(x, y)
+        rho, phi = self._polar_grid(xv, yv)
+        phi = np.pi / 2 - phi
+        phi = np.mod(phi, 2 * np.pi)
+        zernike_derivatives = np.zeros((nz, 2, y, x))
+        msk = self._elliptical_mask((y / 2, x / 2), (y, x))
+        for j in range(nz):
+            n, m = self._zernike_j_nm(j + 1)
+            dx, dy = self._zernike_derivatives(n, m, rho, phi)
+            zernike_derivatives[j, 0, :, :] = dy * msk
+            zernike_derivatives[j, 1, :, :] = dx * msk
+        return zernike_derivatives
+
     def run_wf_recon(self, callback=None):
-        self.recon_thread = ReconstructionThread(self, callback)
+        self.recon_thread = ReconstructionThread(self.wavefront_reconstruction, callback)
         self.recon_thread.start()
 
     def wavefront_reconstruction(self, rt=False):
@@ -206,19 +222,29 @@ class WavefrontSensing:
         constant = constant_num / constant_den
         return phi - constant * wmode
 
-    def wavefront_decomposition(self, wf):
+    def run_wf_modal_recon(self, callback=None):
+        self.recon_thread = ReconstructionThread(self.wavefront_modal_reconstruction, callback)
+        self.recon_thread.start()
+
+    def wavefront_modal_reconstruction(self):
+        self.wavefront_decomposition()
+        self.wavefront_recomposition()
+
+    def wavefront_decomposition(self):
         self._az = np.zeros(self._n_zernikes)
         for i in range(self._n_zernikes):
             wz = self.zernike[i]
-            self._az[i] = (wf * wz.conj()).sum() / (wz * wz.conj()).sum()
+            self._az[i] = (self.wf * wz.conj()).sum() / (wz * wz.conj()).sum()
 
-    def wavefront_recomposition(self, size=None):
+    def wavefront_recomposition(self, size=None, exclusive=True):
         if size is None:
             ny = self._n_lenslets_y
             nx = self._n_lenslets_x
         else:
             ny, nx = size
         self.wf = np.zeros((ny, nx))
+        if exclusive:
+            self._az[:4] = 0
         for i in range(self._n_zernikes):
             self.wf += self._az[i] * self.zernike[i]
 
@@ -241,14 +267,14 @@ class WavefrontSensing:
         binary = img > thresh
         return (img - thresh) * binary
 
-    def generate_influence_matrix(self, data_folder, method='wavefront'):
+    def generate_influence_matrix(self, data_folder, method='wavefront', sv=False):
         if method == 'wavefront':
             _influence_matrix = np.zeros((self._n_lenslets, self._n_actuators))
             wfs = np.zeros((self._n_actuators, self._n_lenslets_y, self._n_lenslets_x))
         elif method == 'zonal':
             _influence_matrix = np.zeros((2 * self._n_lenslets, self._n_actuators))
-        elif method == 'modal':
-            _influence_matrix = np.zeros((self._n_zernikes, self._n_actuators))
+        # elif method == 'modal':
+        #     _influence_matrix = np.zeros((self._n_zernikes, self._n_actuators))
         else:
             raise ValueError("Invalid method")
         _msk = self._elliptical_mask((self._n_lenslets_y / 2, self._n_lenslets_x / 2),
@@ -285,9 +311,12 @@ class WavefrontSensing:
                         a2 = self._zernike_coefficients(np.concatenate((gdxn.flatten(), gdyn.flatten())), self.zslopes)
                         _influence_matrix[:, ind] = ((a1 - a2) / (2 * self.amp)).flatten()
         _control_matrix = self._pseudo_inverse(_influence_matrix, n=81)
-        tf.imwrite(os.path.join(data_folder, "influence_function.tif"), _influence_matrix)
-        tf.imwrite(os.path.join(data_folder, "control_matrix.tif"), _control_matrix)
-        tf.imwrite(os.path.join(data_folder, "influence_function_images.tif"), wfs)
+        if sv:
+            tf.imwrite(os.path.join(data_folder, "influence_function.tif"), _influence_matrix)
+            tf.imwrite(os.path.join(data_folder, "control_matrix.tif"), _control_matrix)
+            if 'wfs' in locals():
+                if isinstance(wfs, np.ndarray):
+                    tf.imwrite(os.path.join(data_folder, "influence_function_images.tif"), wfs)
 
     def get_correction(self, measurement, method='wavefront'):
         if method == 'wavefront':
@@ -299,9 +328,9 @@ class WavefrontSensing:
             gradx, grady = self._get_gradient_xy(self.base, measurement)
             _measurement = np.concatenate((gradx.reshape(self._n_lenslets), grady.reshape(self._n_lenslets)))
             if method == 'zonal':
-                self._correction.append(list(np.dot(control_matrix_zonal, _measurement)))
+                self._correction.append(list(np.dot(control_matrix_zonal, -_measurement)))
             elif method == 'modal':
-                a = self._zernike_coefficients(_measurement, self.zslopes)
+                a = self._zernike_coefficients(-_measurement, self.zslopes)
                 self._correction.append(list(np.dot(control_matrix_modal, a)))
             else:
                 raise ValueError("Invalid method")
@@ -411,45 +440,53 @@ class WavefrontSensing:
         if (n < 0) or (n < abs(m)) or (n % 2 != abs(m) % 2):
             raise ValueError("n and m are not valid Zernike indices")
         kmax = int((n - abs(m)) / 2)
-        R = 0
+        _R = 0
+        _O = 0
+        _C = 0
+        if m == 0:
+            _C = np.sqrt(n + 1)
+        else:
+            _C = np.sqrt(2 * n + 1)
         for k in range(kmax + 1):
-            R += ((-1) ** k * factorial(n - k) /
-                  (factorial(k) * factorial(0.5 * (n + abs(m)) - k) *
-                   factorial(0.5 * (n - abs(m)) - k)) *
-                  rho ** (n - 2 * k))
+            _R += ((-1) ** k * factorial(n - k) /
+                   (factorial(k) * factorial(0.5 * (n + abs(m)) - k) *
+                    factorial(0.5 * (n - abs(m)) - k)) *
+                   rho ** (n - 2 * k))
         if m >= 0:
-            O = np.cos(m * phi)
+            _O = np.cos(m * phi)
         if m < 0:
-            O = np.sin(np.abs(m) * phi)
-        return R * O
+            _O = - np.sin(m * phi)
+        return _C * _R * _O
 
     @staticmethod
     def _zernike_derivatives(n, m, rho, phi):
         if (n < 0) or (n < abs(m)) or (n % 2 != abs(m) % 2):
             raise ValueError("n and m are not valid Zernike indices")
         kmax = int((n - abs(m)) / 2)
-        R = 0
-        dR = 0
+        _R = 0
+        _dR = 0
+        _O = 0
+        _dO = 0
         for k in range(kmax + 1):
-            R += ((-1) ** k * factorial(n - k) /
-                  (factorial(k) * factorial(0.5 * (n + abs(m)) - k) *
-                   factorial(0.5 * (n - abs(m)) - k)) *
-                  rho ** (n - 2 * k))
-            dR += ((-1) ** k * factorial(n - k) /
+            _R += ((-1) ** k * factorial(n - k) /
                    (factorial(k) * factorial(0.5 * (n + abs(m)) - k) *
                     factorial(0.5 * (n - abs(m)) - k)) *
-                   (n - 2 * k) * rho ** (n - 2 * k - 1))
+                   rho ** (n - 2 * k))
+            _dR += ((-1) ** k * factorial(n - k) /
+                    (factorial(k) * factorial(0.5 * (n + abs(m)) - k) *
+                     factorial(0.5 * (n - abs(m)) - k)) *
+                    rho ** (n - 2 * k - 1)) * (n - 2 * k)
         if m >= 0:
-            O = np.cos(m * phi)
-            dO = m * np.sin(m * phi)
+            _O = np.cos(m * phi)
+            _dO = - m * np.sin(m * phi)
         if m < 0:
-            O = np.sin(np.abs(m) * phi)
-            dO = - np.abs(m) * np.sin(np.abs(m) * phi)
-        dx = dR * O * np.cos(phi) - (R / rho) * dO * np.sin(phi)
-        dy = dR * O * np.sin(phi) + (R / rho) * dO * np.cos(phi)
-        return dx, dy
+            _O = - np.sin(m * phi)
+            _dO = - m * np.cos(m * phi)
+        zdx = _dR * _O * np.cos(phi) - (_R / rho) * _dO * np.sin(phi)
+        zdy = _dR * _O * np.sin(phi) + (_R / rho) * _dO * np.cos(phi)
+        return zdx, zdy
 
-    def _zernike_slopes(self, nz=58, size=None):
+    def get_zernike_slopes(self, nz=58, size=None):
         # Compute the Zernike polynomials on a grid.
         if size is None:
             size = [64, 64]
@@ -487,16 +524,16 @@ class WavefrontSensing:
 
 
 class ReconstructionThread(threading.Thread):
-    def __init__(self, shwfs, callback):
+    def __init__(self, recon, callback):
         threading.Thread.__init__(self)
-        self.wfr = shwfs
+        self.recon = recon
         self.lock = threading.Lock()
         self.is_finished = threading.Event()
         self.callback = callback
 
     def run(self):
         with self.lock:
-            self.wfr.wavefront_reconstruction()
+            self.recon()
         self.is_finished.set()
         if self.callback is not None:
             self.callback()
