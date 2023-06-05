@@ -42,7 +42,7 @@ class WavefrontSensing:
         self.offset = np.array([])
         self.wf = np.array([])
         self.recon_thread = None
-        self.amp = 0.1 * 2
+        self.amp = 0.1
         self._n_zernikes = 60
         self._az = None
         self.zernike = self.get_zernike_polynomials(nz=self._n_zernikes, size=[self._n_lenslets_y, self._n_lenslets_x])
@@ -267,21 +267,21 @@ class WavefrontSensing:
                     wfp = self.wavefront_reconstruction(rt=True)
                     wfs[ind] = wfp
                     # wfn = self.wavefront_reconstruction(data_stack[2], data_stack[3], rt=True)
-                    # _influence_matrix[:, ind] = ((wfp - wfn) / self.amp).reshape(self._n_lenslets)
+                    # _influence_matrix[:, ind] = ((wfp - wfn) / (2 * self.amp)).reshape(self._n_lenslets)
                     msk = (wfp != 0.0).astype(np.float32)
                     mn = wfp.sum() / msk.sum()
                     wfp = msk * (wfp - mn)
-                    _influence_matrix[:, ind] = (wfp / (0.5 * self.amp)).reshape(self._n_lenslets)
+                    _influence_matrix[:, ind] = wfp.reshape(self._n_lenslets)
                 else:
                     gdxp, gdyp = self._get_gradient_xy(data_stack[0], data_stack[1])
                     gdxn, gdyn = self._get_gradient_xy(data_stack[2], data_stack[3])
                     if method == 'zonal':
-                        _influence_matrix[:self._n_lenslets, ind] = ((gdxp - gdxn) / self.amp).reshape(self._n_lenslets)
-                        _influence_matrix[self._n_lenslets:, ind] = ((gdyp - gdyn) / self.amp).reshape(self._n_lenslets)
+                        _influence_matrix[:self._n_lenslets, ind] = ((gdxp - gdxn) / (2 * self.amp)).reshape(self._n_lenslets)
+                        _influence_matrix[self._n_lenslets:, ind] = ((gdyp - gdyn) / (2 * self.amp)).reshape(self._n_lenslets)
                     if method == 'modal':
                         a1 = self._zernike_coefficients(np.concatenate((gdxp.flatten(), gdyp.flatten())), self.zslopes)
                         a2 = self._zernike_coefficients(np.concatenate((gdxn.flatten(), gdyn.flatten())), self.zslopes)
-                        _influence_matrix[:, ind] = ((a1 - a2) / self.amp).flatten()
+                        _influence_matrix[:, ind] = ((a1 - a2) / (2 * self.amp)).flatten()
         _control_matrix = self._pseudo_inverse(_influence_matrix, n=81)
         tf.imwrite(os.path.join(data_folder, "influence_function.tif"), _influence_matrix)
         tf.imwrite(os.path.join(data_folder, "control_matrix.tif"), _control_matrix)
