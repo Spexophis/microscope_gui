@@ -14,7 +14,7 @@ fftshift = np.fft.fftshift
 pi = np.pi
 
 control_matrix_wavefront = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\20230601_control_matrix.tif')
-control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_20230413_1125.tif')
+control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230601.tif')
 control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230407_2027.tif')
 initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\20230411_2047_flatfile.xlsx'
 
@@ -276,8 +276,10 @@ class WavefrontSensing:
                     gdxp, gdyp = self._get_gradient_xy(data_stack[0], data_stack[1])
                     gdxn, gdyn = self._get_gradient_xy(data_stack[2], data_stack[3])
                     if method == 'zonal':
-                        _influence_matrix[:self._n_lenslets, ind] = ((gdxp - gdxn) / (2 * self.amp)).reshape(self._n_lenslets)
-                        _influence_matrix[self._n_lenslets:, ind] = ((gdyp - gdyn) / (2 * self.amp)).reshape(self._n_lenslets)
+                        _influence_matrix[:self._n_lenslets, ind] = ((gdxp - gdxn) / (2 * self.amp)).reshape(
+                            self._n_lenslets)
+                        _influence_matrix[self._n_lenslets:, ind] = ((gdyp - gdyn) / (2 * self.amp)).reshape(
+                            self._n_lenslets)
                     if method == 'modal':
                         a1 = self._zernike_coefficients(np.concatenate((gdxp.flatten(), gdyp.flatten())), self.zslopes)
                         a2 = self._zernike_coefficients(np.concatenate((gdxn.flatten(), gdyn.flatten())), self.zslopes)
