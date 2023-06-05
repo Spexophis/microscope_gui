@@ -224,12 +224,12 @@ class WavefrontSensing:
 
     def _parabolic_fit(self, sec):
         try:
-            MaxIntLoc = np.unravel_index(sec.argmax(), sec.shape)
-            secsmall = sec[(MaxIntLoc[0] - 1):(MaxIntLoc[0] + 2), (MaxIntLoc[1] - 1):(MaxIntLoc[1] + 2)]
-            gradx = MaxIntLoc[1] + 0.5 * (1.0 * secsmall[1, 0] - 1.0 * secsmall[1, 2]) / (
-                    1.0 * secsmall[1, 0] + 1.0 * secsmall[1, 2] - 2.0 * secsmall[1, 1])
-            grady = MaxIntLoc[0] + 0.5 * (1.0 * secsmall[0, 1] - 1.0 * secsmall[2, 1]) / (
-                    1.0 * secsmall[0, 1] + 1.0 * secsmall[2, 1] - 2.0 * secsmall[1, 1])
+            init_max_loc = np.unravel_index(sec.argmax(), sec.shape)
+            sec_zoom = sec[(init_max_loc[0] - 1):(init_max_loc[0] + 2), (init_max_loc[1] - 1):(init_max_loc[1] + 2)]
+            gradx = init_max_loc[1] + 0.5 * (1.0 * sec_zoom[1, 0] - 1.0 * sec_zoom[1, 2]) / (
+                    1.0 * sec_zoom[1, 0] + 1.0 * sec_zoom[1, 2] - 2.0 * sec_zoom[1, 1])
+            grady = init_max_loc[0] + 0.5 * (1.0 * sec_zoom[0, 1] - 1.0 * sec_zoom[2, 1]) / (
+                    1.0 * sec_zoom[0, 1] + 1.0 * sec_zoom[2, 1] - 2.0 * sec_zoom[1, 1])
         except:  # IndexError
             gradx = self.CorrCenter[0]
             grady = self.CorrCenter[1]
