@@ -9,7 +9,7 @@ class AOWidget(QtWidgets.QWidget):
     Signal_img_wfs_stop = QtCore.pyqtSignal()
     Signal_img_shwfr_run = QtCore.pyqtSignal()
     Signal_img_shwfs_compute_wf = QtCore.pyqtSignal()
-    Signal_img_shwfs_correct_wf = QtCore.pyqtSignal()
+    Signal_img_shwfs_correct_wf = QtCore.pyqtSignal(int)
     Signal_img_shwfs_save_wf = QtCore.pyqtSignal(str)
     Signal_push_actuator = QtCore.pyqtSignal()
     Signal_influence_function = QtCore.pyqtSignal()
@@ -146,8 +146,12 @@ class AOWidget(QtWidgets.QWidget):
         group_deformablemirror.setLayout(layout_deformablemirror)
 
         layout_dwfs = QtWidgets.QGridLayout()
-        self.QPushButton_dwfs_correction = cw.pushbutton_widget('WF Correction')
-        layout_dwfs.addWidget(self.QPushButton_dwfs_correction, 0, 0, 1, 1)
+        self.QLabel_close_loop_number = cw.label_widget(str('Loop #   (0 - infinite)'))
+        self.QSpinBox_close_loop_number = cw.spinbox_widget(0, 100, 1, 1)
+        self.QPushButton_dwfs_cl_correction = cw.pushbutton_widget('Close Loop Correction')
+        layout_dwfs.addWidget(self.QLabel_close_loop_number, 0, 0, 1, 1)
+        layout_dwfs.addWidget(self.QSpinBox_close_loop_number, 0, 1, 1, 1)
+        layout_dwfs.addWidget(self.QPushButton_dwfs_cl_correction, 0, 2, 1, 1)
         group_dwfs.setLayout(layout_dwfs)
 
         layout_sensorless = QtWidgets.QGridLayout()
@@ -205,7 +209,7 @@ class AOWidget(QtWidgets.QWidget):
         self.QPushButton_update_cmd.clicked.connect(self.Signal_update_cmd.emit)
         self.QPushButton_load_dm.clicked.connect(self.load_dm_file)
         self.QPushButton_save_dm.clicked.connect(self.Signal_save_dm.emit)
-        self.QPushButton_dwfs_correction.clicked.connect(self.Signal_img_shwfs_correct_wf.emit)
+        self.QPushButton_dwfs_cl_correction.clicked.connect(self.close_loop_correction)
         self.QPushButton_sensorless_run.clicked.connect(self.Signal_sensorlessAO_run.emit)
         self.QPushButton_sensorless_save.clicked.connect(self.Signal_sensorlessAO_save.emit)
 
@@ -229,6 +233,10 @@ class AOWidget(QtWidgets.QWidget):
 
     def run_img_wfr(self):
         self.Signal_img_shwfr_run.emit()
+
+    def close_loop_correction(self):
+        n = self.QSpinBox_close_loop_number.value()
+        self.Signal_img_shwfs_correct_wf.emit(n)
 
     def save_img_wf(self):
         dialog = cw.create_file_dialogue(name="Save File", file_filter="All Files (*)",

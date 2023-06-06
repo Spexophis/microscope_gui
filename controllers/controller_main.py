@@ -114,12 +114,14 @@ class MainController:
         self.v.get_ao_widget().Signal_img_shwfs_compute_wf.connect(self.compute_img_wf)
         self.v.get_ao_widget().Signal_img_shwfs_save_wf.connect(self.save_img_wf)
         # AO
-        self.v.get_ao_widget().Signal_img_shwfs_correct_wf.connect(self.correct_img_wf)
+        self.v.get_ao_widget().Signal_img_shwfs_correct_wf.connect(self.run_close_loop_correction)
         self.v.get_ao_widget().Signal_sensorlessAO_run.connect(self.run_ao_optimize)
 
         p = self.m.md.getPositionStepsTakenAxis(3)
         self.con_controller.display_deck_position(p)
         self.m.dm.set_dm(self.p.shwfsr._dm_cmd[1])
+
+        self.close_loop_thread = None
 
         # self.main_cam, self.wfs_cam = self.con_controller.get_camera_selections()
         self.main_camera = "EMCCD"
@@ -583,7 +585,18 @@ class MainController:
             tf.imwrite(file_name + '_reconstructed_wf.tif', self.p.shwfsr.wf)
         print('WF Data saved')
 
-    def correct_img_wf(self):
+    def run_close_loop_correction(self, n):
+        if n != 0:
+            self.close_loop_thread = None
+            self.prepare_close_loop_correction()
+            self.close_loop_correction()
+            self.stop_close_loop_correction()
+        else:
+            self.prepare_close_loop_correction()
+            self.close_loop_thread = LoopThread(self.close_loop_correction)
+            self.close_loop_thread.start()
+
+    def prepare_close_loop_correction(self):
         self.set_img_wfs()
         self.set_lasers()
         self.set_wfs_camera_roi()
@@ -591,16 +604,22 @@ class MainController:
         self.wfs_cam.start_live()
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open_ao(dgtr)
-        time.sleep(0.1)
+
+    def close_loop_correction(self):
         self.m.daq.trig_run_ao()
-        time.sleep(0.2)
-        self.p.shwfsr.get_correction(self.wfs_cam.get_last_image(), self.ao_controller.get_img_wfs_method())
-        self.p.shwfsr.correct_cmd()
+        self.p.shwfsr.offset = self.wfs_cam.get_last_image()
+        self.p.shwfsr.get_correction(self.ao_controller.get_img_wfs_method())
         self.m.dm.set_dm(self.p.shwfsr._dm_cmd[-1])
         self.ao_controller.update_cmd_index()
         i = int(self.ao_controller.get_cmd_index())
         self.p.shwfsr.current_cmd = i
+        self.m.daq.trig_run_ao()
+        self.p.shwfsr.offset = self.wfs_cam.get_last_image()
         self.run_img_wfr()
+
+    def stop_close_loop_correction(self):
+        if self.close_loop_thread is not None:
+            self.close_loop_thread.stop()
         self.wfs_cam.stop_live()
 
     def start_ao_iteration(self):
@@ -770,12 +789,43 @@ class TaskThread(threading.Thread):
         threading.Thread.__init__(self)
         self.task = task
         self.lock = threading.Lock()
-        self.is_finished = threading.Event()
+        # self.is_finished = threading.Event()
         self.callback = callback
 
     def run(self):
         with self.lock:
             self.task()
-        self.is_finished.set()
+        # self.is_finished.set()
         if self.callback is not None:
             self.callback()
+
+
+class LoopThread(threading.Thread):
+    def __init__(self, loop, endloop=None, callback=None):
+        threading.Thread.__init__(self)
+        self.loop = loop
+        if endloop is not None:
+            self.endloop = endloop
+        if callback is not None:
+            self.callback = callback
+        self.running = False
+        self.lock = threading.Lock()
+        self.is_finished = threading.Event()
+
+    def run(self):
+        self.running = True
+        while self.running:
+            self.is_finished.clear()
+            with self.lock:
+                self.loop()
+            if self.callback is not None:
+                self.callback()
+            self.is_finished.set()
+
+    def stop(self):
+        self.running = False
+        if self.is_alive():
+            self.is_finished.wait()
+        if self.endloop is not None:
+            self.endloop()
+        self.join()
