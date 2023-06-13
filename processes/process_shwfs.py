@@ -340,14 +340,13 @@ class WavefrontSensing:
                 if isinstance(wfs, np.ndarray):
                     tf.imwrite(os.path.join(data_folder, "influence_function_images.tif"), wfs)
 
-    def get_correction(self, measurement, method='wavefront'):
+    def get_correction(self, method='wavefront'):
         if method == 'wavefront':
-            self.offset = measurement
             mwf = self.wavefront_reconstruction(rt=True)
             self._correction.append(
                 list(self.amp * np.dot(control_matrix_wavefront, -mwf.reshape(self._n_lenslets))))
         else:
-            gradx, grady = self._get_gradient_xy(self.base, measurement)
+            gradx, grady = self._get_gradient_xy(self.base, self.offset)
             _measurement = np.concatenate((gradx.reshape(self._n_lenslets), grady.reshape(self._n_lenslets)))
             if method == 'zonal':
                 self._correction.append(list(np.dot(control_matrix_zonal, -_measurement)))
@@ -356,8 +355,6 @@ class WavefrontSensing:
                 self._correction.append(list(np.dot(control_matrix_modal, a)))
             else:
                 raise ValueError("Invalid method")
-
-    def correct_cmd(self):
         _c = self._cmd_add(self._dm_cmd[self.current_cmd], self._correction[-1])
         self._dm_cmd.append(_c)
 
