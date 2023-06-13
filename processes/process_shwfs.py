@@ -14,8 +14,8 @@ fftshift = np.fft.fftshift
 pi = np.pi
 
 control_matrix_wavefront = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\20230601_control_matrix.tif')
-control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230605.tif')
-control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230407_2027.tif')
+control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230613.tif')
+control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230613.tif')
 initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\20230411_2047_flatfile.xlsx'
 
 
@@ -23,14 +23,14 @@ class WavefrontSensing:
 
     def __init__(self):
         self._n_actuators = 97
-        self._n_lenslets_x = 36
+        self._n_lenslets_x = 35
         self._n_lenslets_y = 36
         self._n_lenslets = self._n_lenslets_x * self._n_lenslets_y
-        self.x_center_base = 973
-        self.y_center_base = 999
-        self.x_center_offset = 973
-        self.y_center_offset = 999
-        self._lenslet_spacing = 45  # spacing between each lenslet
+        self.x_center_base = 1029
+        self.y_center_base = 1055
+        self.x_center_offset = 1029
+        self.y_center_offset = 1055
+        self._lenslet_spacing = 55  # spacing between each lenslet
         self.hsp = 24  # size of subimage is 2 * hsp
         self.calfactor = (.0065 / 5.2) * 150  # pixel size * focalLength * pitch
         self.method = 'correlation'
@@ -60,6 +60,7 @@ class WavefrontSensing:
         self.y_center_offset = parameters[3]
         self._n_lenslets_x = parameters[4]
         self._n_lenslets_y = parameters[5]
+        self._n_lenslets = self._n_lenslets_x * self._n_lenslets_y
         self._lenslet_spacing = parameters[6]
         self.hsp = parameters[7]
         section = np.ones((2 * self.hsp, 2 * self.hsp))
@@ -292,8 +293,8 @@ class WavefrontSensing:
             wfs = np.zeros((self._n_actuators, self._n_lenslets_y, self._n_lenslets_x))
         elif method == 'zonal':
             _influence_matrix = np.zeros((2 * self._n_lenslets, self._n_actuators))
-        # elif method == 'modal':
-        #     _influence_matrix = np.zeros((self._n_zernikes, self._n_actuators))
+        elif method == 'modal':
+            _influence_matrix = np.zeros((self._n_zernikes, self._n_actuators))
         else:
             raise ValueError("Invalid method")
         _msk = self._elliptical_mask((self._n_lenslets_y / 2, self._n_lenslets_x / 2),
@@ -331,7 +332,7 @@ class WavefrontSensing:
                         a2 = self.get_zernike_coefficients(np.concatenate((gdxn.flatten(), gdyn.flatten())),
                                                            self.zslopes)
                         _influence_matrix[:, ind] = ((a1 - a2) / (2 * self.amp)).flatten()
-        _control_matrix = self._pseudo_inverse(_influence_matrix, n=81)
+        _control_matrix = self._pseudo_inverse(_influence_matrix, n=32)
         if sv:
             tf.imwrite(os.path.join(data_folder, "influence_function.tif"), _influence_matrix)
             tf.imwrite(os.path.join(data_folder, "control_matrix.tif"), _control_matrix)
@@ -361,7 +362,7 @@ class WavefrontSensing:
         self._dm_cmd.append(_c)
 
     def get_zernike_coefficients(self, gradxy, gradz):
-        zplus = self._pseudo_inverse(gradz)
+        zplus = self._pseudo_inverse(gradz, n=32)
         return np.matmul(zplus, gradxy)
 
     def get_zernike_cmd(self, j, a):
@@ -413,7 +414,7 @@ class WavefrontSensing:
         return x * x + y * y <= radius * radius
 
     @staticmethod
-    def _pseudo_inverse(A, n=64):
+    def _pseudo_inverse(A, n=32):
         U, s, Vt = np.linalg.svd(A)
         s_inv = np.zeros_like(A.T)
         if n is None:
