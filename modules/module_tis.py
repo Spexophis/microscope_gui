@@ -14,9 +14,7 @@ ic.IC_InitLibrary(0)
 class CallbackUserdata(ctypes.Structure):
     def __init__(self):
         super().__init__()
-        self.Value1 = 42
-        self.Value2 = 0
-        self.camera = None  # Reference to a camera/grabber object
+        self.Value1 = 1
 
 
 def FrameCallback(hGrabber, pBuffer, framenumber, pData):
