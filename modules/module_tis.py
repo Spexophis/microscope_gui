@@ -14,16 +14,16 @@ ic.IC_InitLibrary(0)
 class CallbackUserdata(ctypes.Structure):
     def __init__(self):
         super().__init__()
-        self.Value1 = 1
+        self.index = 1
 
 
-def FrameCallback(hGrabber, pBuffer, framenumber, pData):
-    print("Callback called", pData.Value1)
-    pData.Value1 = pData.Value1 + 1
+def Frame_Callback(hGrabber, pBuffer, framenumber, pData):
+    print("Callback called", pData.index)
+    pData.index = pData.index + 1
 
 
 Userdata = CallbackUserdata()
-Callbackfuncptr = ic.FRAMEREADYCALLBACK(FrameCallback)
+Callback_Function = ic.FRAMEREADYCALLBACK(Frame_Callback)
 
 
 class TISCamera:
@@ -49,7 +49,7 @@ class TISCamera:
                         print("SUCCESS: Set Continuous Mode ON")
                     else:
                         print("FAIL: Set Continuous Mode ON")
-                    if ic.IC_SetFormat(self.hGrabber, ctypes.c_int(4)) == tis.IC_SUCCESS:
+                    if ic.IC_SetFormat(self.hGrabber, tis.SinkFormats.Y16.value) == tis.IC_SUCCESS:
                         print("SUCCESS: Set Format Y16")
                     else:
                         print("FAIL: Set Format Y16")
@@ -74,7 +74,7 @@ class TISCamera:
                         print("SUCCESS: Set Denoise to 0")
                     else:
                         print("FAIL: Set Denoise")
-                    if ic.IC_SetFrameReadyCallback(self.hGrabber, Callbackfuncptr, Userdata) == tis.IC_SUCCESS:
+                    if ic.IC_SetFrameReadyCallback(self.hGrabber, Callback_Function, Userdata) == tis.IC_SUCCESS:
                         print("SUCCESS: Set Frame Ready Callback")
                     else:
                         print("FAIL: Set Frame Ready Callback")
@@ -100,7 +100,8 @@ class TISCamera:
 
     def start_live(self):
         if ic.IC_IsDevValid(self.hGrabber):
-            ic.IC_StartLive(self.hGrabber, 0)
+            if ic.IC_StartLive(self.hGrabber, 0) == tis.IC_SUCCESS:
+                print('Live start')
 
     def suspend_live(self):
         if ic.IC_IsDevValid(self.hGrabber) & ic.IC_IsLive(self.hGrabber):
@@ -109,31 +110,60 @@ class TISCamera:
     def stop_live(self):
         if ic.IC_IsDevValid(self.hGrabber) & ic.IC_IsLive(self.hGrabber):
             ic.IC_StopLive(self.hGrabber)
+            print('Live stop')
 
-    def set_trigger_mode(self):
-        if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Trigger"), tis.T("Enable"), 1) == tis.IC_SUCCESS:
-            print("SUCCESS: Set Trigger Enable")
+    def send_trigger(self):
+        if ic.IC_IsDevValid(self.hGrabber) & ic.IC_IsLive(self.hGrabber):
+            # ic.IC_PropertyOnePush(self.hGrabber, tis.T("Trigger"), tis.T("Software Trigger"))
+            ic.IC_SoftwareTrigger(self.hGrabber)
+            print('Software Trigger')
+
+    def set_trigger_mode(self, sw=1):
+        if sw:
+            if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Gain"), tis.T("Auto"), 0) == tis.IC_SUCCESS:
+                print("SUCCESS: Set Auto Gain OFF")
+            else:
+                print("FAIL: Set Auto Gain OFF")
+            if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Exposure"), tis.T("Auto"), 0) == tis.IC_SUCCESS:
+                print("SUCCESS: Set Exposure Auto OFF")
+            else:
+                print("FAIL: Set Exposure Auto OFF")
+            if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Trigger"), tis.T("Enable"), 1) == tis.IC_SUCCESS:
+                print("SUCCESS: Set Trigger Enable")
+            else:
+                print("FAIL: Set Trigger Enable")
+            if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Trigger"), tis.T("IMX Low-Latency Mode"),
+                                       1) == tis.IC_SUCCESS:
+                print("SUCCESS: Set Trigger IMX Low-Latency Mode")
+            else:
+                print("FAIL: Set Trigger IMX Low-Latency Mode")
+            # if ic.IC_SetPropertyMapString(self.hGrabber, tis.T("Trigger"), tis.T("Exposure Mode"),
+            #                               tis.T("Timed")) == tis.IC_SUCCESS:
+            #     print("SUCCESS: Set Trigger Exposure Mode Timed")
+            # else:
+            #     print("FAIL: Set Trigger Exposure Mode Timed")
+            if ic.IC_SetPropertyMapString(self.hGrabber, tis.T("Trigger"), tis.T("Exposure Mode"),
+                                          tis.T("Trigger Width")) == tis.IC_SUCCESS:
+                print("SUCCESS: Set Trigger Exposure Mode Trigger Width")
+            else:
+                print("FAIL: Set Trigger Exposure Mode Trigger Width")
+            if ic.IC_RemoveOverlay(self.hGrabber, 1) == tis.IC_SUCCESS:
+                print("SUCCESS: Remove Overlay")
+            else:
+                print("FAIL: Remove Overlay")
         else:
-            print("FAIL: Set Trigger Enable")
-        if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Trigger"), tis.T("IMX Low-Latency Mode"),
-                                   1) == tis.IC_SUCCESS:
-            print("SUCCESS: Set Trigger IMX Low-Latency Mode")
-        else:
-            print("FAIL: Set Trigger IMX Low-Latency Mode")
-        if ic.IC_SetPropertyMapString(self.hGrabber, tis.T("Trigger"), tis.T("Exposure Mode"),
-                                      tis.T("Timed")) == tis.IC_SUCCESS:
-            print("SUCCESS: Set Trigger Exposure Mode Timed")
-        else:
-            print("FAIL: Set Trigger Exposure Mode Timed")
-        if ic.IC_SetPropertyMapString(self.hGrabber, tis.T("Trigger"), tis.T("Exposure Mode"),
-                                      tis.T("Trigger Width")) == tis.IC_SUCCESS:
-            print("SUCCESS: Set Trigger Exposure Mode Trigger Width")
-        else:
-            print("FAIL: Set Trigger Exposure Mode Trigger Width")
-        if ic.IC_RemoveOverlay(self.hGrabber, 1) == tis.IC_SUCCESS:
-            print("SUCCESS: Remove Overlay")
-        else:
-            print("FAIL: Remove Overlay")
+            if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Gain"), tis.T("Auto"), 1) == tis.IC_SUCCESS:
+                print("SUCCESS: Set Auto Gain")
+            else:
+                print("FAIL: Set Auto Gain")
+            if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Exposure"), tis.T("Auto"), 1) == tis.IC_SUCCESS:
+                print("SUCCESS: Set Exposure Auto")
+            else:
+                print("FAIL: Set Exposure Auto")
+            if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Trigger"), tis.T("Enable"), 0) == tis.IC_SUCCESS:
+                print("SUCCESS: Set Trigger Disable")
+            else:
+                print("FAIL: Set Trigger Disable")
 
     def get_gain(self, verbose=True):
         if ic.IC_IsDevValid(self.hGrabber):
