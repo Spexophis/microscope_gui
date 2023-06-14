@@ -225,7 +225,7 @@ class StarletTransform(object):
         self.num_bands = num_bands
         self.img_shape = img_shape
 
-        # Run a test tranform to determine the structure of
+        # Run a test transform to determine the structure of
         # the lists containing the coefficients.  This is used
         # when reconstituting the coefficients from a flattened vector
         # of coefs, and vice versa.
@@ -257,10 +257,10 @@ class StarletTransform(object):
         return [np.reshape(vec, self.img_shape, order='f') for vec in np.split(coef_vec, len(self.example_coefs))]
 
     def update(self, coefs, update, alpha):
-        '''
+        """
         Adds the update (multiplied by alpha) to each set of
         coefficients.
-        '''
+        """
         assert len(update) == len(coefs)
 
         update_squared_sum = 0.0;
@@ -293,7 +293,6 @@ class StarletTransform(object):
         Compute the average over all starlet coefficients.
         '''
         return np.hstack(coefs[:-1]).mean()
-
 
     def threshold_by_band(self, coefs, threshold_func, skip_bands=[], within_axis=None, scaling_factor=None):
         '''
