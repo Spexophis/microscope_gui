@@ -1,7 +1,8 @@
 import os
+import threading
 import time
 from getpass import getuser
-import threading
+
 import numpy as np
 import tifffile as tf
 from PyQt5 import QtCore
@@ -586,15 +587,14 @@ class MainController:
         print('WF Data saved')
 
     def run_close_loop_correction(self, n):
-        if n != 0:
-            self.close_loop_thread = None
-            self.prepare_close_loop_correction()
-            self.close_loop_correction()
-            self.stop_close_loop_correction()
-        else:
-            self.prepare_close_loop_correction()
-            self.close_loop_thread = LoopThread(self.close_loop_correction)
-            self.close_loop_thread.start()
+        self.prepare_close_loop_correction()
+        self.close_loop_thread = LoopThread(loop=self.close_loop_correction, n=n,
+                                            endloop=self.stop_close_loop_correction)
+        self.close_loop_thread.start()
+
+    def end_close_loop_correction(self):
+        if self.close_loop_thread is not None:
+            self.close_loop_thread.stop()
 
     def prepare_close_loop_correction(self):
         self.set_img_wfs()
@@ -613,13 +613,11 @@ class MainController:
         self.ao_controller.update_cmd_index()
         i = int(self.ao_controller.get_cmd_index())
         self.p.shwfsr.current_cmd = i
+
+    def stop_close_loop_correction(self):
         self.m.daq.trig_run_ao()
         self.p.shwfsr.offset = self.wfs_cam.get_last_image()
         self.run_img_wfr()
-
-    def stop_close_loop_correction(self):
-        if self.close_loop_thread is not None:
-            self.close_loop_thread.stop()
         self.wfs_cam.stop_live()
 
     def start_ao_iteration(self):
@@ -785,11 +783,15 @@ class PlotWorker(QtCore.QObject):
 
 
 class TaskThread(threading.Thread):
-    def __init__(self, task, callback):
+    def __init__(self, task, callback=None):
         threading.Thread.__init__(self)
         self.task = task
         self.lock = threading.Lock()
         # self.is_finished = threading.Event()
+        if callback is not None:
+            self.callback = callback
+        else:
+            self.callback = None
         self.callback = callback
 
     def run(self):
@@ -798,29 +800,45 @@ class TaskThread(threading.Thread):
         # self.is_finished.set()
         if self.callback is not None:
             self.callback()
+        print("Task Done")
 
 
 class LoopThread(threading.Thread):
-    def __init__(self, loop, endloop=None, callback=None):
+    def __init__(self, loop, n, endloop, callback=None):
         threading.Thread.__init__(self)
         self.loop = loop
-        if endloop is not None:
-            self.endloop = endloop
+        self.n = n
+        self.endloop = endloop
         if callback is not None:
             self.callback = callback
+        else:
+            self.callback = None
         self.running = False
         self.lock = threading.Lock()
         self.is_finished = threading.Event()
 
     def run(self):
-        self.running = True
-        while self.running:
-            self.is_finished.clear()
-            with self.lock:
-                self.loop()
-            if self.callback is not None:
-                self.callback()
-            self.is_finished.set()
+        if self.n == 0:
+            i = 0
+            self.running = True
+            while self.running:
+                self.is_finished.clear()
+                i += 1
+                with self.lock:
+                    print(i)
+                    self.loop()
+                if self.callback is not None:
+                    self.callback()
+                self.is_finished.set()
+        else:
+            for i in range(self.n):
+                with self.lock:
+                    print(i)
+                    self.loop()
+                if self.callback is not None:
+                    self.callback()
+            print("Loop Done")
+            self.stop()
 
     def stop(self):
         self.running = False

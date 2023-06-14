@@ -4,12 +4,28 @@ sys.path.append(r'C:\Program Files\The Imaging Source Europe GmbH\sources')
 
 import ctypes
 import numpy as np
-import cv2
 import tisgrabber as tis
 
 ic = ctypes.cdll.LoadLibrary(r'C:\Program Files\The Imaging Source Europe GmbH\sources\tisgrabber_x64.dll')
 tis.declareFunctions(ic)
 ic.IC_InitLibrary(0)
+
+
+class CallbackUserdata(ctypes.Structure):
+    def __init__(self):
+        super().__init__()
+        self.Value1 = 42
+        self.Value2 = 0
+        self.camera = None  # Reference to a camera/grabber object
+
+
+def FrameCallback(hGrabber, pBuffer, framenumber, pData):
+    print("Callback called", pData.Value1)
+    pData.Value1 = pData.Value1 + 1
+
+
+Userdata = CallbackUserdata()
+Callbackfuncptr = ic.FRAMEREADYCALLBACK(FrameCallback)
 
 
 class TISCamera:
@@ -31,7 +47,7 @@ class TISCamera:
                         print("SUCCESS: Set Brightness zero")
                     else:
                         print("FAIL: Set Brightness zero")
-                    if ic.IC_SetContinuousMode(self.hGrabber, 1) == tis.IC_SUCCESS:
+                    if ic.IC_SetContinuousMode(self.hGrabber, 0) == tis.IC_SUCCESS:
                         print("SUCCESS: Set Continuous Mode ON")
                     else:
                         print("FAIL: Set Continuous Mode ON")
@@ -60,6 +76,10 @@ class TISCamera:
                         print("SUCCESS: Set Denoise to 0")
                     else:
                         print("FAIL: Set Denoise")
+                    if ic.IC_SetFrameReadyCallback(self.hGrabber, Callbackfuncptr, Userdata) == tis.IC_SUCCESS:
+                        print("SUCCESS: Set Frame Ready Callback")
+                    else:
+                        print("FAIL: Set Frame Ready Callback")
                     self.data = None
                 else:
                     print("Invalid TISGrabber")
@@ -77,7 +97,8 @@ class TISCamera:
                 print("TIS Camera OFF")
 
     def prepare_live(self):
-        print('Live ready')
+        if ic.IC_PrepareLive(self.hGrabber, 0):
+            print('Live ready')
 
     def start_live(self):
         if ic.IC_IsDevValid(self.hGrabber):
@@ -195,6 +216,8 @@ class TISCamera:
             img_depth = int(img_depth.value / 16.0) * ctypes.sizeof(ctypes.c_uint16)
             buffer_size = img_width.value * img_height.value * img_depth
             return buffer_size, img_width, img_height, img_depth
+        else:
+            print("FAIL: Get Buffer Size")
 
     def get_data(self):
         buffer_size, width, height, depth = self.get_buffer()
