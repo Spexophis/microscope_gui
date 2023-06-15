@@ -132,6 +132,10 @@ class TISCamera:
                 print("SUCCESS: Set Trigger Enable")
             else:
                 print("FAIL: Set Trigger Enable")
+            if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Trigger"), tis.T("Polarity"), 1) == tis.IC_SUCCESS:
+                print("SUCCESS: Set Trigger Polarity")
+            else:
+                print("FAIL: Set Trigger Polarity")
             if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Trigger"), tis.T("IMX Low-Latency Mode"),
                                        1) == tis.IC_SUCCESS:
                 print("SUCCESS: Set Trigger IMX Low-Latency Mode")
