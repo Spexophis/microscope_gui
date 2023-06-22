@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.fft import fft2, fftshift
+from numpy.fft import fft2, ifft2, fftshift
 from skimage.restoration import unwrap_phase
 
 
@@ -12,9 +12,9 @@ class Interferometer:
         self.hsy = 128
 
     def reconstruction_surface(self, img, msk):
-        imf = np.fft.fftshift(np.fft.fft2(img * msk))
+        imf = fftshift(fft2(img * msk))
         cf = self.extract_order(imf)
-        ph = np.fft.ifft2(cf)
+        ph = ifft2(cf)
         phase = np.arctan2(ph.imag, ph.real)
         phase_unwrapped = unwrap_phase(phase)
         return phase, phase_unwrapped
