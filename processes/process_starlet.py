@@ -38,9 +38,10 @@ class StarletTransform:
 if __name__ == '__main__':
     s = StarletTransform()
     s.cubic_kernel()
-    s.input_image(r'C:\Users\ruizhe.lin\Documents\data\20230612_ruizhe.lin\test_shimg_base_raw.tif')
+    s.input_image(r'C:\Users\ruizhe.lin\Desktop\monalisa_raw_data_frame.tif')
     for i in range(6):
         s.discrete_wavelet_transform()
     for i in range(6):
         print(s.c[i].sum())
-    tf.imwrite(r'C:\Users\ruizhe.lin\Desktop\starlet_result.tif', np.asarray(s.w))
+    tf.imwrite(r'C:\Users\ruizhe.lin\Desktop\starlet_result_w.tif', np.asarray(s.w))
+    tf.imwrite(r'C:\Users\ruizhe.lin\Desktop\starlet_result_c.tif', np.asarray(s.c))
