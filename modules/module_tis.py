@@ -61,17 +61,17 @@ class TISCamera:
                         print("SUCCESS: Set Frame Rate 37.5fps")
                     else:
                         print("FAIL: Set Frame Rate 37.5fps")
-                    if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Gain"), tis.T("Auto"), 1) == tis.IC_SUCCESS:
-                        print("SUCCESS: Set Auto Gain")
-                    else:
-                        print("FAIL: Set Auto Gain")
-                    if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Exposure"), tis.T("Auto"), 1) == tis.IC_SUCCESS:
-                        print("SUCCESS: Set Exposure Auto")
-                    else:
-                        print("FAIL: Set Exposure Auto")
+                    # if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Gain"), tis.T("Auto"), 1) == tis.IC_SUCCESS:
+                    #     print("SUCCESS: Set Auto Gain")
+                    # else:
+                    #     print("FAIL: Set Auto Gain")
+                    # if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Exposure"), tis.T("Auto"), 1) == tis.IC_SUCCESS:
+                    #     print("SUCCESS: Set Exposure Auto")
+                    # else:
+                    #     print("FAIL: Set Exposure Auto")
                     if ic.IC_SetPropertyValue(self.hGrabber, tis.T("Denoise"), tis.T("Value"),
-                                              ctypes.c_int(0)) == tis.IC_SUCCESS:
-                        print("SUCCESS: Set Denoise to 0")
+                                              ctypes.c_int(16)) == tis.IC_SUCCESS:
+                        print("SUCCESS: Set Denoise to 16")
                     else:
                         print("FAIL: Set Denoise")
                     if ic.IC_SetFrameReadyCallback(self.hGrabber, Callback_Function, Userdata) == tis.IC_SUCCESS:
@@ -221,7 +221,7 @@ class TISCamera:
         self.data = []
         if self.snap_image():
             self.data.append(self.get_data())
-            for i in range(16):
+            for i in range(8):
                 if self.snap_image():
                     self.data.append(self.get_data())
                 else:

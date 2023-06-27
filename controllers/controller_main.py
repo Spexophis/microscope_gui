@@ -480,6 +480,7 @@ class MainController:
             print('Directory already exists')
         n, amp = self.ao_controller.get_actuator()
         self.set_lasers()
+        self.set_img_wfs()
         self.set_wfs_camera_roi()
         self.wfs_cam.prepare_live()
         dgtr = self.generate_digital_trigger_sw()
@@ -521,12 +522,8 @@ class MainController:
         self.m.daq.trig_stop()
         self.wfs_cam.stop_live()
         self.lasers_off()
-        self.set_img_wfs()
         md = self.ao_controller.get_img_wfs_method()
-        influfunc = self.p.shwfsr.generate_influence_matrix(newfold, md)
-        tf.imwrite(newfold + t + '_' + md + '_influence_function.tif', influfunc)
-        ctrlmat = self.p.shwfsr.get_control_matrix(influfunc)
-        tf.imwrite(newfold + t + '_' + md + '_control_matrix.tif', ctrlmat)
+        self.p.shwfsr.generate_influence_matrix(newfold, md, True)
 
     def set_img_wfs(self):
         parameters = self.ao_controller.get_parameters_img()
