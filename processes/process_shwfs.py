@@ -14,7 +14,7 @@ fftshift = np.fft.fftshift
 pi = np.pi
 
 control_matrix_wavefront = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\20230601_control_matrix.tif')
-control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230627.tif')
+control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230630.tif')
 control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230613.tif')
 initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\flatfile_20230627.xlsx'
 

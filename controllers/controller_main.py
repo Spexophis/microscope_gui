@@ -550,15 +550,16 @@ class MainController:
         self.lasers_off()
 
     def imshow_img_wfs(self):
-        self.p.shwfsr.offset = self.wfs_cam.get_last_image()
-        self.view_controller.plot_sh(self.p.shwfsr.offset)
+        # self.p.shwfsr.offset = self.wfs_cam.get_last_image()
+        self.view_controller.plot_sh(self.wfs_cam.get_last_image())
 
     def set_img_wfs_base(self):
-        self.p.shwfsr.base = self.p.shwfsr.offset
+        self.p.shwfsr.base = self.view_controller.get_image_data('ShackHartmann')
         print('wfs base set')
 
     def run_img_wfr(self):
         self.p.shwfsr.method = self.ao_controller.get_gradient_method_img()
+        self.p.shwfsr.offset = self.view_controller.get_image_data('ShackHartmann')
         self.p.shwfsr.run_wf_recon(callback=self.imshow_img_wfr)
 
     def imshow_img_wfr(self):
