@@ -120,7 +120,7 @@ class MainController:
 
         p = self.m.md.getPositionStepsTakenAxis(3)
         self.con_controller.display_deck_position(p)
-        self.m.dm.set_dm(self.p.shwfsr._dm_cmd[1])
+        self.m.dm.set_dm(self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
 
         self.close_loop_thread = None
 

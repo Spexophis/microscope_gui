@@ -1,116 +1,68 @@
-import matplotlib
-import matplotlib.pyplot as plt
-
-matplotlib.use('Qt5Agg')
 import numpy as np
+from scipy.interpolate import BPoly
 
 
 class GalvoScan:
 
     def __init__(self):
-        self.sample_rate = 100000
-        self.dt = 1 / self.sample_rate
-        self.v_max = 0.1  # µm/µs
-        self.a_max = 1e-4  # µm/µs^2
-        self.conversion_factor = 17  # µm / V
-        self.v_max = 1e6 * self.v_max / self.conversion_factor
-        self.a_max = 1e12 * self.a_max / self.conversion_factor
+        self.sample_rate = 100000  # Hz
+        self.dt = 1 / self.sample_rate  # s
+        self.v_max = 4e2  # V/s
+        self.a_max = 2.4e7  # V/s^2
         self.voltage_range = 10.  # V
 
-    def map_scan(self):
-        self.start_position = 4.
-        self.scan_steps = 5
-        self.dwell_time = 10e-5
-        self.step_interval = 10e-5
-        self.return_time = 40e-5
-        self.scan_speed = 1.
-        self.dwell_speed = 0.4
-        self.step_size = 0.5
-        self.end_position = self.start_position + self.step_size * self.scan_steps
+        self.gv_start = -1.0
+        self.gv_stop = 1.0
+        self.laser_start = 8
+        self.laser_interval = 16
 
-    def generate_scan(self):
-        ac, vc, pc = self._acceleration_curve(self.a_max, 0, self.v_max, self.dt)
-
-    def generate_one_axis_scan(self):
-        one_axis_scan = np.array([])
-        p, v, a = g._acceleration_curve(g.a_max, 0, g.v_max, g.dt)
-        one_axis_scan = np.append(one_axis_scan, p) - 10
-        t = (np.ceil(p[-1]) - p[-1]) / g.v_max
-        p, v = g._scan_curve(g.v_max, t, g.dt)
-        one_axis_scan = np.append(one_axis_scan, p + one_axis_scan[-1])
-        # initial_samples = int(self.sample_rate * self.initial_wait)
-        # step_samples = int(self.sample_rate * (self.dwell_time + self.step_interval))
-        # return_samples = int(self.sample_rate * self.return_time)
-        # _bp = BPoly.from_derivatives([0, initial_samples], [[0., 0., 0.], [self.start_position, self.scan_speed, 0.]])
-        # initial_curve = _bp(np.linspace(0, initial_samples, initial_samples))
-        # _bp = BPoly.from_derivatives(
-        #     [0, 0.2 * step_samples, 0.5 * step_samples, 0.8 * step_samples, step_samples],
-        #     [[0., self.scan_speed, 0.], [0.5 * self.step_size, self.dwell_speed, 0.],
-        #      [1. * self.step_size, self.dwell_speed, 0.], [1.5 * self.step_size, self.dwell_speed, 0.],
-        #      [2. * self.step_size, self.scan_speed, 0.]])
-        # _curve = _bp(np.linspace(0, self.step_size, step_samples))
-        # for i in range(self.scan_steps):
-        #     one_axis_scan = np.append(one_axis_scan, self.start_position + i * self.step_size + _curve)
-        # _bp = BPoly.from_derivatives([0, interval_samples], [[0., self.scan_speed, 0.], [self.step_size, self.dwell_speed, 0.]])
-        # interval_curve = _bp(np.linspace(0, interval_samples, interval_samples))
-        # _bp = BPoly.from_derivatives([0, dwell_samples], [[0., self.dwell_speed, 0.], [self.dwell_speed * self.dwell_time, self.scan_speed, 0.]])
-        # dwell_curve = _bp(np.linspace(0, dwell_samples, dwell_samples))
-        # single_step = np.append(interval_curve, dwell_curve)
-
-        # one_axis_scan = np.append(initial_curve, one_axis_scan)
-        # end_position = one_axis_scan[-1]
-        # _bp = BPoly.from_derivatives([0, 1], [[end_position, self.scan_speed, 0.], [0., 0., 0.]])
-        # return_curve = _bp(np.linspace(end_position, 0, int(return_samples)))
-        # one_axis_scan = np.append(one_axis_scan, return_curve)
-        return one_axis_scan
-
-    def _plot_curve(self, x, y):
-        plt.figure()
-        plt.plot(x, y)
-        plt.show(block=False)
-
-    def _acceleration_curve(self, a, v0, vt, dt):
-        t = (vt - v0) / a
-        d = v0 * t + 0.5 * a * t ** 2
-        acceleration_samples = int(np.ceil(t / dt)) + 1
-        xt = np.arange(acceleration_samples) * dt
-        acceleration_curve = np.ones(acceleration_samples) * a
-        velocity_curve = v0 + xt * acceleration_curve
-        position_curve = v0 * xt + 0.5 * a * xt ** 2
-        return position_curve, velocity_curve, acceleration_curve
-
-    def _scan_curve(self, v, t, dt):
-        scan_samples = int(np.ceil(t / dt))
-        xt = (np.arange(scan_samples - 1) + 1) * dt
-        velocity_curve = np.ones(scan_samples) * v
-        position_curve = v * xt
-        return position_curve, velocity_curve
-
-    def _step_curve(self, sequence_length, start_position, step_size, number_of_steps, step_length):
-        step_values = start_position + np.arange(number_of_steps) * step_size
-        step_positions = np.arange(number_of_steps) * step_length
-        sequence = np.zeros(sequence_length)  # Initialize the sequence with zeros
-        for i in range(len(step_values)):
-            sequence[step_positions[i]:] = step_values[i]  # Add the step value to the sequence after the step position
-
-
-if __name__ == '__main__':
-    g = GalvoScan()
-    c = g.generate_one_axis_scan()
-    g._plot_curve(c)
-    # p, v, a = g._acceleration_curve(g.a_max, 0, g.v_max, g.dt)
-    # g._plot_curve(a)
-    # g._plot_curve(v)
-    # g._plot_curve(p)
-    # print(p[-1])
-    # t = (np.ceil(p[-1]) - p[-1]) / g.v_max
-    # p, v = g._scan_curve(g.v_max, t, g.dt)
-    # g._plot_curve(v)
-    # g._plot_curve(p)
-    # print(p[-1])
-    # p, v = g._scan_curve(g.v_max, g.dt)
-    # p, v, a = g._acceleration_curve(-g.a_max, g.v_max, -g.v_max, g.dt)
-    # g._plot_curve(a)
-    # g._plot_curve(v)
-    # g._plot_curve(p)
-    # print(p[-1])
+    def map_scan(self, gv_start=None, gv_stop=None, laser_start=None, laser_interval=None):
+        if gv_start is not None:
+            self.gv_start = gv_start
+        if gv_stop is not None:
+            self.gv_stop = gv_stop
+        if laser_start is not None:
+            self.laser_start = laser_start
+        if laser_interval is not None:
+            self.laser_interval = laser_interval
+        t_scan = (self.gv_stop - self.gv_start) / self.v_max
+        s_scan = int(np.ceil(t_scan / self.dt)) + 1
+        seq_scan = np.linspace(-1, 1, s_scan)
+        pos = seq_scan[np.arange(self.laser_start, s_scan, self.laser_interval)]
+        t_acc = self.v_max / self.a_max
+        s_acc = int(np.ceil(t_acc / self.dt))
+        points = np.array([0, t_acc, t_acc + self.dt * (s_acc / 2)])
+        derivatives = np.array([[0, 0, self.a_max], [0.5 * self.a_max * t_acc ** 2, self.v_max, self.a_max],
+                                [0.5 * self.a_max * t_acc ** 2 + self.v_max * self.dt * (s_acc / 2), self.v_max, 0]])
+        bp = BPoly.from_derivatives(points, derivatives)
+        seq_acc = bp(np.linspace(0, (s_acc + 1) * self.dt, int(s_scan * 0.01)))
+        x_axis_scan = np.append(seq_acc - seq_acc.max() - self.dt * self.v_max + self.gv_start, seq_scan)
+        seq_deacc = self.gv_stop - np.flip(seq_acc) + seq_acc.max() + self.v_max * 0.75 * self.dt
+        x_axis_scan = np.append(x_axis_scan, seq_deacc)
+        x_axis_scan = np.pad(x_axis_scan, (int(self.laser_interval / 2), int(self.laser_interval / 2)), 'constant',
+                             constant_values=(x_axis_scan[0], x_axis_scan[-1]))
+        x_axis_scan = np.append(x_axis_scan, np.flip(x_axis_scan)) + 0.5 * self.v_max * self.dt
+        x_axis_scan = np.tile(x_axis_scan, int(pos.shape[0] / 2))
+        laser_trigger = np.zeros(s_scan)
+        ids = [item for sublist in [(i - 1, i) for i in range(self.laser_start, s_scan, self.laser_interval)] for item
+               in sublist]
+        laser_trigger[ids] = 1
+        laser_trigger = np.pad(laser_trigger, (
+            int(self.laser_interval / 2) + int(s_scan * 0.01), int(self.laser_interval / 2) + int(s_scan * 0.01)),
+                               'constant', constant_values=(0, 0))
+        laser_trigger = np.append(laser_trigger, laser_trigger)
+        laser_trigger = np.tile(laser_trigger, int(pos.shape[0] / 2))
+        y_axis_scan = pos[0] * np.ones(s_scan + int(s_scan * 0.01) + int(self.laser_interval / 2))
+        for n in range(int(pos.shape[0] / 2) * 2 - 1):
+            acc = pos[n] + seq_acc
+            deacc = pos[n + 1] - np.flip(seq_acc)
+            inter = np.linspace(acc[-1], deacc[0], self.laser_interval + 2)
+            temp = np.append(acc, inter[1:-1])
+            temp = np.append(temp, deacc)
+            y_axis_scan = np.append(y_axis_scan, temp)
+            y_axis_scan = np.append(y_axis_scan, pos[n + 1] * np.ones(s_scan))
+        y_axis_scan = np.append(y_axis_scan, pos[int(pos.shape[0] / 2) * 2 - 1] * np.ones(
+            int(s_scan * 0.01) + int(self.laser_interval / 2)))
+        camera_trigger = np.zeros(laser_trigger.shape[0])
+        camera_trigger[ids[0]:ids[-1]] = 1
+        return x_axis_scan, y_axis_scan, laser_trigger, camera_trigger, pos
