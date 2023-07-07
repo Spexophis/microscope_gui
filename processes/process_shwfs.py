@@ -13,7 +13,7 @@ ifft2 = np.fft.ifft2
 fftshift = np.fft.fftshift
 pi = np.pi
 
-control_matrix_wavefront = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\20230601_control_matrix.tif')
+control_matrix_wavefront = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_wavefront_20230706.tif')
 control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230706.tif')
 control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230613.tif')
 initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\flatfile_20230627.xlsx'
@@ -23,15 +23,15 @@ class WavefrontSensing:
 
     def __init__(self):
         self._n_actuators = 97
-        self._n_lenslets_x = 35
-        self._n_lenslets_y = 34
+        self._n_lenslets_x = 52
+        self._n_lenslets_y = 51
         self._n_lenslets = self._n_lenslets_x * self._n_lenslets_y
-        self.x_center_base = 1022
-        self.y_center_base = 1057
-        self.x_center_offset = 1022
-        self.y_center_offset = 1057
-        self._lenslet_spacing = 58  # spacing between each lenslet
-        self.hsp = 24  # size of subimage is 2 * hsp
+        self.x_center_base = 1020
+        self.y_center_base = 993
+        self.x_center_offset = 1020
+        self.y_center_offset = 993
+        self._lenslet_spacing = 31  # spacing between each lenslet
+        self.hsp = 16  # size of subimage is 2 * hsp
         self.calfactor = (.0065 / 5.2) * 150  # pixel size * focalLength * pitch
         self.method = 'correlation'
         self.mag = 2
@@ -216,7 +216,8 @@ class WavefrontSensing:
         numx = (np.exp(-2j * pi * kx / nx) - 1)
         numy = (np.exp(-2j * pi * ky / ny) - 1)
         den = 4 * (np.sin(pi * kx / nx) ** 2 + np.sin(pi * ky / ny) ** 2)
-        sw = (numx * sx + numy * sy) / den
+        # sw = (numx * sx + numy * sy) / den
+        sw = np.divide((numx * sx + numy * sy), den, where=den != 0)
         sw[0, 0] = 0.0
         return (ifft2(sw)).real
 
