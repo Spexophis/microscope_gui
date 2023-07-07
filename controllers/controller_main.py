@@ -315,7 +315,7 @@ class MainController:
         self.thread_fft.wait()
 
     def imshow_fft(self):
-        self.view_controller.plot_fft(self.p.imgprocess.fourier_transform(self.main_cam.data))
+        self.view_controller.plot_fft(self.p.imgprocess.fourier_transform(self.main_cam.get_last_image()))
 
     def start_plot_live(self):
         self.thread_plot.start()
@@ -326,7 +326,7 @@ class MainController:
 
     def profile_plot(self):
         ax = self.con_controller.get_profile_axis()
-        self.view_controller.plot_update(self.p.imgprocess.get_profile(self.main_cam.data, ax))
+        self.view_controller.plot_update(self.p.imgprocess.get_profile(self.main_cam.get_last_image(), ax))
 
     def plot_trigger(self):
         lasers = self.con_controller.get_lasers()
@@ -442,10 +442,10 @@ class MainController:
 
     def set_zernike(self):
         indz, amp = self.ao_controller.get_zernike_mode()
-        # self.m.dm.set_dm(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(indz, amp),
-        #                                        self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
-        self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[indz]],
-                                                self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
+        self.m.dm.set_dm(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(indz, amp),
+                                               self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
+        # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[indz]],
+        #                                         self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
 
     def set_dm(self):
         i = int(self.ao_controller.get_cmd_index())
@@ -651,12 +651,11 @@ class MainController:
         cmd = self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]
         self.start_ao_iteration()
         self.m.dm.set_dm(cmd)
-        time.sleep(0.1)
+        time.sleep(0.05)
         self.m.daq.trig_run()
         time.sleep(0.1)
-        self.main_cam.get_last_image()
         fn = os.path.join(newfold, 'original.tif')
-        tf.imwrite(fn, self.main_cam.data)
+        tf.imwrite(fn, self.main_cam.get_last_image())
         self.m.daq.trig_stop()
         for mode in range(mode_start, mode_stop):
             amprange = []
@@ -664,21 +663,20 @@ class MainController:
             for stnm in range(amp_step_number):
                 amp = amp_start + stnm * amp_step
                 amprange.append(amp)
-                # self.m.dm.SetDM(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
-                self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[mode]], cmd))
-                time.sleep(0.1)
+                self.m.dm.SetDM(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
+                # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[mode]], cmd))
+                time.sleep(0.05)
                 self.m.daq.trig_run()
                 time.sleep(0.1)
-                self.main_cam.get_last_image()
                 fn = "zm%0.2d_amp%.4f" % (mode, amp)
                 fn1 = os.path.join(newfold, fn + '.tif')
-                tf.imwrite(fn1, self.main_cam.data)
+                tf.imwrite(fn1, self.main_cam.get_last_image())
                 if mindex == 0:
-                    dt.append(self.p.imgprocess.snr(self.main_cam.data, hpr))
+                    dt.append(self.p.imgprocess.snr(self.main_cam.get_last_image(), hpr))
                 if mindex == 1:
-                    dt.append(self.p.imgprocess.peakv(self.main_cam.data))
+                    dt.append(self.p.imgprocess.peakv(self.main_cam.get_last_image()))
                 if mindex == 2:
-                    dt.append(self.p.imgprocess.hpf(self.main_cam.data, hpr))
+                    dt.append(self.p.imgprocess.hpf(self.main_cam.get_last_image(), hpr))
                 results.append((mode, amp, dt[stnm]))
                 print('--', stnm, amp, dt[stnm])
                 self.m.daq.trig_stop()
@@ -693,12 +691,12 @@ class MainController:
             else:
                 print('----------------mode %d value equals %.4f----' % (mode, pmax))
         self.m.dm.set_dm(cmd)
-        time.sleep(0.1)
+        time.sleep(0.05)
         self.m.daq.trig_run()
         time.sleep(0.1)
         self.main_cam.get_last_image()
         fn = os.path.join(newfold, 'final.tif')
-        tf.imwrite(fn, self.main_cam.data)
+        tf.imwrite(fn, self.main_cam.get_last_image())
         self.stop_ao_iteration()
         self.p.shwfsr._dm_cmd.append(cmd)
         self.ao_controller.update_cmd_index()

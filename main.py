@@ -12,9 +12,10 @@ class MicroscopeGUI(QtWidgets.QMainWindow):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.view = widget_main.MainWidget()
-        self.process = process_main.MainProcess()
+
         self.module = module_main.MainModule()
+        self.process = process_main.MainProcess()
+        self.view = widget_main.MainWidget()
         self.controller = controller_main.MainController(self.view, self.module, self.process)
 
 

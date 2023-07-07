@@ -34,7 +34,7 @@ class EMCCDCamera:
                 print("Set Read Mode to Image")
             else:
                 print(atmcd_errors.Error_Codes(self.ret))
-            self.ret = self.sdk.SetTriggerMode(atmcd_codes.Trigger_Mode.INTERNAL)
+            self.ret = self.sdk.SetTriggerMode(atmcd_codes.Trigger_Mode.EXTERNAL_EXPOSURE_BULB)
             if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
                 print("Set TriggerMode to External Exposure")
             else:
@@ -145,6 +145,13 @@ class EMCCDCamera:
             print(atmcd_errors.Error_Codes(self.ret))
 
     def prepare_live(self):
+        (self.ret, self.fminExposure, self.fAccumulate, self.fKinetic) = self.sdk.GetAcquisitionTimings()
+        if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
+            print("Get Acquisition Timings exposure = {} accumulate = {} kinetic = {}".format(self.fminExposure,
+                                                                                              self.fAccumulate,
+                                                                                              self.fKinetic))
+        else:
+            print(atmcd_errors.Error_Codes(self.ret))
         self.ret = self.sdk.SetAcquisitionMode(atmcd_codes.Acquisition_Mode.RUN_TILL_ABORT)
         if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
             print("Set Acquisition Mode to Run Till Abort")
