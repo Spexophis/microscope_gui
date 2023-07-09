@@ -13,7 +13,7 @@ ifft2 = np.fft.ifft2
 fftshift = np.fft.fftshift
 pi = np.pi
 
-control_matrix_wavefront = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_wavefront_20230706.tif')
+control_matrix_phase = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_phase_20230706.tif')
 control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230706.tif')
 control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230613.tif')
 initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\flatfile_20230627.xlsx'
@@ -288,8 +288,8 @@ class WavefrontSensing:
         binary = img > thresh
         return (img - thresh) * binary
 
-    def generate_influence_matrix(self, data_folder, method='wavefront', sv=False):
-        if method == 'wavefront':
+    def generate_influence_matrix(self, data_folder, method='phase', sv=False):
+        if method == 'phase':
             _influence_matrix = np.zeros((self._n_lenslets, self._n_actuators))
             wfs = np.zeros((self._n_actuators, self._n_lenslets_y, self._n_lenslets_x))
         elif method == 'zonal':
@@ -308,7 +308,7 @@ class WavefrontSensing:
                 n, x, y = data_stack.shape
                 if n != 4:
                     raise "The image number has to be 4"
-                if method == 'wavefront':
+                if method == 'phase':
                     self.base = data_stack[0]
                     self.offset = data_stack[1]
                     wfp = self.wavefront_reconstruction(rt=True)
@@ -341,11 +341,11 @@ class WavefrontSensing:
                 if isinstance(wfs, np.ndarray):
                     tf.imwrite(os.path.join(data_folder, "influence_function_images.tif"), wfs)
 
-    def get_correction(self, method='wavefront'):
-        if method == 'wavefront':
+    def get_correction(self, method='phase'):
+        if method == 'phase':
             mwf = self.wavefront_reconstruction(rt=True)
             self._correction.append(
-                list(self.amp * np.dot(control_matrix_wavefront, -mwf.reshape(self._n_lenslets))))
+                list(self.amp * np.dot(control_matrix_phase, -mwf.reshape(self._n_lenslets))))
         else:
             gradx, grady = self._get_gradient_xy(self.base, self.offset)
             _measurement = np.concatenate((gradx.reshape(self._n_lenslets), grady.reshape(self._n_lenslets)))
@@ -365,7 +365,7 @@ class WavefrontSensing:
 
     def get_zernike_cmd(self, j, a):
         zerphs = a * self.zernike[j]
-        return list(np.dot(control_matrix_wavefront, zerphs.reshape(self._n_lenslets)))
+        return list(np.dot(control_matrix_phase, zerphs.reshape(self._n_lenslets)))
 
     def _cmd_add(self, cmd_0, cmd_1):
         return list(np.asarray(cmd_0) + np.asarray(cmd_1))

@@ -107,7 +107,7 @@ class AOWidget(QtWidgets.QWidget):
 
         layout_deformablemirror = QtWidgets.QGridLayout()
         self.QLabel_wfsmd = cw.label_widget(str('Method'))
-        self.QComboBox_wfsmd = cw.combobox_widget(list_items=['wavefront', 'zonal', 'modal'])
+        self.QComboBox_wfsmd = cw.combobox_widget(list_items=['phase', 'zonal', 'modal'])
         self.QLabel_actuator = cw.label_widget(str('Actuator'))
         self.QSpinBox_actuator = cw.spinbox_widget(0, 96, 1, 0)
         self.QLabel_actuator_push = cw.label_widget(str('Push'))

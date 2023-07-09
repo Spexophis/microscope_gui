@@ -9,7 +9,7 @@ class MicroscopeConfiguration:
         self.fd = file_path + r'/' + file_name
 
         self.config_data = {
-            'control_matrix_wavefront': r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_wavefront_20230706.tif',
+            'control_matrix_phase': r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_phase_20230706.tif',
             'control_matrix_zonal': r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230706.tif',
             'control_matrix_modal': r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230613.tif',
             'initial_flat': r'C:\Users\ruizhe.lin\Documents\data\dm_files\flatfile_20230627.xlsx',
