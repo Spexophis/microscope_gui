@@ -205,18 +205,6 @@ class TISCamera:
             if r:
                 self.get_exposure(False)
 
-    # def get_last_image(self):
-    #     if self.snap_image():
-    #         avg = np.float32(self.get_data())
-    #         for i in range(16):
-    #             if self.snap_image():
-    #                 cv2.accumulateWeighted(np.float32(self.get_data()), avg, 0.2)
-    #             else:
-    #                 pass
-    #         return avg
-    #     else:
-    #         pass
-
     def get_last_image(self):
         self.data = []
         if self.snap_image():
