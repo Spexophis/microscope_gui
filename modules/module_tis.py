@@ -156,14 +156,14 @@ class TISCamera:
             else:
                 print("FAIL: Remove Overlay")
         else:
-            if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Gain"), tis.T("Auto"), 1) == tis.IC_SUCCESS:
-                print("SUCCESS: Set Auto Gain")
-            else:
-                print("FAIL: Set Auto Gain")
-            if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Exposure"), tis.T("Auto"), 1) == tis.IC_SUCCESS:
-                print("SUCCESS: Set Exposure Auto")
-            else:
-                print("FAIL: Set Exposure Auto")
+            # if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Gain"), tis.T("Auto"), 1) == tis.IC_SUCCESS:
+            #     print("SUCCESS: Set Auto Gain")
+            # else:
+            #     print("FAIL: Set Auto Gain")
+            # if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Exposure"), tis.T("Auto"), 1) == tis.IC_SUCCESS:
+            #     print("SUCCESS: Set Exposure Auto")
+            # else:
+            #     print("FAIL: Set Exposure Auto")
             if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Trigger"), tis.T("Enable"), 0) == tis.IC_SUCCESS:
                 print("SUCCESS: Set Trigger Disable")
             else:
