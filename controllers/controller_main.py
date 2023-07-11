@@ -121,6 +121,7 @@ class MainController:
         p = self.m.md.getPositionStepsTakenAxis(3)
         self.con_controller.display_deck_position(p)
         self.m.dm.set_dm(self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
+        self.set_piezo_position_z()
 
         self.close_loop_thread = None
 
@@ -163,18 +164,18 @@ class MainController:
 
     def set_piezo_position_x(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        self.m.pz.move_position(0, pos_x)
-        self.con_controller.display_piezo_position_x(self.m.pz.read_position(0))
+        x = self.m.pz.move_position(0, pos_x)
+        self.con_controller.display_piezo_position_x(x)
 
     def set_piezo_position_y(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        self.m.pz.move_position(1, pos_y)
-        self.con_controller.display_piezo_position_y(self.m.pz.read_position(1))
+        y = self.m.pz.move_position(1, pos_y)
+        self.con_controller.display_piezo_position_y(y)
 
     def set_piezo_position_z(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        self.m.pz.move_position(2, pos_z)
-        self.con_controller.display_piezo_position_z(self.m.pz.read_position(2))
+        z = self.m.pz.move_position(2, pos_z)
+        self.con_controller.display_piezo_position_z(z)
 
     def reset_galvo(self):
         self.m.daq.set_galvo(0, 0)
@@ -409,12 +410,14 @@ class MainController:
         print('Data saved')
 
     def write_trigger_gs(self):
-        galvo_starts, galvo_stops, galvo_step_sizes = self.con_controller.get_galvo_scan_parameters()
-        self.p.trigger.update_galvo_scan_parameters(galvo_starts, galvo_stops, galvo_step_sizes)
+        gv_starts, gv_stops, dotspos = self.con_controller.get_galvo_scan_parameters()
+        self.p.trigger.update_galvo_scan_parameters(gv_start=gv_starts[0], gv_stop=gv_stops[0], laser_start=dotspos[0],
+                                                    laser_interval=dotspos[1])
         lasers = self.con_controller.get_lasers()
         camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
         self.p.trigger.update_digital_parameters(sequence_time, digital_starts, digital_ends)
-        atr, dtr = self.p.trigger.generate_trigger_sequence_gs(lasers, camera)
+        atr, dtr, pos = self.p.trigger.generate_trigger_sequence_gs(lasers, camera)
+        # atr, dtr = self.p.trigger.generate_galvo_scanning(lasers, camera)
         self.m.daq.trigger_scan(atr, dtr)
 
     def record_gs(self):
@@ -422,12 +425,12 @@ class MainController:
         self.main_cam.prepare_live()
         self.write_trigger_gs()
         self.main_cam.start_live()
-        time.sleep(0.1)
+        time.sleep(0.05)
         self.m.daq.run_scan()
-        time.sleep(0.1)
-        r = self.main_cam.get_last_image()
+        time.sleep(0.05)
         self.main_cam.stop_live()
         print('Acquisition Done')
+        self.imshow_main()
         self.lasers_off()
 
     def save_data(self, file_name):
@@ -443,7 +446,7 @@ class MainController:
     def set_zernike(self):
         indz, amp = self.ao_controller.get_zernike_mode()
         self.m.dm.set_dm(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(indz, amp),
-                                               self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
+                                                self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
         # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[indz]],
         #                                         self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
 
@@ -663,7 +666,7 @@ class MainController:
             for stnm in range(amp_step_number):
                 amp = amp_start + stnm * amp_step
                 amprange.append(amp)
-                self.m.dm.SetDM(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
+                self.m.dm.set_dm(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
                 # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[mode]], cmd))
                 time.sleep(0.05)
                 self.m.daq.trig_run()

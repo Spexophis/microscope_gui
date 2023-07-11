@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from scipy.interpolate import BPoly
 
@@ -7,20 +9,25 @@ class TriggerSequence:
     def __init__(self):
         self.sequence_time = 0.04
         self.sample_rate = 100000
+        self.dt = 1 / self.sample_rate
+        # piezo scanner
         self.piezo_starts = [0., 0., 0.]
         self.piezo_step_sizes = [0.03, 0.03, 0.08]
         self.piezo_ranges = [0.6, 0.6, 0.08]
         self.piezo_return_time = 0.002
         self.piezo_conv_factors = [10., 10., 10.]
         self.piezo_analog_start = 0.03
-        self.galvo_starts = [-1.0, -1.0]
-        self.galvo_stops = [1.0, 1.0]
-        self.galvo_step_sizes = [0.04, 0.04]
-        self.galvo_prep = 0.4
+        # galvo scanner
+        self.v_max = 4e2  # V/s
+        self.a_max = 2.4e7  # V/s^2
+        self.voltage_range = 10.  # V
+        self.galvo_start = -1.0
+        self.galvo_stop = 1.0
+        self.galvo_laser_start = 8
+        self.galvo_laser_interval = 16
+        # digital triggers
         self.digital_starts = [0.002, 0.007, 0.007, 0.012, 0.012, 0.012]
         self.digital_ends = [0.004, 0.01, 0.01, 0.015, 0.015, 0.015]
-        self.bp_increase = BPoly.from_derivatives([0, 1], [[0., 0., 0.], [1., 0., 0.]])
-        self.bp_decrease = BPoly.from_derivatives([0, 1], [[1., 0., 0.], [0., 0., 0.]])
 
     def update_piezo_scan_parameters(self, piezo_ranges, piezo_step_sizes, piezo_starts, piezo_analog_start):
         self.piezo_ranges = piezo_ranges
@@ -28,10 +35,15 @@ class TriggerSequence:
         self.piezo_starts = piezo_starts
         self.piezo_analog_start = piezo_analog_start
 
-    def update_galvo_scan_parameters(self, galvo_starts, galvo_stops, galvo_step_sizes):
-        self.galvo_starts = galvo_starts
-        self.galvo_stops = galvo_stops
-        self.galvo_step_sizes = galvo_step_sizes
+    def update_galvo_scan_parameters(self, gv_start=None, gv_stop=None, laser_start=None, laser_interval=None):
+        if gv_start is not None:
+            self.galvo_start = gv_start
+        if gv_stop is not None:
+            self.galvo_stop = gv_stop
+        if laser_start is not None:
+            self.galvo_laser_start = laser_start
+        if laser_interval is not None:
+            self.galvo_laser_interval = laser_interval
 
     def update_digital_parameters(self, sequence_time, digital_starts, digital_ends):
         self.sequence_time = sequence_time
@@ -52,33 +64,112 @@ class TriggerSequence:
         return digital_trigger
 
     def generate_trigger_sequence_gs(self, lasers, camera):
-        galvo_steps_x = int(
-            np.ceil(1 + 0.5 * np.abs(self.galvo_starts[0] - self.galvo_stops[0]) / self.galvo_step_sizes[0]))
-        galvo_steps_y = int(
-            np.ceil(1 + 0.5 * np.abs(self.galvo_starts[1] - self.galvo_stops[1]) / self.galvo_step_sizes[1]))
-        scan_x_p = np.arange(self.galvo_starts[0], self.galvo_stops[0] + self.galvo_step_sizes[0],
-                             self.galvo_step_sizes[0])
-        scan_x_temp = np.append(scan_x_p, np.flip(scan_x_p))
-        scan_y_temp = np.ones(scan_x_temp.shape[0]) * self.galvo_starts[1]
-        scan_y_temp[scan_x_p.shape[0]:] += self.galvo_step_sizes[1]
-        scan_x_h = scan_x_temp
-        for i in range(galvo_steps_x - 1):
-            scan_x_h = np.append(scan_x_h, scan_x_temp)
-        scan_y_h = scan_y_temp
-        for i in range(galvo_steps_y - 1):
-            scan_y_h = np.append(scan_y_h, scan_y_temp + (2 * i + 2) * self.galvo_step_sizes[1])
-        scan_x = np.append(scan_x_h, scan_y_h)
-        scan_y = np.append(scan_y_h, -scan_x_h)
-        analog_trigger = np.zeros((len(self.galvo_starts), scan_x.shape[0] + 32))
-        analog_trigger[0] = np.pad(scan_x, (16, 16), 'constant', constant_values=(0, 0))
-        analog_trigger[1] = np.pad(scan_y, (16, 16), 'constant', constant_values=(0, 0))
-        digital_trigger = np.zeros((len(self.digital_starts), analog_trigger[0].shape[0]))
-        laser_trigger = np.ones(scan_x.shape[0])
-        laser_trigger[1::2] = 0
+        return_samples = 128
+        t_scan = (self.galvo_stop - self.galvo_start) / self.v_max
+        s_scan = int(np.ceil(t_scan / self.dt)) + 1
+        seq_scan = np.linspace(-1, 1, s_scan)
+        pos = seq_scan[np.arange(self.galvo_laser_start, s_scan, self.galvo_laser_interval)]
+        print('dot number:', pos.shape[0])
+        t_acc = self.v_max / self.a_max
+        s_acc = int(np.ceil(t_acc / self.dt))
+        points = np.array([0, t_acc, t_acc + self.dt * (s_acc / 2)])
+        derivatives = np.array([[0, 0, self.a_max], [0.5 * self.a_max * t_acc ** 2, self.v_max, self.a_max],
+                                [0.5 * self.a_max * t_acc ** 2 + self.v_max * self.dt * (s_acc / 2), self.v_max, 0]])
+        bp = BPoly.from_derivatives(points, derivatives)
+        seq_acc = bp(np.linspace(0, (s_acc + 1) * self.dt, int(s_scan * 0.01)))
+        x_axis_scan = np.append(seq_acc - seq_acc.max() - self.dt * self.v_max + self.galvo_start, seq_scan)
+        seq_deacc = self.galvo_stop - np.flip(seq_acc) + seq_acc.max() + self.v_max * 0.75 * self.dt
+        x_axis_scan = np.append(x_axis_scan, seq_deacc)
+        x_axis_scan = np.pad(x_axis_scan, (int(self.galvo_laser_interval), return_samples),
+                             'constant', constant_values=(x_axis_scan[0], x_axis_scan[0]))
+        x_axis_scan = np.append(x_axis_scan, x_axis_scan)
+        x_axis_scan = np.tile(x_axis_scan, int(pos.shape[0] / 2))
+        laser_trigger = np.zeros(s_scan)
+        ids = [item for sublist in
+               [(i - 1, i) for i in range(self.galvo_laser_start, s_scan, self.galvo_laser_interval)] for item in
+               sublist]
+        laser_trigger[ids] = 1
+        laser_trigger = np.pad(laser_trigger, (
+            int(self.galvo_laser_interval) + int(s_scan * 0.01),
+            return_samples + int(s_scan * 0.01)),
+                               'constant', constant_values=(0, 0))
+        laser_trigger = np.append(laser_trigger, laser_trigger)
+        laser_trigger = np.tile(laser_trigger, int(pos.shape[0] / 2))
+        y_axis_scan = pos[0] * np.ones(s_scan + 2 * int(s_scan * 0.01) + int(self.galvo_laser_interval))
+        for n in range(int(pos.shape[0] / 2) * 2 - 1):
+            acc = pos[n] + seq_acc
+            deacc = pos[n + 1] - np.flip(seq_acc)
+            inter = np.linspace(acc[-1], deacc[0], self.galvo_laser_interval + 2)
+            temp = np.append(acc, inter[1:-1])
+            temp = np.append(temp, deacc)
+            y_axis_scan = np.append(y_axis_scan, temp)
+            y_axis_scan = np.append(y_axis_scan, pos[n + 1] * np.ones(s_scan + return_samples))
+        y_axis_scan = np.append(y_axis_scan,
+                                pos[int(pos.shape[0] / 2) * 2 - 1] * np.ones(return_samples))
+        analog_trigger = np.zeros((2, x_axis_scan.shape[0]))
+        analog_trigger[0] = x_axis_scan
+        analog_trigger[1] = y_axis_scan
+        camera_trigger = np.ones(laser_trigger.shape[0])
+        camera_trigger[:int(self.galvo_laser_interval) + int(s_scan * 0.01) - 1] = 0
+        camera_trigger[- int(self.galvo_laser_interval) - int(s_scan * 0.01) + 1:] = 0
+        digital_trigger = np.zeros((len(self.digital_starts), camera_trigger.shape[0]))
         for laser in lasers:
-            digital_trigger[laser] = np.pad(laser_trigger, (16, 16), 'constant', constant_values=(0, 0))
-        camera_trigger = np.ones(scan_x.shape[0])
-        digital_trigger[camera + 4] = np.pad(camera_trigger, (16, 16), 'constant', constant_values=(0, 0))
+            digital_trigger[laser] = laser_trigger
+        digital_trigger[camera + 4] = camera_trigger
+        return analog_trigger, digital_trigger, pos
+
+    def generate_galvo_scanning(self, lasers, camera):
+        freq = 128
+        w = 2 * np.pi * freq
+        T = 1 / freq
+        scan_samples = int(np.ceil(T / self.dt))
+        print(scan_samples)
+        n_pos = 16
+        amp = 1.2
+        single_scan_x = amp * np.sin(w * self.dt * np.arange(scan_samples) - 0.5 * np.pi)
+        dot_pos = np.linspace(self.galvo_start, self.galvo_stop, n_pos)
+        scan_times = np.arcsin(dot_pos / amp)
+        sample_points = (scan_times + 0.5 * np.pi) / (w * self.dt)
+        laser_sequence = []
+        for s in sample_points:
+            if math.ceil(s) != math.floor(s):
+                laser_sequence.append(math.floor(s))
+                laser_sequence.append(math.ceil(s))
+            else:
+                laser_sequence.append(int(s) - 1)
+        laser_scan = np.zeros(scan_samples)
+        laser_scan[laser_sequence] = 1
+        laser_scan = laser_scan + np.flip(laser_scan)
+        y_point_0 = math.ceil((np.arcsin(-1.1 / amp) + 0.5 * np.pi) / (w * self.dt))
+        y_point_1 = math.floor((np.arcsin(1.1 / amp) + 0.5 * np.pi) / (w * self.dt))
+        scanning = np.abs(y_point_1 - y_point_0)
+        single_scan_y = np.ones(y_point_1) * dot_pos[0]
+        single_scan_y = np.append(single_scan_y, np.linspace(dot_pos[0], dot_pos[1], scan_samples - 2 * y_point_1))
+        single_scan_y = np.append(single_scan_y, np.ones(scanning) * dot_pos[1])
+        single_scan_y = np.append(single_scan_y, np.linspace(dot_pos[1], (dot_pos[1] + dot_pos[2]) / 2,
+                                                             int(scan_samples / 2 - y_point_1)))
+        for i in range(1, int(n_pos / 2)):
+            a = 2 * i - 1
+            b = 2 * i
+            c = 2 * i + 1
+            d = min(n_pos - 1, 2 * i + 2)
+            single_scan_y = np.append(single_scan_y, np.linspace((dot_pos[a] + dot_pos[b]) / 2, dot_pos[b],
+                                                                 int(scan_samples / 2 - y_point_1)))
+            single_scan_y = np.append(single_scan_y, dot_pos[b] * np.ones(scanning))
+            single_scan_y = np.append(single_scan_y, np.linspace(dot_pos[b], dot_pos[c], scan_samples - 2 * y_point_1))
+            single_scan_y = np.append(single_scan_y, dot_pos[c] * np.ones(scanning))
+            single_scan_y = np.append(single_scan_y, np.linspace(dot_pos[c], (dot_pos[c] + dot_pos[d]) / 2,
+                                                                 int(scan_samples / 2 - y_point_1)))
+        analog_trigger = np.zeros((2, int(n_pos / 2) * scan_samples))
+        analog_trigger[0] = np.tile(single_scan_x, int(n_pos / 2))
+        analog_trigger[1] = single_scan_y
+        digital_trigger = np.zeros((len(self.digital_starts), int(n_pos / 2) * scan_samples))
+        for laser in lasers:
+            digital_trigger[laser] = np.tile(laser_scan, int(n_pos / 2))
+        camera_trigger = np.ones(int(n_pos / 2) * scan_samples)
+        camera_trigger[:y_point_0] = 0
+        camera_trigger[-y_point_0:] = 0
+        digital_trigger[camera + 4] = camera_trigger
         return analog_trigger, digital_trigger
 
     def generate_trigger_sequence_2d(self):

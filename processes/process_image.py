@@ -29,7 +29,7 @@ class ImageProcessing:
         return r
 
     def snr(self, img, hpr):
-        nx, ny = img.shape
+        ny, nx = img.shape
         m = img.min()
         img[img <= m] = 0.
         img[img > m] = img[img > m] - m

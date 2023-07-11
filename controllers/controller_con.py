@@ -73,8 +73,8 @@ class ConController:
     def get_galvo_scan_parameters(self):
         galvo_starts = [self.v.QDoubleSpinBox_galvo_start_x.value(), self.v.QDoubleSpinBox_galvo_start_y.value()]
         galvo_stops = [self.v.QDoubleSpinBox_galvo_stop_x.value(), self.v.QDoubleSpinBox_galvo_stop_y.value()]
-        galvo_step_sizes = [self.v.QDoubleSpinBox_galvo_step_x.value(), self.v.QDoubleSpinBox_galvo_step_y.value()]
-        return galvo_starts, galvo_stops, galvo_step_sizes
+        galvo_dotspos = [self.v.QSpinBox_galvo_laser_start.value(), self.v.QSpinBox_galvo_laser_interval.value()]
+        return galvo_starts, galvo_stops, galvo_dotspos
 
     def get_profile_axis(self):
         return self.v.QComboBox_profile_axis.currentText()

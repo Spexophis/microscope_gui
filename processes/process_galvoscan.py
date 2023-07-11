@@ -63,6 +63,7 @@ class GalvoScan:
             y_axis_scan = np.append(y_axis_scan, pos[n + 1] * np.ones(s_scan))
         y_axis_scan = np.append(y_axis_scan, pos[int(pos.shape[0] / 2) * 2 - 1] * np.ones(
             int(s_scan * 0.01) + int(self.laser_interval / 2)))
-        camera_trigger = np.zeros(laser_trigger.shape[0])
-        camera_trigger[ids[0]:ids[-1]] = 1
+        camera_trigger = np.ones(laser_trigger.shape[0])
+        camera_trigger[:int(self.laser_interval / 2) + int(s_scan * 0.01) - 1] = 0
+        camera_trigger[- int(self.laser_interval / 2) - int(s_scan * 0.01) + 1:] = 0
         return x_axis_scan, y_axis_scan, laser_trigger, camera_trigger, pos
