@@ -19,7 +19,7 @@ try:
 except Exception as e:
     print(f'Error creating directory {data_folder}: {e}')
 
-log_file = os.path.join(data_folder, 'app.log')
+log_file = os.path.join(data_folder, time.strftime("%H%M%S") + '_app.log')
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
@@ -41,33 +41,17 @@ class MainController:
         self.stack_params = None
 
         # video thread
-        self.thread_video = QtCore.QThread()
-        self.videoWorker = VideoWorker(parent=None)
-        self.videoWorker.moveToThread(self.thread_video)
-        self.thread_video.started.connect(self.videoWorker.run)
-        self.thread_video.finished.connect(self.videoWorker.stop)
-        self.videoWorker.signal_imshow.connect(self.imshow_main)
+        self.thread_video = MainCameraView()
+        self.thread_video.signal_imshow.connect(self.imshow_main)
         # image process thread
-        self.thread_fft = QtCore.QThread()
-        self.fftWorker = FFTWorker(parent=None)
-        self.fftWorker.moveToThread(self.thread_fft)
-        self.thread_fft.started.connect(self.fftWorker.run)
-        self.thread_fft.finished.connect(self.fftWorker.stop)
-        self.fftWorker.signal_fft.connect(self.imshow_fft)
+        self.thread_fft = FFTView()
+        self.thread_fft.signal_fft_show.connect(self.imshow_fft)
         # plot thread
-        self.thread_plot = QtCore.QThread()
-        self.plotWorker = PlotWorker(parent=None)
-        self.plotWorker.moveToThread(self.thread_plot)
-        self.thread_plot.started.connect(self.plotWorker.run)
-        self.thread_plot.finished.connect(self.plotWorker.stop)
-        self.plotWorker.signal_plot.connect(self.profile_plot)
+        self.thread_plot = PlotView()
+        self.thread_plot.signal_plot.connect(self.profile_plot)
         # wavefront sensor thread
-        self.thread_wfs = QtCore.QThread()
-        self.wfsWorker = WFSWorker(parent=None)
-        self.wfsWorker.moveToThread(self.thread_wfs)
-        self.thread_wfs.started.connect(self.wfsWorker.run)
-        self.thread_wfs.finished.connect(self.wfsWorker.stop)
-        self.wfsWorker.signal_wfs_show.connect(self.imshow_img_wfs)
+        self.thread_wfs = WFSCameraView()
+        self.thread_wfs.signal_wfs_show.connect(self.imshow_img_wfs)
         # MCL Piezo
         self.v.get_control_widget().Signal_piezo_move_x.connect(self.set_piezo_position_x)
         self.v.get_control_widget().Signal_piezo_move_y.connect(self.set_piezo_position_y)
@@ -306,8 +290,7 @@ class MainController:
         self.thread_video.start()
 
     def stop_video(self):
-        self.thread_video.quit()
-        self.thread_video.wait()
+        self.thread_video.stop()
         self.m.daq.trig_stop()
         self.main_cam.stop_live()
         self.lasers_off()
@@ -319,8 +302,7 @@ class MainController:
         self.thread_fft.start()
 
     def stop_fft(self):
-        self.thread_fft.quit()
-        self.thread_fft.wait()
+        self.thread_fft.stop()
 
     def imshow_fft(self):
         self.view_controller.plot_fft(self.p.imgprocess.fourier_transform(self.main_cam.get_last_image()))
@@ -329,8 +311,7 @@ class MainController:
         self.thread_plot.start()
 
     def stop_plot_live(self):
-        self.thread_plot.quit()
-        self.thread_plot.wait()
+        self.thread_plot.stop()
 
     def profile_plot(self):
         ax = self.con_controller.get_profile_axis()
@@ -541,23 +522,28 @@ class MainController:
         print('SHWFS parameter updated')
 
     def start_img_wfs(self):
-        self.set_lasers()
-        self.set_img_wfs()
-        self.set_wfs_camera_roi()
-        self.wfs_cam.prepare_live()
-        dgtr = self.generate_digital_trigger_sw()
-        self.m.daq.trig_open(dgtr)
-        self.wfs_cam.start_live()
-        self.m.daq.trig_run()
-        time.sleep(0.1)
-        self.thread_wfs.start()
+        try:
+            self.set_lasers()
+            self.set_img_wfs()
+            self.set_wfs_camera_roi()
+            self.wfs_cam.prepare_live()
+            dgtr = self.generate_digital_trigger_sw()
+            self.m.daq.trig_open(dgtr)
+            self.wfs_cam.start_live()
+            self.m.daq.trig_run()
+            time.sleep(0.08)
+            self.thread_wfs.start()
+        except Exception as e:
+            logging.error(f"Error starting wfs: {e}")
 
     def stop_img_wfs(self):
-        self.thread_wfs.quit()
-        self.thread_wfs.wait()
-        self.m.daq.trig_stop()
-        self.wfs_cam.stop_live()
-        self.lasers_off()
+        try:
+            self.thread_wfs.stop()
+            self.m.daq.trig_stop()
+            self.wfs_cam.stop_live()
+            self.lasers_off()
+        except Exception as e:
+            logging.error(f"Error starting wfs: {e}")
 
     def imshow_img_wfs(self):
         # self.p.shwfsr.offset = self.wfs_cam.get_last_image()
@@ -716,64 +702,67 @@ class MainController:
         self.p.shwfsr._save_sensorless_results(os.path.join(newfold, 'results.xlsx'), za, mv, zp)
 
 
-class VideoWorker(QtCore.QObject):
+class MainCameraView(QtCore.QThread):
     signal_imshow = QtCore.pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self):
         super().__init__()
         self.timer = None
 
     def run(self):
         self.timer = QtCore.QTimer()
-        self.timer.setInterval(100)
+        self.timer.setInterval(128)
         self.timer.timeout.connect(self.signal_imshow.emit)
         self.timer.start()
 
     def stop(self):
         if self.timer is not None:
             self.timer.stop()
+        self.wait()
 
 
-class FFTWorker(QtCore.QObject):
-    signal_fft = QtCore.pyqtSignal()
-
-    def __init__(self, parent=None):
-        super().__init__()
-        self.timer = None
-
-    def run(self):
-        self.timer = QtCore.QTimer()
-        self.timer.setInterval(200)
-        self.timer.timeout.connect(self.signal_fft.emit)
-        self.timer.start()
-
-    def stop(self):
-        if self.timer is not None:
-            self.timer.stop()
-
-
-class WFSWorker(QtCore.QObject):
+class WFSCameraView(QtCore.QThread):
     signal_wfs_show = QtCore.pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self):
         super().__init__()
         self.timer = None
 
     def run(self):
         self.timer = QtCore.QTimer()
-        self.timer.setInterval(100)
+        self.timer.setInterval(128)
         self.timer.timeout.connect(self.signal_wfs_show.emit)
         self.timer.start()
 
     def stop(self):
         if self.timer is not None:
             self.timer.stop()
+        self.wait()
 
 
-class PlotWorker(QtCore.QObject):
+class FFTView(QtCore.QThread):
+    signal_fft_show = QtCore.pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+        self.timer = None
+
+    def run(self):
+        self.timer = QtCore.QTimer()
+        self.timer.setInterval(200)
+        self.timer.timeout.connect(self.signal_fft_show.emit)
+        self.timer.start()
+
+    def stop(self):
+        if self.timer is not None:
+            self.timer.stop()
+        self.wait()
+
+
+class PlotView(QtCore.QThread):
     signal_plot = QtCore.pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self):
         super().__init__()
         self.timer = None
 
@@ -786,6 +775,7 @@ class PlotWorker(QtCore.QObject):
     def stop(self):
         if self.timer is not None:
             self.timer.stop()
+        self.wait()
 
 
 class TaskThread(threading.Thread):
