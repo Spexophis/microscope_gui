@@ -13,8 +13,8 @@ ifft2 = np.fft.ifft2
 fftshift = np.fft.fftshift
 pi = np.pi
 
-control_matrix_phase = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_phase_20230706.tif')
-control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230706.tif')
+control_matrix_phase = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_phase_20230721.tif')
+control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230721.tif')
 control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230613.tif')
 initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\flatfile_20230712.xlsx'
 
@@ -23,15 +23,15 @@ class WavefrontSensing:
 
     def __init__(self):
         self._n_actuators = 97
-        self._n_lenslets_x = 52
-        self._n_lenslets_y = 51
+        self._n_lenslets_x = 35
+        self._n_lenslets_y = 36
         self._n_lenslets = self._n_lenslets_x * self._n_lenslets_y
-        self.x_center_base = 1020
-        self.y_center_base = 993
-        self.x_center_offset = 1020
-        self.y_center_offset = 993
-        self._lenslet_spacing = 31  # spacing between each lenslet
-        self.hsp = 16  # size of subimage is 2 * hsp
+        self.x_center_base = 1060
+        self.y_center_base = 1085
+        self.x_center_offset = 1060
+        self.y_center_offset = 1085
+        self._lenslet_spacing = 24  # spacing between each lenslet
+        self.hsp = 12  # size of subimage is 2 * hsp
         self.calfactor = (.0065 / 5.2) * 150  # pixel size * focalLength * pitch
         self.method = 'correlation'
         self.mag = 2
@@ -301,9 +301,9 @@ class WavefrontSensing:
         _msk = self._elliptical_mask((self._n_lenslets_y / 2, self._n_lenslets_x / 2),
                                      (self._n_lenslets_y, self._n_lenslets_x))
         for filename in os.listdir(data_folder):
-            if filename.endswith(".tif"):
-                ind = int(filename.split("_")[3])
-                print(filename.split("_")[3])
+            if filename.endswith(".tif") & filename.startswith("actuator"):
+                ind = int(filename.split("_")[1])
+                print(filename.split("_")[1])
                 data_stack = tf.imread(os.path.join(data_folder, filename))
                 n, x, y = data_stack.shape
                 if n != 4:

@@ -1,7 +1,8 @@
+import logging
 import os
 import threading
 import time
-from getpass import getuser
+from pathlib import Path
 
 import numpy as np
 import tifffile as tf
@@ -9,7 +10,21 @@ from PyQt5 import QtCore
 
 from controllers import controller_ao, controller_con, controller_view
 
-datapath = r'C:\Users\ruizhe.lin\Documents\data'
+# Define data folder
+data_folder = Path.home() / 'Documents' / 'data' / time.strftime("%Y%m%d")
+# Try to create directory
+try:
+    os.makedirs(data_folder, exist_ok=True)
+    print(f'Directory {data_folder} has been created successfully.')
+except Exception as e:
+    print(f'Error creating directory {data_folder}: {e}')
+
+log_file = os.path.join(data_folder, 'app.log')
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    filename=log_file,
+                    filemode='w')
 
 
 class MainController:
@@ -22,14 +37,6 @@ class MainController:
         self.view_controller = controller_view.ViewController(self.v.get_view_widget())
         self.con_controller = controller_con.ConController(self.v.get_control_widget())
         self.ao_controller = controller_ao.AOController(self.v.get_ao_widget())
-
-        t = time.strftime("%Y%m%d")
-        dpth = t + '_' + getuser()
-        self.path = os.path.join(datapath, dpth)
-        try:
-            os.mkdir(self.path)
-        except:
-            print('Directory already exists')
 
         self.stack_params = None
 
@@ -403,9 +410,9 @@ class MainController:
         self.p.bsrecon.reconstruct_all_beads(self.main_cam.data, step_size)
         t = time.strftime("%Y%m%d_%H%M%S_")
         fn = self.con_controller.get_file_name()
-        tf.imwrite(self.path + '/' + t + fn + '.tif', self.main_cam.data)
-        tf.imwrite(self.path + '/' + t + fn + '_recon_stack.tif', self.p.bsrecon.result)
-        tf.imwrite(self.path + '/' + t + fn + '_final_image.tif', self.p.bsrecon.final_image)
+        tf.imwrite(data_folder + '/' + t + fn + '.tif', self.main_cam.data)
+        tf.imwrite(data_folder + '/' + t + fn + '_recon_stack.tif', self.p.bsrecon.result)
+        tf.imwrite(data_folder + '/' + t + fn + '_final_image.tif', self.p.bsrecon.final_image)
         self.view_controller.plot_main(self.p.bsrecon.final_image)
         print('Data saved')
 
@@ -467,7 +474,7 @@ class MainController:
 
     def save_dm(self):
         t = time.strftime("%Y%m%d_%H%M%S_")
-        self.p.shwfsr._write_cmd(self.path, t, flatfile=False)
+        self.p.shwfsr._write_cmd(data_folder, t, flatfile=False)
         print('DM cmd saved')
 
     def run_influence_function(self):
@@ -475,12 +482,12 @@ class MainController:
         influence_function_thread.start()
 
     def influence_function(self):
-        t = time.strftime("%Y%m%d_%H%M%S")
-        newfold = self.path + '/' + t + '_influence_function' + '/'
+        fd = os.path.join(data_folder, time.strftime("%Y%m%d%H%M") + '_influence_function')
         try:
-            os.mkdir(newfold)
-        except:
-            print('Directory already exists')
+            os.makedirs(fd, exist_ok=True)
+            print(f'Directory {fd} has been created successfully.')
+        except Exception as er:
+            print(f'Error creating directory {fd}: {er}')
         n, amp = self.ao_controller.get_actuator()
         self.set_lasers()
         self.set_img_wfs()
@@ -521,12 +528,12 @@ class MainController:
             # time.sleep(0.05)
             shimg.append(self.wfs_cam.get_last_image())
             # self.m.daq.trig_stop()
-            tf.imwrite(newfold + t + '_actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
+            tf.imwrite(fd + r'/' + 'actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
         self.m.daq.trig_stop()
         self.wfs_cam.stop_live()
         self.lasers_off()
         md = self.ao_controller.get_img_wfs_method()
-        self.p.shwfsr.generate_influence_matrix(newfold, md, True)
+        self.p.shwfsr.generate_influence_matrix(fd, md, True)
 
     def set_img_wfs(self):
         parameters = self.ao_controller.get_parameters_img()
@@ -557,12 +564,12 @@ class MainController:
         self.view_controller.plot_sh(self.wfs_cam.get_last_image())
 
     def set_img_wfs_base(self):
-        self.p.shwfsr.base = self.view_controller.get_image_data('ShackHartmann')
+        self.p.shwfsr.base = self.wfs_cam.get_last_image()
         print('wfs base set')
 
     def run_img_wfr(self):
         self.p.shwfsr.method = self.ao_controller.get_gradient_method_img()
-        self.p.shwfsr.offset = self.view_controller.get_image_data('ShackHartmann')
+        self.p.shwfsr.offset = self.wfs_cam.get_last_image()
         self.p.shwfsr.run_wf_recon(callback=self.imshow_img_wfr)
 
     def imshow_img_wfr(self):
@@ -642,7 +649,7 @@ class MainController:
         mode_start, mode_stop, amp_start, amp_step, amp_step_number = self.ao_controller.get_ao_iteration()
         lpr, hpr, mindex, metric = self.ao_controller.get_ao_parameters()
         t = time.strftime("%Y%m%d_%H%M%S_")
-        newfold = self.path + '/' + t + '_ao_iteration_' + metric + '/'
+        newfold = data_folder + '/' + t + '_ao_iteration_' + metric + '/'
         try:
             os.mkdir(newfold)
         except:
