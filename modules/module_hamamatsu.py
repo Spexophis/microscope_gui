@@ -4,7 +4,8 @@ A ctypes based interface to Hamamatsu sCMOS Flash 4.0
 
 import ctypes
 import ctypes.util
-
+import threading
+from collections import deque
 import numpy as np
 
 dcam = ctypes.windll.dcamapi
@@ -806,40 +807,41 @@ class HamamatsuCameraMR(HamamatsuCamera):
     def finish_data_acquisition(self):
         self.stop_acquisition()
 
-# class CameraThread(threading.Thread):
-#     def __init__(self, cam):
-#         threading.Thread.__init__(self)
-#         self.cam = cam
-#         self.running = False
-#         self.lock = threading.Lock()
-# 
-#     def run(self):
-#         self.running = True
-#         while self.running:
-#             with self.lock:
-#                 self.cam.get_images()
-# 
-#     def stop(self):
-#         self.running = False
-#         self.join()
-# 
-# 
-# class FixedLengthList:
-#     def __init__(self, max_length):
-#         self.max_length = max_length
-#         self.data_list = deque(maxlen=max_length)
-# 
-#     def add_element(self, element):
-#         self.data_list.append(element)
-# 
-#     def get_elements(self):
-#         return list(self.data_list)
-# 
-#     def get_last_element(self):
-#         return self.data_list[-1] if self.data_list else None
-# 
-#     def is_empty(self):
-#         return len(self.data_list) == 0
+
+class CameraThread(threading.Thread):
+    def __init__(self, cam):
+        threading.Thread.__init__(self)
+        self.cam = cam
+        self.running = False
+        self.lock = threading.Lock()
+
+    def run(self):
+        self.running = True
+        while self.running:
+            with self.lock:
+                self.cam.get_images()
+
+    def stop(self):
+        self.running = False
+        self.join()
+
+
+class FixedLengthList:
+    def __init__(self, max_length):
+        self.max_length = max_length
+        self.data_list = deque(maxlen=max_length)
+
+    def add_element(self, element):
+        self.data_list.append(element)
+
+    def get_elements(self):
+        return list(self.data_list)
+
+    def get_last_element(self):
+        return self.data_list[-1] if self.data_list else None
+
+    def is_empty(self):
+        return len(self.data_list) == 0
 
 # The MIT License
 #

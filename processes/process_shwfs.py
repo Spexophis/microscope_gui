@@ -147,8 +147,8 @@ class WavefrontSensing:
         left_base = self.x_center_base - rx * self._lenslet_spacing
         bot_offset = self.y_center_offset - ry * self._lenslet_spacing
         left_offset = self.x_center_offset - rx * self._lenslet_spacing
-        base = self._sub_back(base, 1.)
-        offset = self._sub_back(offset, 1.)
+        base = self._sub_back(base, 0.8)
+        offset = self._sub_back(offset, 0.8)
         self.im = np.zeros((2, 2 * self.hsp * ny, 2 * self.hsp * nx))
         gradx = np.zeros((ny, nx))
         grady = np.zeros((ny, nx))

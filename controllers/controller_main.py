@@ -1,12 +1,14 @@
 import logging
 import os
-import threading
 import time
+import traceback
 from pathlib import Path
 
 import numpy as np
 import tifffile as tf
 from PyQt5 import QtCore
+
+QtCore.qRegisterMetaType('QVector<int>')
 
 from controllers import controller_ao, controller_con, controller_view
 
@@ -19,11 +21,10 @@ try:
 except Exception as e:
     print(f'Error creating directory {data_folder}: {e}')
 
-log_file = os.path.join(data_folder, 'app.log')
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
-                    filename=log_file,
+                    filename=os.path.join(data_folder, time.strftime("%H%M%S") + 'app.log'),
                     filemode='w')
 
 
@@ -41,33 +42,36 @@ class MainController:
         self.stack_params = None
 
         # video thread
+        self.videoWorker = LoopWorker(dt=100)
+        self.videoWorker.signal_loop.connect(self.imshow_main)
         self.thread_video = QtCore.QThread()
-        self.videoWorker = VideoWorker(parent=None)
         self.videoWorker.moveToThread(self.thread_video)
-        self.thread_video.started.connect(self.videoWorker.run)
+        self.thread_video.started.connect(self.videoWorker.start)
         self.thread_video.finished.connect(self.videoWorker.stop)
-        self.videoWorker.signal_imshow.connect(self.imshow_main)
         # image process thread
+        self.fftWorker = LoopWorker(dt=200)
+        self.fftWorker.signal_loop.connect(self.imshow_fft)
         self.thread_fft = QtCore.QThread()
-        self.fftWorker = FFTWorker(parent=None)
         self.fftWorker.moveToThread(self.thread_fft)
-        self.thread_fft.started.connect(self.fftWorker.run)
+        self.thread_fft.started.connect(self.fftWorker.start)
         self.thread_fft.finished.connect(self.fftWorker.stop)
-        self.fftWorker.signal_fft.connect(self.imshow_fft)
         # plot thread
+        self.plotWorker = LoopWorker(dt=200)
+        self.plotWorker.signal_loop.connect(self.profile_plot)
         self.thread_plot = QtCore.QThread()
-        self.plotWorker = PlotWorker(parent=None)
         self.plotWorker.moveToThread(self.thread_plot)
-        self.thread_plot.started.connect(self.plotWorker.run)
+        self.thread_plot.started.connect(self.plotWorker.start)
         self.thread_plot.finished.connect(self.plotWorker.stop)
-        self.plotWorker.signal_plot.connect(self.profile_plot)
         # wavefront sensor thread
+        self.wfsWorker = LoopWorker(dt=100)
+        self.wfsWorker.signal_loop.connect(self.imshow_img_wfs)
         self.thread_wfs = QtCore.QThread()
-        self.wfsWorker = WFSWorker(parent=None)
         self.wfsWorker.moveToThread(self.thread_wfs)
-        self.thread_wfs.started.connect(self.wfsWorker.run)
+        self.thread_wfs.started.connect(self.wfsWorker.start)
         self.thread_wfs.finished.connect(self.wfsWorker.stop)
-        self.wfsWorker.signal_wfs_show.connect(self.imshow_img_wfs)
+        # dedicated thread pool for tasks
+        self.task_threadpool = QtCore.QThreadPool()
+        self.task_worker = None
         # MCL Piezo
         self.v.get_control_widget().Signal_piezo_move_x.connect(self.set_piezo_position_x)
         self.v.get_control_widget().Signal_piezo_move_y.connect(self.set_piezo_position_y)
@@ -143,6 +147,10 @@ class MainController:
             self.wfs_cam = self.m.scmoscam
         elif "EMCCD" == self.wfs_camera:
             self.wfs_cam = self.m.ccdcam
+
+    def start_task_thread(self, task, callback, iteration):
+        self.task_worker = TaskWorker(task, callback, nl=iteration)
+        self.task_threadpool.start(self.task_worker)
 
     def move_deck_up(self):
         if not self.m.md.isMoving():
@@ -296,41 +304,64 @@ class MainController:
         return self.p.trigger.generate_digital_triggers_sw(lasers, camera)
 
     def start_video(self):
-        self.set_lasers()
-        self.set_main_camera_roi()
-        self.main_cam.prepare_live()
-        self.m.daq.trig_open(self.generate_digital_trigger_sw())
-        self.main_cam.start_live()
-        self.m.daq.trig_run()
-        time.sleep(0.1)
-        self.thread_video.start()
+        try:
+            self.set_lasers()
+            self.set_main_camera_roi()
+            self.main_cam.prepare_live()
+            self.m.daq.trig_open(self.generate_digital_trigger_sw())
+            self.main_cam.start_live()
+            self.m.daq.trig_run()
+        except Exception as e:
+            logging.error(f"Error starting main camera video: {e}")
+        try:
+            self.thread_video.start()
+        except Exception as e:
+            logging.error(f"Error starting imshow: {e}")
 
     def stop_video(self):
-        self.thread_video.quit()
-        self.thread_video.wait()
-        self.m.daq.trig_stop()
-        self.main_cam.stop_live()
-        self.lasers_off()
+        try:
+            self.thread_video.quit()
+            self.thread_video.wait()
+        except Exception as e:
+            logging.error(f"Error stopping imshow: {e}")
+        try:
+            self.m.daq.trig_stop()
+            self.main_cam.stop_live()
+            self.lasers_off()
+        except Exception as e:
+            logging.error(f"Error stopping main camera video: {e}")
 
     def imshow_main(self):
         self.view_controller.plot_main(self.main_cam.get_last_image())
 
     def run_fft(self):
-        self.thread_fft.start()
+        try:
+            self.thread_fft.start()
+        except Exception as e:
+            logging.error(f"Error starting fft: {e}")
 
     def stop_fft(self):
-        self.thread_fft.quit()
-        self.thread_fft.wait()
+        try:
+            self.thread_fft.quit()
+            self.thread_fft.wait()
+        except Exception as e:
+            logging.error(f"Error stopping fft: {e}")
 
     def imshow_fft(self):
         self.view_controller.plot_fft(self.p.imgprocess.fourier_transform(self.main_cam.get_last_image()))
 
     def start_plot_live(self):
-        self.thread_plot.start()
+        try:
+            self.thread_plot.start()
+        except Exception as e:
+            logging.error(f"Error starting plot: {e}")
 
     def stop_plot_live(self):
-        self.thread_plot.quit()
-        self.thread_plot.wait()
+        try:
+            self.thread_plot.quit()
+            self.thread_plot.wait()
+        except Exception as e:
+            logging.error(f"Error stopping plot: {e}")
 
     def profile_plot(self):
         ax = self.con_controller.get_profile_axis()
@@ -478,8 +509,7 @@ class MainController:
         print('DM cmd saved')
 
     def run_influence_function(self):
-        influence_function_thread = TaskThread(self.influence_function, callback=None)
-        influence_function_thread.start()
+        self.start_task_thread(task=self.influence_function, callback=None, iteration=1)
 
     def influence_function(self):
         fd = os.path.join(data_folder, time.strftime("%Y%m%d%H%M") + '_influence_function')
@@ -541,36 +571,50 @@ class MainController:
         print('SHWFS parameter updated')
 
     def start_img_wfs(self):
-        self.set_lasers()
-        self.set_img_wfs()
-        self.set_wfs_camera_roi()
-        self.wfs_cam.prepare_live()
-        dgtr = self.generate_digital_trigger_sw()
-        self.m.daq.trig_open(dgtr)
-        self.wfs_cam.start_live()
-        self.m.daq.trig_run()
-        time.sleep(0.1)
-        self.thread_wfs.start()
+        try:
+            self.set_lasers()
+            self.set_img_wfs()
+            self.set_wfs_camera_roi()
+            self.wfs_cam.prepare_live()
+            dgtr = self.generate_digital_trigger_sw()
+            self.m.daq.trig_open(dgtr)
+            self.wfs_cam.start_live()
+            self.m.daq.trig_run()
+        except Exception as e:
+            logging.error(f"Error starting wfs: {e}")
+        try:
+
+            self.thread_wfs.start()
+        except Exception as e:
+            logging.error(f"Error starting wfs imshow: {e}")
 
     def stop_img_wfs(self):
-        self.thread_wfs.quit()
-        self.thread_wfs.wait()
-        self.m.daq.trig_stop()
-        self.wfs_cam.stop_live()
-        self.lasers_off()
+        try:
+            self.thread_wfs.quit()
+            self.thread_wfs.wait()
+        except Exception as e:
+            logging.error(f"Error stopping wfs imshow: {e}")
+        try:
+            self.m.daq.trig_stop()
+            self.wfs_cam.stop_live()
+            self.lasers_off()
+        except Exception as e:
+            logging.error(f"Error stopping wfs: {e}")
 
     def imshow_img_wfs(self):
-        # self.p.shwfsr.offset = self.wfs_cam.get_last_image()
-        self.view_controller.plot_sh(self.wfs_cam.get_last_image())
+        self.p.shwfsr.offset = self.wfs_cam.get_last_image()
+        self.view_controller.plot_sh(self.p.shwfsr.offset)
 
     def set_img_wfs_base(self):
-        self.p.shwfsr.base = self.wfs_cam.get_last_image()
+        # self.p.shwfsr.base = self.wfs_cam.get_last_image()
+        self.p.shwfsr.base = self.view_controller.get_image_data(r'ShackHartmann')
         print('wfs base set')
 
     def run_img_wfr(self):
         self.p.shwfsr.method = self.ao_controller.get_gradient_method_img()
-        self.p.shwfsr.offset = self.wfs_cam.get_last_image()
-        self.p.shwfsr.run_wf_recon(callback=self.imshow_img_wfr)
+        # self.p.shwfsr.offset = self.wfs_cam.get_last_image()
+        self.p.shwfsr.offset = self.view_controller.get_image_data(r'ShackHartmann')
+        self.start_task_thread(task=self.p.shwfsr.wavefront_reconstruction, callback=self.imshow_img_wfr, iteration=1)
 
     def imshow_img_wfr(self):
         if isinstance(self.p.shwfsr.wf, np.ndarray):
@@ -596,13 +640,7 @@ class MainController:
 
     def run_close_loop_correction(self, n):
         self.prepare_close_loop_correction()
-        self.close_loop_thread = LoopThread(loop=self.close_loop_correction, n=n,
-                                            endloop=self.stop_close_loop_correction)
-        self.close_loop_thread.start()
-
-    def end_close_loop_correction(self):
-        if self.close_loop_thread is not None:
-            self.close_loop_thread.stop()
+        self.start_task_thread(task=self.close_loop_correction, callback=self.stop_close_loop_correction, iteration=n)
 
     def prepare_close_loop_correction(self):
         self.set_img_wfs()
@@ -642,8 +680,7 @@ class MainController:
         self.main_cam.stop_live()
 
     def run_ao_optimize(self):
-        ao_optimize_thread = TaskThread(self.ao_optimize, callback=None)
-        ao_optimize_thread.start()
+        self.start_task_thread(task=self.ao_optimize, callback=None, iteration=1)
 
     def ao_optimize(self):
         mode_start, mode_stop, amp_start, amp_step, amp_step_number = self.ao_controller.get_ao_iteration()
@@ -716,140 +753,83 @@ class MainController:
         self.p.shwfsr._save_sensorless_results(os.path.join(newfold, 'results.xlsx'), za, mv, zp)
 
 
-class VideoWorker(QtCore.QObject):
-    signal_imshow = QtCore.pyqtSignal()
-
-    def __init__(self, parent=None):
-        super().__init__()
-        self.timer = None
-
-    def run(self):
-        self.timer = QtCore.QTimer()
-        self.timer.setInterval(100)
-        self.timer.timeout.connect(self.signal_imshow.emit)
-        self.timer.start()
-
-    def stop(self):
-        if self.timer is not None:
-            self.timer.stop()
+class TaskWorkerSignals(QtCore.QObject):
+    finished = QtCore.pyqtSignal()
+    error = QtCore.pyqtSignal(tuple)
 
 
-class FFTWorker(QtCore.QObject):
-    signal_fft = QtCore.pyqtSignal()
-
-    def __init__(self, parent=None):
-        super().__init__()
-        self.timer = None
-
-    def run(self):
-        self.timer = QtCore.QTimer()
-        self.timer.setInterval(200)
-        self.timer.timeout.connect(self.signal_fft.emit)
-        self.timer.start()
-
-    def stop(self):
-        if self.timer is not None:
-            self.timer.stop()
-
-
-class WFSWorker(QtCore.QObject):
-    signal_wfs_show = QtCore.pyqtSignal()
-
-    def __init__(self, parent=None):
-        super().__init__()
-        self.timer = None
-
-    def run(self):
-        self.timer = QtCore.QTimer()
-        self.timer.setInterval(100)
-        self.timer.timeout.connect(self.signal_wfs_show.emit)
-        self.timer.start()
-
-    def stop(self):
-        if self.timer is not None:
-            self.timer.stop()
-
-
-class PlotWorker(QtCore.QObject):
-    signal_plot = QtCore.pyqtSignal()
-
-    def __init__(self, parent=None):
-        super().__init__()
-        self.timer = None
-
-    def run(self):
-        self.timer = QtCore.QTimer()
-        self.timer.setInterval(200)
-        self.timer.timeout.connect(self.signal_plot.emit)
-        self.timer.start()
-
-    def stop(self):
-        if self.timer is not None:
-            self.timer.stop()
-
-
-class TaskThread(threading.Thread):
-    def __init__(self, task, callback=None):
-        threading.Thread.__init__(self)
-        self.task = task
-        self.lock = threading.Lock()
-        # self.is_finished = threading.Event()
-        if callback is not None:
-            self.callback = callback
-        else:
-            self.callback = None
+class TaskWorker(QtCore.QRunnable):
+    def __init__(self, task=None, callback=None, nl=0):
+        super(TaskWorker, self).__init__()
+        self.task = task if task is not None else self._do_nothing
         self.callback = callback
+        self.nl = nl
+        self.task_done = 0
+        self.stop_requested = False
+        self.signals = TaskWorkerSignals()
+        self.setAutoDelete(True)
 
     def run(self):
-        with self.lock:
-            self.task()
-        # self.is_finished.set()
+        try:
+            if self.nl == 0:
+                while not self.stop_requested:
+                    self.task()
+                    if self.callback is not None:
+                        self.callback()
+                    self.signals.finished.emit()
+            else:
+                for i in range(self.nl):
+                    if self.stop_requested:
+                        break
+                    self.task()
+                    if self.callback is not None:
+                        self.callback()
+                    self.signals.finished.emit()
+        except Exception as e:
+            self.signals.error.emit((e, traceback.format_exc()))
+            return
+
+    def stop(self):
+        self.stop_requested = True
+
+    @staticmethod
+    def _do_nothing():
+        pass
+
+
+class LoopWorker(QtCore.QObject):
+    signal_loop = QtCore.pyqtSignal()
+
+    def __init__(self, loop=None, callback=None, dt=0, parent=None):
+        super().__init__(parent)
+        self.loop = loop if loop is not None else self._do_nothing
+        self.callback = callback
+        self.dt = dt
+        self._stop = False
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self._do)
+        if dt > 0:
+            self.timer.setInterval(dt)
+
+    def start(self):
+        self._stop = False
+        if not self.timer.isActive():
+            self.timer.start()
+
+    def stop(self):
+        self._stop = True
+        if self.timer.isActive():
+            self.timer.stop()
         if self.callback is not None:
             self.callback()
-        print("Task Done")
 
+    @QtCore.pyqtSlot()
+    def _do(self):
+        if self._stop:
+            return
+        self.loop()
+        self.signal_loop.emit()
 
-class LoopThread(threading.Thread):
-    def __init__(self, loop, n, endloop, callback=None):
-        threading.Thread.__init__(self)
-        self.loop = loop
-        self.n = n
-        self.endloop = endloop
-        if callback is not None:
-            self.callback = callback
-        else:
-            self.callback = None
-        self.running = False
-        self.lock = threading.Lock()
-        self.is_finished = threading.Event()
-
-    def run(self):
-        if self.n == 0:
-            i = 0
-            self.running = True
-            while self.running:
-                self.is_finished.clear()
-                i += 1
-                with self.lock:
-                    print(i)
-                    self.loop()
-                if self.callback is not None:
-                    self.callback()
-                self.is_finished.set()
-        else:
-            for i in range(self.n):
-                with self.lock:
-                    print(i)
-                    self.loop()
-                if self.callback is not None:
-                    self.callback()
-            print("Loop Done")
-            self.stop()
-
-    def stop(self):
-        self.running = False
-        if self.is_alive():
-            self.is_finished.wait()
-        if self.endloop is not None:
-            self.endloop()
-        self.join()
+    @staticmethod
+    def _do_nothing():
+        pass

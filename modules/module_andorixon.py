@@ -45,7 +45,7 @@ class EMCCDCamera:
                 print("Detector size: xpixels = {} ypixels = {}".format(self.xpixels, self.ypixels))
             else:
                 print(atmcd_errors.Error_Codes(self.ret))
-            self.data = FixedLengthList(64)
+            self.data = FixedLengthList(16)
             self.camera_thread = None
             self.ps = 13  # micron
         else:
