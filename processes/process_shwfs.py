@@ -16,7 +16,7 @@ pi = np.pi
 control_matrix_phase = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_phase_20230721.tif')
 control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230721.tif')
 control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230613.tif')
-initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\flatfile_20230712.xlsx'
+initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\flatfile_20230724.xlsx'
 
 
 class WavefrontSensing:

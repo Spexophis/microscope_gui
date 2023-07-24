@@ -86,6 +86,11 @@ class ViewWidget(QtWidgets.QWidget):
             np.zeros((1024, 1024)), rgb=False, name=self.name_sh, blending='additive',
             colormap=None, protected=True)
 
+        self.name_sh = 'ShackHartmann(Base)'
+        self.imgLayers[self.name_sh] = self.napariViewer.add_image(
+            np.zeros((1024, 1024)), rgb=False, name=self.name_sh, blending='additive',
+            colormap=None, protected=True)
+
         self.name_fft = 'FFT'
         self.imgLayers[self.name_fft] = self.napariViewer.add_image(
             np.zeros((1024, 1024)), rgb=False, name=self.name_fft, blending='additive',

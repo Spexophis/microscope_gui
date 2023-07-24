@@ -608,11 +608,13 @@ class MainController:
     def set_img_wfs_base(self):
         # self.p.shwfsr.base = self.wfs_cam.get_last_image()
         self.p.shwfsr.base = self.view_controller.get_image_data(r'ShackHartmann')
+        self.view_controller.plot_shb(self.p.shwfsr.base)
         print('wfs base set')
 
     def run_img_wfr(self):
         self.p.shwfsr.method = self.ao_controller.get_gradient_method_img()
         # self.p.shwfsr.offset = self.wfs_cam.get_last_image()
+        self.p.shwfsr.base = self.view_controller.get_image_data(r'ShackHartmann(Base)')
         self.p.shwfsr.offset = self.view_controller.get_image_data(r'ShackHartmann')
         self.start_task_thread(task=self.p.shwfsr.wavefront_reconstruction, callback=self.imshow_img_wfr, iteration=1)
 
@@ -653,6 +655,7 @@ class MainController:
 
     def close_loop_correction(self):
         self.m.daq.trig_run_ao()
+        self.p.shwfsr.base = self.view_controller.get_image_data(r'ShackHartmann(Base)')
         self.p.shwfsr.offset = self.wfs_cam.get_last_image()
         self.p.shwfsr.get_correction(self.ao_controller.get_img_wfs_method())
         self.m.dm.set_dm(self.p.shwfsr._dm_cmd[-1])
@@ -662,9 +665,11 @@ class MainController:
 
     def stop_close_loop_correction(self):
         self.m.daq.trig_run_ao()
+        self.p.shwfsr.base = self.view_controller.get_image_data(r'ShackHartmann(Base)')
         self.p.shwfsr.offset = self.wfs_cam.get_last_image()
-        self.run_img_wfr()
         self.wfs_cam.stop_live()
+        self.run_img_wfr()
+        self.view_controller.plot_wf(self.p.shwfsr.wf)
 
     def start_ao_iteration(self):
         self.set_lasers()

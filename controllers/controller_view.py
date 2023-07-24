@@ -12,6 +12,9 @@ class ViewController:
     def plot_sh(self, data):
         self.v.show_image('ShackHartmann', data)
 
+    def plot_shb(self, data):
+        self.v.show_image('ShackHartmann(Base)', data)
+
     def plot_wf(self, data):
         self.v.show_image('Wavefront', data)
 
