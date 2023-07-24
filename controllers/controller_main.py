@@ -8,7 +8,7 @@ import numpy as np
 import tifffile as tf
 from PyQt5 import QtCore
 
-QtCore.qRegisterMetaType('QVector<int>')
+# QtCore.qRegisterMetaType('QVector<int>')
 
 from controllers import controller_ao, controller_con, controller_view
 
