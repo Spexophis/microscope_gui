@@ -7,8 +7,12 @@ from widgets import widget_ao, widget_con, widget_view
 class MainWidget(QtWidgets.QMainWindow):
     Signal_quit = QtCore.pyqtSignal()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, config, logg, path, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.config = config
+        self.logg = logg
+        self.data_folder = path
 
         self.con_view = widget_con.ConWidget()
         self.view_view = widget_view.ViewWidget()

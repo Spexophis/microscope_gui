@@ -1,40 +1,24 @@
-import logging
 import os
 import time
 import traceback
-from pathlib import Path
 
 import numpy as np
 import tifffile as tf
 from PyQt5 import QtCore
 
-# QtCore.qRegisterMetaType('QVector<int>')
-
 from controllers import controller_ao, controller_con, controller_view
-
-# Define data folder
-data_folder = Path.home() / 'Documents' / 'data' / time.strftime("%Y%m%d")
-# Try to create directory
-try:
-    os.makedirs(data_folder, exist_ok=True)
-    print(f'Directory {data_folder} has been created successfully.')
-except Exception as e:
-    print(f'Error creating directory {data_folder}: {e}')
-
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    filename=os.path.join(data_folder, time.strftime("%H%M%S") + 'app.log'),
-                    filemode='w')
 
 
 class MainController:
 
-    def __init__(self, view, module, process):
+    def __init__(self, view, module, process, config, logg, path):
 
         self.v = view
         self.m = module
         self.p = process
+        self.config = config
+        self.logg = logg
+        self.data_folder = path
         self.view_controller = controller_view.ViewController(self.v.get_view_widget())
         self.con_controller = controller_con.ConController(self.v.get_control_widget())
         self.ao_controller = controller_ao.AOController(self.v.get_ao_widget())
@@ -312,24 +296,24 @@ class MainController:
             self.main_cam.start_live()
             self.m.daq.trig_run()
         except Exception as e:
-            logging.error(f"Error starting main camera video: {e}")
+            self.logg.error(f"Error starting main camera video: {e}")
         try:
             self.thread_video.start()
         except Exception as e:
-            logging.error(f"Error starting imshow: {e}")
+            self.logg.error(f"Error starting imshow: {e}")
 
     def stop_video(self):
         try:
             self.thread_video.quit()
             self.thread_video.wait()
         except Exception as e:
-            logging.error(f"Error stopping imshow: {e}")
+            self.logg.error(f"Error stopping imshow: {e}")
         try:
             self.m.daq.trig_stop()
             self.main_cam.stop_live()
             self.lasers_off()
         except Exception as e:
-            logging.error(f"Error stopping main camera video: {e}")
+            self.logg.error(f"Error stopping main camera video: {e}")
 
     def imshow_main(self):
         self.view_controller.plot_main(self.main_cam.get_last_image())
@@ -338,14 +322,14 @@ class MainController:
         try:
             self.thread_fft.start()
         except Exception as e:
-            logging.error(f"Error starting fft: {e}")
+            self.logg.error(f"Error starting fft: {e}")
 
     def stop_fft(self):
         try:
             self.thread_fft.quit()
             self.thread_fft.wait()
         except Exception as e:
-            logging.error(f"Error stopping fft: {e}")
+            self.logg.error(f"Error stopping fft: {e}")
 
     def imshow_fft(self):
         self.view_controller.plot_fft(self.p.imgprocess.fourier_transform(self.main_cam.get_last_image()))
@@ -354,14 +338,14 @@ class MainController:
         try:
             self.thread_plot.start()
         except Exception as e:
-            logging.error(f"Error starting plot: {e}")
+            self.logg.error(f"Error starting plot: {e}")
 
     def stop_plot_live(self):
         try:
             self.thread_plot.quit()
             self.thread_plot.wait()
         except Exception as e:
-            logging.error(f"Error stopping plot: {e}")
+            self.logg.error(f"Error stopping plot: {e}")
 
     def profile_plot(self):
         ax = self.con_controller.get_profile_axis()
@@ -441,9 +425,9 @@ class MainController:
         self.p.bsrecon.reconstruct_all_beads(self.main_cam.data, step_size)
         t = time.strftime("%Y%m%d_%H%M%S_")
         fn = self.con_controller.get_file_name()
-        tf.imwrite(data_folder + '/' + t + fn + '.tif', self.main_cam.data)
-        tf.imwrite(data_folder + '/' + t + fn + '_recon_stack.tif', self.p.bsrecon.result)
-        tf.imwrite(data_folder + '/' + t + fn + '_final_image.tif', self.p.bsrecon.final_image)
+        tf.imwrite(self.data_folder + '/' + t + fn + '.tif', self.main_cam.data)
+        tf.imwrite(self.data_folder + '/' + t + fn + '_recon_stack.tif', self.p.bsrecon.result)
+        tf.imwrite(self.data_folder + '/' + t + fn + '_final_image.tif', self.p.bsrecon.final_image)
         self.view_controller.plot_main(self.p.bsrecon.final_image)
         print('Data saved')
 
@@ -505,14 +489,14 @@ class MainController:
 
     def save_dm(self):
         t = time.strftime("%Y%m%d_%H%M%S_")
-        self.p.shwfsr._write_cmd(data_folder, t, flatfile=False)
+        self.p.shwfsr._write_cmd(self.data_folder, t, flatfile=False)
         print('DM cmd saved')
 
     def run_influence_function(self):
         self.start_task_thread(task=self.influence_function, callback=None, iteration=1)
 
     def influence_function(self):
-        fd = os.path.join(data_folder, time.strftime("%Y%m%d%H%M") + '_influence_function')
+        fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M") + '_influence_function')
         try:
             os.makedirs(fd, exist_ok=True)
             print(f'Directory {fd} has been created successfully.')
@@ -581,25 +565,25 @@ class MainController:
             self.wfs_cam.start_live()
             self.m.daq.trig_run()
         except Exception as e:
-            logging.error(f"Error starting wfs: {e}")
+            self.logg.error(f"Error starting wfs: {e}")
         try:
 
             self.thread_wfs.start()
         except Exception as e:
-            logging.error(f"Error starting wfs imshow: {e}")
+            self.logg.error(f"Error starting wfs imshow: {e}")
 
     def stop_img_wfs(self):
         try:
             self.thread_wfs.quit()
             self.thread_wfs.wait()
         except Exception as e:
-            logging.error(f"Error stopping wfs imshow: {e}")
+            self.logg.error(f"Error stopping wfs imshow: {e}")
         try:
             self.m.daq.trig_stop()
             self.wfs_cam.stop_live()
             self.lasers_off()
         except Exception as e:
-            logging.error(f"Error stopping wfs: {e}")
+            self.logg.error(f"Error stopping wfs: {e}")
 
     def imshow_img_wfs(self):
         self.p.shwfsr.offset = self.wfs_cam.get_last_image()
@@ -694,7 +678,7 @@ class MainController:
         mode_start, mode_stop, amp_start, amp_step, amp_step_number = self.ao_controller.get_ao_iteration()
         lpr, mindex, metric = self.ao_controller.get_ao_parameters()
         name = time.strftime("%Y%m%d_%H%M%S_") + '_ao_iteration_' + metric
-        new_folder = data_folder / name
+        new_folder = self.data_folder / name
         try:
             os.makedirs(new_folder, exist_ok=True)
             print(f'Directory {new_folder} has been created successfully.')
