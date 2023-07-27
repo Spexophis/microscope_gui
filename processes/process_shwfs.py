@@ -13,18 +13,18 @@ ifft2 = np.fft.ifft2
 fftshift = np.fft.fftshift
 pi = np.pi
 
-control_matrix_phase = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_phase_20230721.tif')
-control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230721.tif')
+control_matrix_phase = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_phase_20230726.tif')
+control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230726.tif')
 control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230613.tif')
-initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\flatfile_20230724.xlsx'
+initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\flatfile_20230728.xlsx'
 
 
 class WavefrontSensing:
 
     def __init__(self):
         self._n_actuators = 97
-        self._n_lenslets_x = 35
-        self._n_lenslets_y = 36
+        self._n_lenslets_x = 34
+        self._n_lenslets_y = 35
         self._n_lenslets = self._n_lenslets_x * self._n_lenslets_y
         self.x_center_base = 1060
         self.y_center_base = 1085

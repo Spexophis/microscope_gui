@@ -622,7 +622,7 @@ class MainController:
         if isinstance(self.p.shwfsr.wf, np.ndarray):
             if self.p.shwfsr.wf.size > 0:
                 self.view_controller.plot_wf(self.p.shwfsr.wf)
-                self.ao_controller.display_img_wf_properties(self.p.imgprocess.wf_properties(self.p.shwfsr.wf))
+                self.ao_controller.display_img_wf_properties(self.p.imgprocess.img_properties(self.p.shwfsr.wf))
 
     def compute_img_wf(self):
         self.p.shwfsr.run_wf_modal_recon()
@@ -678,24 +678,28 @@ class MainController:
         dgtr = self.generate_digital_trigger_sw()
         self.m.daq.trig_open_ao(dgtr)
         self.main_cam.start_live()
+        print("sensorless AO ready to start")
 
     def stop_ao_iteration(self):
-        self.m.daq.trig_stop()
+        # self.m.daq.trig_stop()
         self.lasers_off()
         self.main_cam.stop_live()
+        print("sensorless AO finished")
 
     def run_ao_optimize(self):
+        print("run sensorless ao")
         self.start_task_thread(task=self.ao_optimize, callback=None, iteration=1)
 
     def ao_optimize(self):
         mode_start, mode_stop, amp_start, amp_step, amp_step_number = self.ao_controller.get_ao_iteration()
-        lpr, hpr, mindex, metric = self.ao_controller.get_ao_parameters()
-        t = time.strftime("%Y%m%d_%H%M%S_")
-        newfold = data_folder + '/' + t + '_ao_iteration_' + metric + '/'
+        lpr, mindex, metric = self.ao_controller.get_ao_parameters()
+        name = time.strftime("%Y%m%d_%H%M%S_") + '_ao_iteration_' + metric
+        new_folder = data_folder / name
         try:
-            os.mkdir(newfold)
-        except:
-            print('Directory already exists')
+            os.makedirs(new_folder, exist_ok=True)
+            print(f'Directory {new_folder} has been created successfully.')
+        except Exception as e:
+            print(f'Error creating directory {new_folder}: {e}')
         results = [('Mode', 'Amp', 'Metric')]
         za = []
         mv = []
@@ -704,12 +708,12 @@ class MainController:
         self.start_ao_iteration()
         self.m.dm.set_dm(cmd)
         time.sleep(0.05)
-        self.m.daq.trig_run()
+        self.m.daq.trig_run_ao()
         time.sleep(0.1)
-        fn = os.path.join(newfold, 'original.tif')
+        fn = os.path.join(new_folder, 'original.tif')
         tf.imwrite(fn, self.main_cam.get_last_image())
-        self.m.daq.trig_stop()
-        for mode in range(mode_start, mode_stop):
+        # self.m.daq.trig_stop()
+        for mode in range(mode_start, mode_stop + 1):
             amprange = []
             dt = []
             for stnm in range(amp_step_number):
@@ -718,23 +722,24 @@ class MainController:
                 self.m.dm.set_dm(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
                 # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[mode]], cmd))
                 time.sleep(0.05)
-                self.m.daq.trig_run()
+                self.m.daq.trig_run_ao()
                 time.sleep(0.1)
+                print(len(self.main_cam.data.data_list))
                 fn = "zm%0.2d_amp%.4f" % (mode, amp)
-                fn1 = os.path.join(newfold, fn + '.tif')
+                fn1 = os.path.join(new_folder, fn + '.tif')
                 tf.imwrite(fn1, self.main_cam.get_last_image())
                 if mindex == 0:
-                    dt.append(self.p.imgprocess.snr(self.main_cam.get_last_image(), hpr))
+                    dt.append(self.p.imgprocess.snr(self.main_cam.get_last_image(), lpr))
                 if mindex == 1:
                     dt.append(self.p.imgprocess.peakv(self.main_cam.get_last_image()))
                 if mindex == 2:
-                    dt.append(self.p.imgprocess.hpf(self.main_cam.get_last_image(), hpr))
+                    dt.append(self.p.imgprocess.hpf(self.main_cam.get_last_image(), lpr))
                 results.append((mode, amp, dt[stnm]))
                 print('--', stnm, amp, dt[stnm])
-                self.m.daq.trig_stop()
-            pmax = self.p.imgprocess.peak(amprange, dt)
+                # self.m.daq.trig_stop()
             za.extend(amprange)
             mv.extend(dt)
+            pmax = self.p.imgprocess.peak(amprange, dt)
             if pmax != 0.0:
                 zp[mode] = pmax
                 print('--setting mode %d at value of %.4f--' % (mode, pmax))
@@ -744,18 +749,18 @@ class MainController:
                 print('----------------mode %d value equals %.4f----' % (mode, pmax))
         self.m.dm.set_dm(cmd)
         time.sleep(0.05)
-        self.m.daq.trig_run()
+        self.m.daq.trig_run_ao()
         time.sleep(0.1)
         self.main_cam.get_last_image()
-        fn = os.path.join(newfold, 'final.tif')
+        fn = os.path.join(new_folder, 'final.tif')
         tf.imwrite(fn, self.main_cam.get_last_image())
-        self.stop_ao_iteration()
         self.p.shwfsr._dm_cmd.append(cmd)
         self.ao_controller.update_cmd_index()
         i = int(self.ao_controller.get_cmd_index())
         self.p.shwfsr.current_cmd = i
-        self.p.shwfsr._write_cmd(newfold, '_')
-        self.p.shwfsr._save_sensorless_results(os.path.join(newfold, 'results.xlsx'), za, mv, zp)
+        self.p.shwfsr._write_cmd(new_folder, '_')
+        self.p.shwfsr._save_sensorless_results(os.path.join(new_folder, 'results.xlsx'), za, mv, zp)
+        self.stop_ao_iteration()
 
 
 class TaskWorkerSignals(QtCore.QObject):
@@ -769,7 +774,6 @@ class TaskWorker(QtCore.QRunnable):
         self.task = task if task is not None else self._do_nothing
         self.callback = callback
         self.nl = nl
-        self.task_done = 0
         self.stop_requested = False
         self.signals = TaskWorkerSignals()
         self.setAutoDelete(True)

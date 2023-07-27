@@ -286,6 +286,8 @@ class FixedLengthList:
         self.data_list = deque(maxlen=max_length)
 
     def add_element(self, element):
+        if len(self.data_list) == self.max_length:
+            self.data_list.clear()
         self.data_list.append(element)
 
     def get_elements(self):

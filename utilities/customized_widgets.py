@@ -411,3 +411,16 @@ def dia_widget(mi, ma, value):
         }
     ''')
     return dial
+
+
+def message_box(title):
+    msg = QtWidgets.QMessageBox()
+    msg.setWindowTitle(title)
+    msg.setStandardButtons(QtWidgets.QMessageBox.NoButton)
+    msg.setStyleSheet("""
+        QMessageBox {
+            background-color: #333;
+            color: #EEE;
+            text-align: center;
+        }
+    """)

@@ -33,8 +33,8 @@ class MainWidget(QtWidgets.QMainWindow):
         self.setStyleSheet("background-color: #242424")
 
     def closeEvent(self, event):
-        self.Signal_quit.emit()
         print("Turning off the microscope")
+        self.Signal_quit.emit()
         super().closeEvent(event)
 
     def get_control_widget(self):
