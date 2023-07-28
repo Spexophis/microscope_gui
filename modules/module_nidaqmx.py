@@ -41,6 +41,8 @@ class NIDAQ:
         self.device.reset_device()
 
     def set_piezo_position(self, pos_x, pos_y):
+        if not self.tasks["piezo"].is_task_done():
+            self.tasks["piezo"].stop()
         try:
             self.tasks["piezo"].timing.cfg_samp_clk_timing(self.frequency, source="100kHzTimebase",
                                                            active_edge=Edge.RISING,
@@ -54,6 +56,8 @@ class NIDAQ:
             assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE
 
     def get_piezo_position(self):
+        if not self.tasks["piezo_pos"].is_task_done():
+            self.tasks["piezo_pos"].stop()
         try:
             pos = self.tasks["piezo_pos"].read(number_of_samples_per_channel=1)
             return pos
@@ -62,6 +66,8 @@ class NIDAQ:
             assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE
 
     def piezo_scan(self, piezo_sequence):
+        if not self.tasks["piezo"].is_task_done():
+            self.tasks["piezo"].stop()
         try:
             _channels, _samples = piezo_sequence.shape
             self.tasks["piezo"].timing.cfg_samp_clk_timing(self.frequency, source="Ctr0InternalOutput",
@@ -74,6 +80,8 @@ class NIDAQ:
             assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE
 
     def set_galvo_position(self, pos_x, pos_y):
+        if not self.tasks["galvo"].is_task_done():
+            self.tasks["galvo"].stop()
         try:
             self.tasks["galvo"].timing.cfg_samp_clk_timing(self.frequency, source="100kHzTimebase",
                                                            active_edge=Edge.RISING,
@@ -87,18 +95,22 @@ class NIDAQ:
             assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE
 
     def galvo_scan(self, galvo_sequence):
+        if not self.tasks["galvo"].is_task_done():
+            self.tasks["galvo"].stop()
         try:
             _channels, _samples = galvo_sequence.shape
-            self.tasks["piezo"].timing.cfg_samp_clk_timing(self.frequency, source="Ctr0InternalOutput",
+            self.tasks["galvo"].timing.cfg_samp_clk_timing(self.frequency, source="Ctr0InternalOutput",
                                                            active_edge=Edge.RISING,
                                                            sample_mode=AcquisitionType.FINITE,
                                                            samps_per_chan=_samples)
-            self.tasks["piezo"].write(galvo_sequence, auto_start=False)
+            self.tasks["galvo"].write(galvo_sequence, auto_start=False)
         except nidaqmx.DaqWarning as e:
             print("DaqWarning caught as exception: {0}\n".format(e))
             assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE
 
-    def write_digital_sequences(self, digital_sequences, clock_source="Ctr0InternalOutput", mode=AcquisitionType.FINITE):
+    def write_digital_sequences(self, digital_sequences, clock_source, mode):
+        if not self.tasks["digital"].is_task_done():
+            self.tasks["digital"].stop()
         try:
             _channels, _samples = digital_sequences.shape
             self.tasks["digital"].timing.cfg_samp_clk_timing(self.frequency, source=clock_source,
@@ -114,9 +126,11 @@ class NIDAQ:
         if piezo_sequence is not None:
             self.piezo_scan(piezo_sequence)
             self.tasks["piezo"].start()
+            self._runtask["piezo"] = True
         if galvo_sequence is not None:
             self.galvo_scan(galvo_sequence)
             self.tasks["galvo"].start()
+            self._runtask["galvo"] = True
         if digital_sequences is not None:
             if piezo_sequence is not None or galvo_sequence is not None:
                 clock_source = "Ctr0InternalOutput"
@@ -124,15 +138,13 @@ class NIDAQ:
                 self.write_digital_sequences(digital_sequences, clock_source, mode)
                 self.tasks["digital"].start()
                 self.tasks["clock"].start()
+                self._runtask["digital"] = True
+                self._runtask["clock"] = True
             else:
                 clock_source = "100kHzTimebase"
                 mode = AcquisitionType.CONTINUOUS
                 self.write_digital_sequences(digital_sequences, clock_source, mode)
                 self.tasks["digital"].start()
-            self.tasks["piezo"].wait_until_done()
-            self.tasks["galvo"].wait_until_done()
-            self.tasks["digital"].wait_until_done()
-            self.tasks["piezo"].stop()
-            self.tasks["galvo"].stop()
-            self.tasks["digital"].stop()
-            self.tasks["clock"].stop()
+                self._runtask["digital"] = True
+        self.tasks["digital"].wait_until_done()
+        [_task.stop() for key, _task in self.tasks.items() if self._runtask.get(key, False)]
