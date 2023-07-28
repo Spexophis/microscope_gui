@@ -56,7 +56,7 @@ class NIDAQ:
             PyDAQmx.DAQmxGetExtendedErrorInfo(errBuff, 2048)
             print(errBuff.value)
 
-    def set_xyz(self, pos_x, pos_y, pos_z):
+    def set_piezo_position(self, pos_x, pos_y):
         try:
             PyDAQmx.DAQmxWriteAnalogF64(self.piezoHandle, 1, True, 10.0, DAQmxConstants.DAQmx_Val_GroupByChannel,
                                         np.array([pos_x, pos_y], dtype=np.float64), None, None)
@@ -67,7 +67,7 @@ class NIDAQ:
             PyDAQmx.DAQmxGetExtendedErrorInfo(errBuff, 2048)
             print(errBuff.value)
 
-    def get_xyz(self):
+    def get_piezo_position(self):
         try:
             data = np.zeros((3,), dtype=np.float64)
             read = DAQmxTypes.int32()
@@ -96,8 +96,8 @@ class NIDAQ:
         channels, samples = galvo_xy.shape
         try:
             PyDAQmx.DAQmxCfgSampClkTiming(self.galvoHandle, r'100kHzTimebase', self.frequency,
-                                          DAQmxConstants.DAQmx_Val_Rising,
-                                          DAQmxConstants.DAQmx_Val_FiniteSamps, samples)
+                                          DAQmxConstants.DAQmx_Val_Rising, DAQmxConstants.DAQmx_Val_FiniteSamps,
+                                          samples)
             PyDAQmx.DAQmxWriteAnalogF64(self.galvoHandle, samples, False, -1, DAQmxConstants.DAQmx_Val_GroupByChannel,
                                         galvo_xy.astype(np.float64), None, None)
             PyDAQmx.DAQmxStartTask(self.galvoHandle)
