@@ -14,9 +14,9 @@ class MainWidget(QtWidgets.QMainWindow):
         self.logg = logg
         self.data_folder = path
 
-        self.con_view = widget_con.ConWidget()
+        self.con_view = widget_con.ConWidget(config, logg, path)
         self.view_view = widget_view.ViewWidget()
-        self.ao_view = widget_ao.AOWidget()
+        self.ao_view = widget_ao.AOWidget(config, logg, path)
 
         self.dock_con = cw.dock_widget()
         self.dock_con.setWidget(self.con_view)

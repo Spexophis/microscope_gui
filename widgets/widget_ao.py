@@ -21,8 +21,12 @@ class AOWidget(QtWidgets.QWidget):
     Signal_sensorlessAO_run = QtCore.pyqtSignal()
     Signal_sensorlessAO_save = QtCore.pyqtSignal()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, config, logg, path, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self.config = config
+        self.logg = logg
+        self.data_folder = path
 
         layout = QtWidgets.QVBoxLayout(self)
         dock_image, group_image = cw.create_dock('SH Image')

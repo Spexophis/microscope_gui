@@ -3,9 +3,6 @@ class ConController:
     def __init__(self, view):
         self.v = view
 
-    # def get_camera_selections(self):
-    #     return self.v.QSpinBox_coordinate_x.value(), self.v.QSpinBox_coordinate_y.value()
-
     def get_emccd_roi(self):
         return self.v.QSpinBox_emccd_coordinate_x.value(), self.v.QSpinBox_emccd_coordinate_y.value(), \
             self.v.QSpinBox_emccd_coordinate_n.value(), self.v.QSpinBox_emccd_coordinate_bin.value()
@@ -65,10 +62,8 @@ class ConController:
                         self.v.QDoubleSpinBox_range_z.value()]
         step_sizes = [self.v.QDoubleSpinBox_step_x.value(), self.v.QDoubleSpinBox_step_y.value(),
                       self.v.QDoubleSpinBox_step_z.value()]
-        axis_start_pos = [self.v.QDoubleSpinBox_start_x.value(), self.v.QDoubleSpinBox_start_y.value(),
-                          self.v.QDoubleSpinBox_start_z.value()]
         analog_start = self.v.QDoubleSpinBox_piezo_start.value()
-        return axis_lengths, step_sizes, axis_start_pos, analog_start
+        return axis_lengths, step_sizes, analog_start
 
     def get_galvo_scan_parameters(self):
         galvo_starts = [self.v.QDoubleSpinBox_galvo_start_x.value(), self.v.QDoubleSpinBox_galvo_start_y.value()]

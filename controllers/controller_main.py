@@ -89,10 +89,7 @@ class MainController:
         self.v.get_control_widget().Signal_run_plot_profile.connect(self.start_plot_live)
         self.v.get_control_widget().Signal_stop_plot_profile.connect(self.stop_plot_live)
         # Main Data Recording
-        self.v.get_control_widget().Signal_2d_resolft.connect(self.record_2d_resolft)
-        # self.v.get_control_widget().Signal_3d_resolft.connect(self.record_3d_resolft)
-        self.v.get_control_widget().Signal_beadscan_2d.connect(self.record_beadscan_2d)
-        self.v.get_control_widget().Signal_galvo_scan.connect(self.record_gs)
+
         self.v.get_control_widget().Signal_save_file.connect(self.save_data)
         # DM
         self.v.get_ao_widget().Signal_push_actuator.connect(self.push_actuator)
@@ -116,6 +113,7 @@ class MainController:
         p = self.m.md.getPositionStepsTakenAxis(3)
         self.con_controller.display_deck_position(p)
         self.m.dm.set_dm(self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
+
         self.set_piezo_position_z()
 
         self.close_loop_thread = None
@@ -163,13 +161,13 @@ class MainController:
 
     def set_piezo_position_x(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        x = self.m.pz.move_position(0, pos_x)
-        self.con_controller.display_piezo_position_x(x)
+        # x = self.m.pz.move_position(0, pos_x)
+        self.con_controller.display_piezo_position_x(self.m.pz.read_position(0))
 
     def set_piezo_position_y(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        y = self.m.pz.move_position(1, pos_y)
-        self.con_controller.display_piezo_position_y(y)
+        # y = self.m.pz.move_position(1, pos_y)
+        self.con_controller.display_piezo_position_y(self.m.pz.read_position(1))
 
     def set_piezo_position_z(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
@@ -364,7 +362,8 @@ class MainController:
         lasers = self.con_controller.get_lasers()
         camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
         self.p.trigger.update_digital_parameters(sequence_time, digital_starts, digital_ends)
-        axis_lengths, step_sizes, axis_start_pos, analog_start = self.con_controller.get_piezo_scan_parameters()
+        axis_lengths, step_sizes, analog_start = self.con_controller.get_piezo_scan_parameters()
+        axis_start_pos
         self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, axis_start_pos, analog_start)
         atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_2d()
         self.m.daq.trigger_sequence(atr, dtr)
@@ -454,6 +453,17 @@ class MainController:
         print('Acquisition Done')
         self.imshow_main()
         self.lasers_off()
+
+    def write_triggers(self):
+        lasers = self.con_controller.get_lasers()
+        camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
+        self.p.trigger.update_digital_parameters(sequence_time, digital_starts, digital_ends)
+        gv_starts, gv_stops, dotspos = self.con_controller.get_galvo_scan_parameters()
+        self.p.trigger.update_galvo_scan_parameters(gv_start=gv_starts[0], gv_stop=gv_stops[0], laser_start=dotspos[0],
+                                                    laser_interval=dotspos[1])
+        axis_lengths, step_sizes, analog_start = self.con_controller.get_piezo_scan_parameters()
+        axis_start_pos
+        self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, axis_start_pos, analog_start)
 
     def save_data(self, file_name):
         tf.imwrite(file_name + '.tif', self.main_cam.get_last_image())

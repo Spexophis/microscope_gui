@@ -6,10 +6,10 @@ from pathlib import Path
 
 from PyQt5 import QtWidgets
 
-from utilities import configurations
 from controllers import controller_main
 from modules import module_main
 from processes import process_main
+from utilities import configurations
 from widgets import widget_main
 
 # Define data folder
@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.INFO,
                     filename=os.path.join(data_folder, time.strftime("%H%M%S") + 'app.log'),
                     filemode='w')
 
-config = configurations.load_config(r"C:\Users\ruizhe.lin\Documents\data\microscope_configurations.json")
+config = configurations.MicroscopeConfiguration()
 
 
 class MicroscopeGUI(QtWidgets.QMainWindow):
