@@ -22,6 +22,7 @@ class NIDAQ:
         self.tasks = {"piezo": nidaqmx.Task("piezo"), "galvo": nidaqmx.Task("galvo"),
                       "piezo_pos": nidaqmx.Task("piezo_pos"), "digital": nidaqmx.Task("digital"),
                       "clock": nidaqmx.Task("clock")}
+        self._runtask = {"piezo": False, "galvo": False, "piezo_pos": False, "digital": False, "clock": False}
         try:
             self.tasks["piezo"].ao_channels.add_ao_voltage_chan("Dev1/ao0:1", min_val=0., max_val=10.)
             self.tasks["galvo"].ao_channels.add_ao_voltage_chan("Dev1/ao2:3", min_val=-10., max_val=10.)
@@ -112,22 +113,26 @@ class NIDAQ:
     def run_triggers(self, piezo_sequence=None, galvo_sequence=None, digital_sequences=None):
         if piezo_sequence is not None:
             self.piezo_scan(piezo_sequence)
-            clock_source = "Ctr0InternalOutput"
-            mode = AcquisitionType.FINITE
-        else:
-            clock_source = "100kHzTimebase"
-            mode = AcquisitionType.CONTINUOUS
+            self.tasks["piezo"].start()
         if galvo_sequence is not None:
             self.galvo_scan(galvo_sequence)
-            clock_source = "Ctr0InternalOutput"
-            mode = AcquisitionType.FINITE
-        else:
-            clock_source = "100kHzTimebase"
-            mode = AcquisitionType.CONTINUOUS
-        if digital_sequences is not None:
-            self.write_digital_sequences(digital_sequences, clock_source, mode)
-        if clock_source == "Ctr0InternalOutput" and mode == AcquisitionType.FINITE:
-            self.tasks["piezo"].start()
             self.tasks["galvo"].start()
-            self.tasks["digital"].start()
-            self.tasks["clock"].start()
+        if digital_sequences is not None:
+            if piezo_sequence is not None or galvo_sequence is not None:
+                clock_source = "Ctr0InternalOutput"
+                mode = AcquisitionType.FINITE
+                self.write_digital_sequences(digital_sequences, clock_source, mode)
+                self.tasks["digital"].start()
+                self.tasks["clock"].start()
+            else:
+                clock_source = "100kHzTimebase"
+                mode = AcquisitionType.CONTINUOUS
+                self.write_digital_sequences(digital_sequences, clock_source, mode)
+                self.tasks["digital"].start()
+            self.tasks["piezo"].wait_until_done()
+            self.tasks["galvo"].wait_until_done()
+            self.tasks["digital"].wait_until_done()
+            self.tasks["piezo"].stop()
+            self.tasks["galvo"].stop()
+            self.tasks["digital"].stop()
+            self.tasks["clock"].stop()
