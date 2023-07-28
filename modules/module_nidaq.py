@@ -16,8 +16,7 @@ class NIDAQ:
             self.counterHandle = PyDAQmx.TaskHandle(0)
             PyDAQmx.DAQmxCreateTask("", DAQmxTypes.byref(self.counterHandle))
             PyDAQmx.DAQmxCreateCOPulseChanFreq(self.counterHandle, 'Dev1/ctr0', '', DAQmxConstants.DAQmx_Val_Hz,
-                                               DAQmxConstants.DAQmx_Val_Low, 0.0,
-                                               self.frequency, self.duty_cycle)
+                                               DAQmxConstants.DAQmx_Val_Low, 0.0, self.frequency, self.duty_cycle)
 
             self.doHandle = PyDAQmx.TaskHandle(0)
             PyDAQmx.DAQmxCreateTask("", DAQmxTypes.byref(self.doHandle))
@@ -58,8 +57,9 @@ class NIDAQ:
 
     def set_piezo_position(self, pos_x, pos_y):
         try:
-            PyDAQmx.DAQmxWriteAnalogF64(self.piezoHandle, 1, True, 10.0, DAQmxConstants.DAQmx_Val_GroupByChannel,
+            ret = PyDAQmx.DAQmxWriteAnalogF64(self.piezoHandle, [1, 1], False, 10.0, DAQmxConstants.DAQmx_Val_GroupByChannel,
                                         np.array([pos_x, pos_y], dtype=np.float64), None, None)
+            print(ret.value)
             PyDAQmx.DAQmxStartTask(self.piezoHandle)
             PyDAQmx.DAQmxStopTask(self.piezoHandle)
         except:
