@@ -109,4 +109,25 @@ class NIDAQ:
             print("DaqWarning caught as exception: {0}\n".format(e))
             assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE
 
-    def
+    def run_triggers(self, piezo_sequence=None, galvo_sequence=None, digital_sequences=None):
+        if piezo_sequence is not None:
+            self.piezo_scan(piezo_sequence)
+            clock_source = "Ctr0InternalOutput"
+            mode = AcquisitionType.FINITE
+        else:
+            clock_source = "100kHzTimebase"
+            mode = AcquisitionType.CONTINUOUS
+        if galvo_sequence is not None:
+            self.galvo_scan(galvo_sequence)
+            clock_source = "Ctr0InternalOutput"
+            mode = AcquisitionType.FINITE
+        else:
+            clock_source = "100kHzTimebase"
+            mode = AcquisitionType.CONTINUOUS
+        if digital_sequences is not None:
+            self.write_digital_sequences(digital_sequences, clock_source, mode)
+        if clock_source == "Ctr0InternalOutput" and mode == AcquisitionType.FINITE:
+            self.tasks["piezo"].start()
+            self.tasks["galvo"].start()
+            self.tasks["digital"].start()
+            self.tasks["clock"].start()
