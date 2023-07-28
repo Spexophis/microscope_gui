@@ -128,6 +128,7 @@ class ConWidget(QtWidgets.QWidget):
         mad_deck_scroll_layout.addRow(self.QLabel_mad_deck)
         mad_deck_scroll_layout.addRow(self.QLabel_deck_position, self.QLCDNumber_deck_position)
         mad_deck_scroll_layout.addRow(self.QLabel_deck_movement, self.QDoubleSpinBox_deck_movement)
+        mad_deck_scroll_layout.addRow(self.QLabel_deck_velocity, self.QDoubleSpinBox_deck_velocity)
         mad_deck_scroll_layout.addRow(self.QPushButton_move_deck)
         mad_deck_scroll_layout.addRow(self.QLabel_deck_move_fine)
         mad_deck_scroll_layout.addRow(self.QPushButton_move_deck_up, self.QPushButton_move_deck_down)

@@ -30,9 +30,11 @@ class TriggerSequence:
         self.digital_ends = [0.004, 0.01, 0.01, 0.015, 0.015, 0.015]
 
     def update_piezo_scan_parameters(self, piezo_ranges, piezo_step_sizes, piezo_starts, piezo_analog_start):
-        self.piezo_ranges = piezo_ranges
+        if all(i >= 0 for i in piezo_ranges):
+            self.piezo_ranges = piezo_ranges
         self.piezo_step_sizes = piezo_step_sizes
-        self.piezo_starts = piezo_starts
+        if all(i >= 0 for i in piezo_starts):
+            self.piezo_starts = piezo_starts
         self.piezo_analog_start = piezo_analog_start
 
     def update_galvo_scan_parameters(self, gv_start=None, gv_stop=None, laser_start=None, laser_interval=None):

@@ -4,25 +4,25 @@ class ConController:
         self.v = view
 
     def get_emccd_roi(self):
-        return self.v.QSpinBox_emccd_coordinate_x.value(), self.v.QSpinBox_emccd_coordinate_y.value(), \
-            self.v.QSpinBox_emccd_coordinate_n.value(), self.v.QSpinBox_emccd_coordinate_bin.value()
+        return [self.v.QSpinBox_emccd_coordinate_x.value(), self.v.QSpinBox_emccd_coordinate_y.value(),
+                self.v.QSpinBox_emccd_coordinate_n.value(), self.v.QSpinBox_emccd_coordinate_bin.value()]
 
     def get_emccd_gain(self):
         return self.v.QSpinBox_emccd_gain.value()
 
     def get_scmos_roi(self):
-        return self.v.QSpinBox_scmos_coordinate_x.value(), self.v.QSpinBox_scmos_coordinate_y.value(), \
-            self.v.QSpinBox_scmos_coordinate_n.value(), self.v.QSpinBox_scmos_coordinate_bin.value()
+        return [self.v.QSpinBox_scmos_coordinate_x.value(), self.v.QSpinBox_scmos_coordinate_y.value(),
+                self.v.QSpinBox_scmos_coordinate_n.value(), self.v.QSpinBox_scmos_coordinate_bin.value()]
 
     def get_deck_movement(self):
-        return self.v.QDoubleSpinBox_deck_movement.value()
+        return [self.v.QDoubleSpinBox_deck_movement.value(), self.v.QDoubleSpinBox_deck_velocity]
 
     def get_piezo_positions(self):
-        return self.v.QDoubleSpinBox_stage_x.value(), self.v.QDoubleSpinBox_stage_y.value(), \
-            self.v.QDoubleSpinBox_stage_z.value()
+        return [self.v.QDoubleSpinBox_stage_x.value(), self.v.QDoubleSpinBox_stage_y.value(),
+                self.v.QDoubleSpinBox_stage_z.value()]
 
     def get_galvo_scan(self):
-        return self.v.QDoubleSpinBox_galvo_x.value(), self.v.QDoubleSpinBox_galvo_y.value()
+        return [self.v.QDoubleSpinBox_galvo_x.value(), self.v.QDoubleSpinBox_galvo_y.value()]
 
     def get_lasers(self):
         lasers = []
@@ -37,8 +37,8 @@ class ConController:
         return lasers
 
     def get_cobolt_laser_power(self):
-        return self.v.QDoubleSpinBox_laserpower_405.value(), self.v.QDoubleSpinBox_laserpower_488_0.value(), \
-            self.v.QDoubleSpinBox_laserpower_488_1.value(), self.v.QDoubleSpinBox_laserpower_488_2.value()
+        return [self.v.QDoubleSpinBox_laserpower_405.value(), self.v.QDoubleSpinBox_laserpower_488_0.value(),
+                self.v.QDoubleSpinBox_laserpower_488_1.value(), self.v.QDoubleSpinBox_laserpower_488_2.value()]
 
     def get_digital_parameters(self):
         detection_device = self.v.QComboBox_camera_selection.currentIndex()
@@ -72,6 +72,9 @@ class ConController:
         return galvo_starts, galvo_stops, galvo_dotspos
 
     def get_profile_axis(self):
+        return self.v.QComboBox_profile_axis.currentText()
+
+    def get_acquisition_mode(self):
         return self.v.QComboBox_profile_axis.currentText()
 
     def display_camera_temperature(self, temperature):

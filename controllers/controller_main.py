@@ -113,7 +113,8 @@ class MainController:
         p = self.m.md.getPositionStepsTakenAxis(3)
         self.con_controller.display_deck_position(p)
         self.m.dm.set_dm(self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
-
+        pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
+        self.m.daq.set_piezo_position(pos_x, pos_y)
         self.set_piezo_position_z()
 
         self.close_loop_thread = None
@@ -150,8 +151,8 @@ class MainController:
 
     def move_deck(self):
         if not self.m.md.isMoving():
-            d = self.con_controller.get_deck_movement()
-            self.m.md.moveRelativeAxis(3, d, velocity=self.m.md.velocityMin)
+            distance, velocity = self.con_controller.get_deck_movement()
+            self.m.md.moveRelativeAxis(3, distance, velocity=velocity)
 
     def move_deck_stop(self):
         if self.m.md.isMoving():
@@ -161,12 +162,12 @@ class MainController:
 
     def set_piezo_position_x(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        # x = self.m.pz.move_position(0, pos_x)
+        self.m.daq.set_piezo_position(pos_x, pos_y)
         self.con_controller.display_piezo_position_x(self.m.pz.read_position(0))
 
     def set_piezo_position_y(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        # y = self.m.pz.move_position(1, pos_y)
+        self.m.daq.set_piezo_position(pos_x, pos_y)
         self.con_controller.display_piezo_position_y(self.m.pz.read_position(1))
 
     def set_piezo_position_z(self):
@@ -179,7 +180,7 @@ class MainController:
 
     def set_galvo(self):
         voltx, volty = self.con_controller.get_galvo_scan()
-        self.m.daq.set_galvo(voltx, volty)
+        self.m.daq.set_galvo_position(voltx, volty)
 
     def set_laseron_488_0(self):
         p405, p488_0, p488_1, p488_2 = self.con_controller.get_cobolt_laser_power()
@@ -279,11 +280,33 @@ class MainController:
     def switch_emdccd_cooler_off(self):
         self.m.ccdcam.cooler_off()
 
-    def generate_digital_trigger_sw(self):
+    def update_trigger_parameters(self):
         lasers = self.con_controller.get_lasers()
         camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
         self.p.trigger.update_digital_parameters(sequence_time, digital_starts, digital_ends)
-        return self.p.trigger.generate_digital_triggers_sw(lasers, camera)
+        gv_starts, gv_stops, dotspos = self.con_controller.get_galvo_scan_parameters()
+        self.p.trigger.update_galvo_scan_parameters(gv_start=gv_starts[0], gv_stop=gv_stops[0], laser_start=dotspos[0],
+                                                    laser_interval=dotspos[1])
+        axis_lengths, step_sizes, analog_start = self.con_controller.get_piezo_scan_parameters()
+        positions = self.con_controller.get_piezo_positions()
+        axis_start_pos = [i - j for i, j in zip(positions, [k / 2 for k in axis_lengths])]
+        self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, axis_start_pos, analog_start)
+
+    def generate_triggers(self):
+        self.update_trigger_parameters()
+        acq_mod = self.con_controller.get_acquisition_mode()
+        if "Widefield" in acq_mod:
+            pzsq = self.p.trigger.generate_piezo_sequence()
+            gvsq = None
+            dgtr = self.p.trigger.generate_digital_triggers()
+        if "Confocal" in acq_mod:
+            pzsq = self.p.trigger.generate_piezo_sequence()
+            gvsq = self.p.trigger.generate_galvo_sequence()
+            dgtr = self.p.trigger.generate_digital_triggers()
+        if "Live" in acq_mod:
+            pzsq = self.p.trigger.generate_piezo_sequence()
+            gvsq = self.p.trigger.generate_galvo_sequence()
+            dgtr = self.p.trigger.generate_digital_triggers()
 
     def start_video(self):
         try:
@@ -357,113 +380,6 @@ class MainController:
         self.view_controller.plot_update(dgtr[0])
         for i in range(len(digital_starts) - 1):
             self.view_controller.plot(dgtr[i + 1] + i + 1)
-
-    def write_trigger_2d(self):
-        lasers = self.con_controller.get_lasers()
-        camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
-        self.p.trigger.update_digital_parameters(sequence_time, digital_starts, digital_ends)
-        axis_lengths, step_sizes, analog_start = self.con_controller.get_piezo_scan_parameters()
-        axis_start_pos
-        self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, axis_start_pos, analog_start)
-        atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_2d()
-        self.m.daq.trigger_sequence(atr, dtr)
-
-    def write_trigger_3d(self):
-        lasers = self.con_controller.get_lasers()
-        camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
-        self.p.trigger.update_digital_parameters(sequence_time, digital_starts, digital_ends)
-        axis_lengths, step_sizes, axis_start_pos, analog_start = self.con_controller.get_piezo_scan_parameters()
-        self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, axis_start_pos, analog_start)
-        atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_3d()
-        self.m.daq.trigger_sequence(atr, dtr)
-
-    def write_trigger_beadscan_2d(self):
-        lasers = self.con_controller.get_lasers()
-        camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
-        self.p.trigger.update_digital_parameters(sequence_time, digital_starts, digital_ends)
-        axis_lengths, step_sizes, axis_start_pos, analog_start = self.con_controller.get_piezo_scan_parameters()
-        self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, axis_start_pos, analog_start)
-        atr, dtr, self.npos = self.p.trigger.generate_trigger_sequence_beadscan_2d(lasers)
-        self.m.daq.trigger_sequence(atr, dtr)
-
-    def prepare_resolft_recording(self):
-        self.main_cam.prepare_data_acquisition(self.npos)
-        self.set_lasers()
-
-    def record_2d_resolft(self):
-        self.write_trigger_2d()
-        self.prepare_resolft_recording()
-        self.main_cam.start_data_acquisition()
-        self.m.daq.run_sequence()
-        self.main_cam.get_images(self.npos)
-        print('Acquisition Done')
-        self.lasers_off()
-
-    def record_3d_resolft(self):
-        self.write_trigger_3d()
-        self.prepare_resolft_recording()
-        self.main_cam.start_data_acquisition()
-        self.m.daq.run_sequence()
-        self.main_cam.get_images(self.npos)
-        print('Acquisition Done')
-        self.lasers_off()
-
-    def record_beadscan_2d(self):
-        self.write_trigger_beadscan_2d()
-        self.prepare_resolft_recording()
-        self.main_cam.start_data_acquisition()
-        self.m.daq.run_sequence()
-        self.main_cam.get_images(self.npos)
-        print('Acquisition Done')
-        self.lasers_off()
-        self.reconstruct_beadscan_2d()
-
-    def reconstruct_beadscan_2d(self):
-        axis_lengths, step_sizes, axis_start_pos, analog_start = self.con_controller.get_piezo_scan_parameters()
-        step_size = step_sizes[0]
-        self.p.bsrecon.reconstruct_all_beads(self.main_cam.data, step_size)
-        t = time.strftime("%Y%m%d_%H%M%S_")
-        fn = self.con_controller.get_file_name()
-        tf.imwrite(self.data_folder + '/' + t + fn + '.tif', self.main_cam.data)
-        tf.imwrite(self.data_folder + '/' + t + fn + '_recon_stack.tif', self.p.bsrecon.result)
-        tf.imwrite(self.data_folder + '/' + t + fn + '_final_image.tif', self.p.bsrecon.final_image)
-        self.view_controller.plot_main(self.p.bsrecon.final_image)
-        print('Data saved')
-
-    def write_trigger_gs(self):
-        gv_starts, gv_stops, dotspos = self.con_controller.get_galvo_scan_parameters()
-        self.p.trigger.update_galvo_scan_parameters(gv_start=gv_starts[0], gv_stop=gv_stops[0], laser_start=dotspos[0],
-                                                    laser_interval=dotspos[1])
-        lasers = self.con_controller.get_lasers()
-        camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
-        self.p.trigger.update_digital_parameters(sequence_time, digital_starts, digital_ends)
-        atr, dtr, pos = self.p.trigger.generate_trigger_sequence_gs(lasers, camera)
-        # atr, dtr = self.p.trigger.generate_galvo_scanning(lasers, camera)
-        self.m.daq.trigger_scan(atr, dtr)
-
-    def record_gs(self):
-        self.set_lasers()
-        self.main_cam.prepare_live()
-        self.write_trigger_gs()
-        self.main_cam.start_live()
-        time.sleep(0.05)
-        self.m.daq.run_scan()
-        time.sleep(0.05)
-        self.main_cam.stop_live()
-        print('Acquisition Done')
-        self.imshow_main()
-        self.lasers_off()
-
-    def write_triggers(self):
-        lasers = self.con_controller.get_lasers()
-        camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
-        self.p.trigger.update_digital_parameters(sequence_time, digital_starts, digital_ends)
-        gv_starts, gv_stops, dotspos = self.con_controller.get_galvo_scan_parameters()
-        self.p.trigger.update_galvo_scan_parameters(gv_start=gv_starts[0], gv_stop=gv_stops[0], laser_start=dotspos[0],
-                                                    laser_interval=dotspos[1])
-        axis_lengths, step_sizes, analog_start = self.con_controller.get_piezo_scan_parameters()
-        axis_start_pos
-        self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, axis_start_pos, analog_start)
 
     def save_data(self, file_name):
         tf.imwrite(file_name + '.tif', self.main_cam.get_last_image())
