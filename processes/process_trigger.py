@@ -9,9 +9,9 @@ class TriggerSequence:
         self.sample_rate = 100000
         self.dt = 1 / self.sample_rate
         # piezo scanner
-        self.piezo_starts = [0., 0., 0.]
-        self.piezo_step_sizes = [0.03, 0.03, 0.08]
-        self.piezo_ranges = [0.6, 0.6, 0.08]
+        self.piezo_starts = [49.7, 49.7, 50.]
+        self.piezo_step_sizes = [0.03, 0.03, 0.0]
+        self.piezo_ranges = [0.6, 0.6, 0.0]
         self.piezo_return_time = 0.002
         self.piezo_conv_factors = [10., 10., 10.]
         self.piezo_analog_start = 0.03
@@ -115,9 +115,15 @@ class TriggerSequence:
         n = len(lasers)
         analog_trigger = [np.tile(x_axis_scan, n), np.tile(y_axis_scan, n)]
         digital_trigger = np.zeros((len(self.digital_starts), n * camera_trigger.shape[0]))
-        for laser in lasers:
-            digital_trigger[laser] = laser_trigger
-        digital_trigger[camera + 4] = camera_trigger
+        if n == 1:
+            digital_trigger[lasers[0]] = laser_trigger
+            digital_trigger[camera + 4] = camera_trigger
+        elif n == 2:
+            temp = np.zeros_like(laser_trigger)
+            digital_trigger[lasers[0]] = np.append(laser_trigger, temp)
+            digital_trigger[lasers[1]] = np.append(temp, laser_trigger)
+            digital_trigger[camera + 4] = np.append(temp, camera_trigger)
+
         return np.asarray(analog_trigger), digital_trigger, pos
 
     def generate_widefield_sequence(self):
@@ -127,15 +133,16 @@ class TriggerSequence:
         cycle_samples = int(np.ceil(cycle_samples))
         return_samples = self.piezo_return_time * self.sample_rate
         return_samples = int(np.ceil(return_samples))
-        [fast_axis_size, middle_axis_size, slow_axis_size] = [(self.piezo_ranges[i] / self.piezo_conv_factors[i]) for i
-                                                              in range(3)]
-        [fast_axis_step_size, middle_axis_step_size, slow_axis_step_size] = [
+        [fast_axis_range, middle_axis_range, slow_axis_range] = [(self.piezo_ranges[i] / self.piezo_conv_factors[i]) for
+                                                                 i
+                                                                 in range(3)]
+        [fast_axis_step, middle_axis_step, slow_axis_step] = [
             (self.piezo_step_sizes[i] / self.piezo_conv_factors[i]) for i in range(3)]
         [fast_axis_start, middle_axis_start, slow_axis_start] = [(self.piezo_starts[i] / self.piezo_conv_factors[i]) for
                                                                  i in range(3)]
-        fast_axis_positions = 1 + int(np.ceil(fast_axis_size / fast_axis_step_size))
-        middle_axis_positions = 1 + int(np.ceil(middle_axis_size / middle_axis_step_size))
-        slow_axis_positions = 1 + int(np.ceil(slow_axis_size / slow_axis_step_size))
+        fast_axis_positions = 1 + int(np.ceil(safe_divide(fast_axis_range, fast_axis_step)))
+        middle_axis_positions = 1 + int(np.ceil(safe_divide(middle_axis_range, middle_axis_step)))
+        slow_axis_positions = 1 + int(np.ceil(safe_divide(slow_axis_range, slow_axis_step)))
         positions = fast_axis_positions * middle_axis_positions * slow_axis_positions
 
         for i, start in enumerate(self.digital_starts):
@@ -151,170 +158,42 @@ class TriggerSequence:
         cycle = np.zeros(cycle_samples)
         startSamp = int(np.round(self.piezo_analog_start * self.sample_rate))
         cycle[startSamp:] = np.linspace(0, 1, int(cycle_samples - startSamp))
-        temp = cycle * fast_axis_step_size
+        temp = cycle * fast_axis_step
         for j in range(fast_axis_positions - 2):
             j = j + 1
-            temp = np.append(temp, cycle * fast_axis_step_size + j * fast_axis_step_size)
-        cycle = np.ones(startSamp) * fast_axis_step_size * (fast_axis_positions - 1)
+            temp = np.append(temp, cycle * fast_axis_step + j * fast_axis_step)
+        cycle = np.ones(startSamp) * fast_axis_step * (fast_axis_positions - 1)
         temp = np.append(temp, cycle)
         temp = np.append(temp,
-                         np.linspace(1, 0, int(cycle_samples - startSamp) + return_samples) * fast_axis_step_size * (
+                         np.linspace(1, 0, int(cycle_samples - startSamp) + return_samples) * fast_axis_step * (
                                  fast_axis_positions - 1))
-        analog_trigger_sequences.append(np.tile(temp, middle_axis_positions * slow_axis_positions))
+        analog_trigger_sequences.append(np.tile(temp, middle_axis_positions * slow_axis_positions) + fast_axis_start)
 
         cycle = np.zeros((cycle_samples * fast_axis_positions + return_samples))
         cycle[cycle_samples * fast_axis_positions:] = 1
-        temp = cycle * middle_axis_step_size
+        temp = cycle * middle_axis_step
         for j in range(middle_axis_positions - 2):
             j = j + 1
-            temp = np.append(temp, cycle * middle_axis_step_size + j * middle_axis_step_size)
-        cycle = np.ones((cycle_samples * fast_axis_positions + return_samples)) * middle_axis_step_size * (
+            temp = np.append(temp, cycle * middle_axis_step + j * middle_axis_step)
+        cycle = np.ones((cycle_samples * fast_axis_positions + return_samples)) * middle_axis_step * (
                 middle_axis_positions - 1)
         temp = np.append(temp, cycle)
-        analog_trigger_sequences.append(np.tile(temp, slow_axis_positions))
+        analog_trigger_sequences.append(np.tile(temp, slow_axis_positions) + middle_axis_start)
 
         cycle = np.zeros(((cycle_samples * fast_axis_positions + return_samples) * middle_axis_positions))
-        cycle[(cycle_samples * fast_axis_positions + return_samples) * middle_axis_positions - return_samples:] = 1
-        temp = cycle * slow_axis_step_size
-        for j in range(slow_axis_positions - 2):
-            j = j + 1
-            temp = np.append(temp, cycle * slow_axis_step_size + j * slow_axis_step_size)
-        cycle = np.ones(
-            ((cycle_samples * fast_axis_positions + return_samples) * middle_axis_positions)) * slow_axis_step_size * (
-                        slow_axis_positions - 1)
-        temp = np.append(temp, cycle)
-        analog_trigger_sequences.append(temp)
-
-        return np.asarray(analog_trigger_sequences), np.asarray(digital_trigger_sequences), positions
-
-    def generate_trigger_sequence_beadscan_2d(self, laser, camera):
-        digital_trigger_sequences = []
-        analog_trigger_sequences = []
-        cycle_samples = self.sequence_time * self.sample_rate
-        cycle_samples = int(np.ceil(cycle_samples))
-        return_samples = self.piezo_return_time * self.sample_rate
-        return_samples = int(np.ceil(return_samples))
-        [fast_axis_size, middle_axis_size] = [(self.piezo_ranges[i] / self.piezo_conv_factors[i]) for i in range(2)]
-        [fast_axis_step_size, middle_axis_step_size] = [(self.piezo_step_sizes[i] / self.piezo_conv_factors[i]) for i in
-                                                        range(2)]
-        [fast_axis_start, middle_axis_start] = [(self.piezo_starts[i] / self.piezo_conv_factors[i]) for i in range(2)]
-        fast_axis_positions = 1 + int(np.ceil(fast_axis_size / fast_axis_step_size))
-        middle_axis_positions = 1 + int(np.ceil(middle_axis_size / middle_axis_step_size))
-        positions = fast_axis_positions * middle_axis_positions
-        # total_samples = ((cycle_samples * fast_axis_positions) + return_samples) * middle_axis_positions
-
-        for i, start in enumerate(self.digital_starts):
-            temp = np.zeros(cycle_samples)
-            startSamp = int(np.round(start * self.sample_rate))
-            endSamp = int(np.round(self.digital_ends[i] * self.sample_rate))
-            temp[startSamp:endSamp] = 1
-            digital_trigger_sequences.append(np.tile(temp, fast_axis_positions))
-            digital_trigger_sequences[i] = np.append(digital_trigger_sequences[i], np.zeros(return_samples))
-            digital_trigger_sequences[i] = np.tile(digital_trigger_sequences[i], middle_axis_positions)
-        digital_trigger_sequences[0].fill(0)
-        digital_trigger_sequences[1].fill(0)
-        digital_trigger_sequences[2].fill(0)
-        digital_trigger_sequences[laser] = digital_trigger_sequences[3]
-
-        cycle = np.zeros(cycle_samples)
-        startSamp = int(np.round(self.piezo_analog_start * self.sample_rate))
-        cycle[startSamp:] = np.linspace(0, 1, int(cycle_samples - startSamp))
-        temp = cycle * fast_axis_step_size
-        for j in range(fast_axis_positions - 2):
-            j = j + 1
-            temp = np.append(temp, cycle * fast_axis_step_size + j * fast_axis_step_size)
-        cycle = np.ones(startSamp) * fast_axis_step_size * (fast_axis_positions - 1)
-        temp = np.append(temp, cycle)
-        temp = np.append(temp,
-                         np.linspace(1, 0, int(cycle_samples - startSamp) + return_samples) * fast_axis_step_size * (
-                                 fast_axis_positions - 1))
-        analog_trigger_sequences.append(np.tile(temp, middle_axis_positions))
-
-        cycle = np.zeros((cycle_samples * fast_axis_positions + return_samples))
-        cycle[cycle_samples * fast_axis_positions:] = 1
-        temp = cycle * middle_axis_step_size
-        for j in range(middle_axis_positions - 2):
-            j = j + 1
-            temp = np.append(temp, cycle * middle_axis_step_size + j * middle_axis_step_size)
-        cycle = np.ones((cycle_samples * fast_axis_positions + return_samples)) * middle_axis_step_size * (
-                middle_axis_positions - 1)
-        analog_trigger_sequences.append(np.append(temp, cycle))
-
-        # analog_trigger_sequences.append(np.ones(total_samples)*self.piezo_starts[2])
-
-        return np.asarray(analog_trigger_sequences), np.asarray(digital_trigger_sequences), positions
-
-    def generate_trigger_sequence_beadscan_3d(self, l):
-        digital_trigger_sequences = []
-        analog_trigger_sequences = []
-        cycle_samples = self.sequence_time * self.sample_rate
-        cycle_samples = int(np.ceil(cycle_samples))
-        return_samples = self.piezo_return_time * self.sample_rate
-        return_samples = int(np.ceil(return_samples))
-        [fast_axis_size, middle_axis_size, slow_axis_size] = [(self.piezo_ranges[i] / self.piezo_conv_factors[i]) for i
-                                                              in
-                                                              range(3)]
-        [fast_axis_step_size, middle_axis_step_size, slow_axis_step_size] = [
-            (self.piezo_step_sizes[i] / self.piezo_conv_factors[i])
-            for i in range(3)]
-        [fast_axis_start, middle_axis_start, slow_axis_start] = [(self.piezo_starts[i] / self.piezo_conv_factors[i]) for
-                                                                 i in
-                                                                 range(3)]
-        fast_axis_positions = 1 + int(np.ceil(fast_axis_size / fast_axis_step_size))
-        middle_axis_positions = 1 + int(np.ceil(middle_axis_size / middle_axis_step_size))
-        slow_axis_positions = 1 + int(np.ceil(slow_axis_size / slow_axis_step_size))
-        positions = fast_axis_positions * middle_axis_positions * slow_axis_positions
-
-        for i, start in enumerate(self.digital_starts):
-            temp = np.zeros(cycle_samples)
-            startSamp = int(np.round(start * self.sample_rate))
-            endSamp = int(np.round(self.digital_ends[i] * self.sample_rate))
-            temp[startSamp:endSamp] = 1
-            digital_trigger_sequences.append(np.tile(temp, fast_axis_positions))
-            digital_trigger_sequences[i] = np.append(digital_trigger_sequences[i], np.zeros(return_samples))
-            digital_trigger_sequences[i] = np.tile(digital_trigger_sequences[i],
-                                                   middle_axis_positions * slow_axis_positions)
-        digital_trigger_sequences[0].fill(0)
-        digital_trigger_sequences[1].fill(0)
-        digital_trigger_sequences[2].fill(0)
-        digital_trigger_sequences[l] = digital_trigger_sequences[3]
-
-        cycle = np.zeros(cycle_samples)
-        startSamp = int(np.round(self.piezo_analog_start * self.sample_rate))
-        cycle[startSamp:] = np.linspace(0, 1, int(cycle_samples - startSamp))
-        temp = cycle * fast_axis_step_size
-        for j in range(fast_axis_positions - 2):
-            j = j + 1
-            temp = np.append(temp, cycle * fast_axis_step_size + j * fast_axis_step_size)
-        cycle = np.ones(startSamp) * fast_axis_step_size * (fast_axis_positions - 1)
-        temp = np.append(temp, cycle)
-        temp = np.append(temp,
-                         np.linspace(1, 0, int(cycle_samples - startSamp) + return_samples) * fast_axis_step_size * (
-                                 fast_axis_positions - 1))
-        analog_trigger_sequences.append(np.tile(temp, middle_axis_positions * slow_axis_positions))
-
-        cycle = np.zeros((cycle_samples * fast_axis_positions + return_samples))
-        cycle[cycle_samples * fast_axis_positions:] = 1
-        temp = cycle * middle_axis_step_size
-        for j in range(middle_axis_positions - 2):
-            j = j + 1
-            temp = np.append(temp, cycle * middle_axis_step_size + j * middle_axis_step_size)
-        cycle = np.ones((cycle_samples * fast_axis_positions + return_samples)) * middle_axis_step_size * (
-                middle_axis_positions - 1)
-        temp = np.append(temp, cycle)
-        analog_trigger_sequences.append(np.tile(temp, slow_axis_positions))
-
-        cycle = np.zeros(((cycle_samples * fast_axis_positions + return_samples) * middle_axis_positions))
-        cycle[(cycle_samples * fast_axis_positions + return_samples) * middle_axis_positions - return_samples:] = 1
-        temp = cycle * slow_axis_step_size
-        for j in range(slow_axis_positions - 2):
-            j = j + 1
-            temp = np.append(temp, cycle * slow_axis_step_size + j * slow_axis_step_size)
-        cycle = np.ones(
-            ((cycle_samples * fast_axis_positions + return_samples) * middle_axis_positions)) * slow_axis_step_size * (
-                        slow_axis_positions - 1)
-        temp = np.append(temp, cycle)
-        analog_trigger_sequences.append(temp)
+        if slow_axis_positions > 1:
+            cycle[(cycle_samples * fast_axis_positions + return_samples) * middle_axis_positions - return_samples:] = 1
+            temp = cycle * slow_axis_step
+            for j in range(slow_axis_positions - 2):
+                j = j + 1
+                temp = np.append(temp, cycle * slow_axis_step + j * slow_axis_step)
+            cycle = np.ones(
+                ((cycle_samples * fast_axis_positions + return_samples) * middle_axis_positions)) * slow_axis_step * (
+                                slow_axis_positions - 1)
+            temp = np.append(temp, cycle)
+        else:
+            temp = cycle
+        analog_trigger_sequences.append(temp + slow_axis_start)
 
         return np.asarray(analog_trigger_sequences), np.asarray(digital_trigger_sequences), positions
 
@@ -372,3 +251,10 @@ class TriggerSequence:
             digital_trigger[laser] = laser_trigger
         digital_trigger[camera + 4] = camera_trigger
         return analog_trigger, digital_trigger, pos
+
+
+def safe_divide(numerator, denominator):
+    try:
+        return numerator / denominator
+    except ZeroDivisionError:
+        return 0
