@@ -110,7 +110,7 @@ class NIDAQ:
             print("DaqWarning caught as exception: {0}\n".format(e))
             assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE
 
-    def write_digital_sequences(self, digital_sequences, clock_source, mode):
+    def write_digital_sequences(self, digital_sequences, clock_source="100kHzTimebase", mode=AcquisitionType.FINITE):
         if not self.tasks["digital"].is_task_done():
             self.tasks["digital"].stop()
         try:
@@ -119,23 +119,42 @@ class NIDAQ:
                                                              active_edge=Edge.RISING,
                                                              sample_mode=mode,
                                                              samps_per_chan=_samples)
-            self.tasks["piezo"].write(digital_sequences, auto_start=False)
+            self.tasks["digital"].write(digital_sequences, auto_start=False)
         except nidaqmx.DaqWarning as e:
             print("DaqWarning caught as exception: {0}\n".format(e))
             assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE
 
-    def run_digital_trigger(self, digital_sequences, clock_source="100kHzTimebase", mode=AcquisitionType.CONTINUOUS):
+    def run_digital_trigger(self, digital_sequences, clock_source="100kHzTimebase", mode="continuous"):
+        if mode == "continuous":
+            _mode = AcquisitionType.CONTINUOUS
+        else:
+            _mode = AcquisitionType.FINITE
         if clock_source == "Ctr0InternalOutput":
-            self.write_digital_sequences(digital_sequences, clock_source, mode)
+            self.write_digital_sequences(digital_sequences, clock_source, _mode)
             self.tasks["digital"].start()
             self.tasks["clock"].start()
             self._runtask["digital"] = True
             self._runtask["clock"] = True
-            self.tasks["digital"].wait_until_done()
+            if mode != "continuous":
+                self.tasks["digital"].wait_until_done()
         elif clock_source == "100kHzTimebase":
-            self.write_digital_sequences(digital_sequences, clock_source, mode)
+            self.write_digital_sequences(digital_sequences, clock_source, _mode)
             self.tasks["digital"].start()
             self._runtask["digital"] = True
+            if mode != "continuous":
+                self.tasks["digital"].wait_until_done()
+
+    def run_digital_triggers(self, n):
+        for i in range(n):
+            try:
+                self.tasks["digital"].start()
+                self._runtask["digital"] = True
+                self.tasks["digital"].wait_until_done()
+                self.tasks["digital"].stop()
+                self._runtask["digital"] = False
+            except nidaqmx.DaqWarning as e:
+                print("DaqWarning caught as exception: {0}\n".format(e))
+                assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE
 
     def run_triggers(self, piezo_sequence=None, galvo_sequence=None, digital_sequences=None):
         if piezo_sequence is not None:

@@ -123,7 +123,6 @@ class TriggerSequence:
             digital_trigger[lasers[0]] = np.append(laser_trigger, temp)
             digital_trigger[lasers[1]] = np.append(temp, laser_trigger)
             digital_trigger[camera + 4] = np.append(temp, camera_trigger)
-
         return np.asarray(analog_trigger), digital_trigger, pos
 
     def generate_widefield_sequence(self):
