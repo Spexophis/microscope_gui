@@ -311,6 +311,9 @@ class HamamatsuCamera(object):
         except Exception as e:
             print("An error occurred:", e)
 
+    def __del__(self):
+        self.close()
+
     def prepare_capture(self):
         """
         Capture setup (internal use only). This is called at the start of new acquisition sequence

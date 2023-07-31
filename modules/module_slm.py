@@ -26,6 +26,9 @@ class HamamatsuSLM:
         self.xShift = 0
         self.yShift = 0
 
+    def __del__(self):
+        self.close()
+
     def display_axiconLens_pattern(self, top=10.0):
         self.make_axicon_lens(top, self.pitch, self.x, self.y, self.farray)
         self.show_on_display(self.monitorNo, self.windowNo, self.x, self.xShift, self.y, self.yShift, self.farray)

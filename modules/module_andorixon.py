@@ -51,6 +51,9 @@ class EMCCDCamera:
         else:
             print('AndorEMCCD is not initiated')
 
+    def __del__(self):
+        self.close()
+
     def close(self):
         self.cooler_off()
         self.ret = self.sdk.ShutDown()

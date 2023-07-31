@@ -15,7 +15,6 @@ class ConWidget(QtWidgets.QWidget):
     Signal_deck_move = QtCore.pyqtSignal()
     Signal_deck_move_stop = QtCore.pyqtSignal()
     Signal_galvo_set = QtCore.pyqtSignal()
-    Signal_galvo_reset = QtCore.pyqtSignal()
     Signal_setcoordinates = QtCore.pyqtSignal()
     Signal_resetcoordinates = QtCore.pyqtSignal()
     Signal_setbin = QtCore.pyqtSignal()

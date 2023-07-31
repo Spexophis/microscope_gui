@@ -10,7 +10,7 @@ warnings.filterwarnings("error", category=nidaqmx.DaqWarning)
 
 class NIDAQ:
 
-    def __init__(self, frequency=100000, duty_cycle=0.5):
+    def __init__(self, frequency=100000, duty_cycle=0.5, logg=None):
         super().__init__()
         self.frequency = frequency
         self.duty_cycle = duty_cycle
@@ -39,7 +39,12 @@ class NIDAQ:
             print("DaqWarning caught as exception: {0}\n".format(e))
             assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE
 
+    def __del__(self):
+        self.close()
+
     def close(self):
+        for key, _task in self.tasks.items():
+            _task.close()
         self.device.reset_device()
 
     def set_piezo_position(self, pos_x, pos_y):

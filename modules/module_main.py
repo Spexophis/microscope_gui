@@ -30,7 +30,7 @@ class MainModule:
         except Exception as e:
             self.logg.error(f"{e}")
         try:
-            self.daq = module_nidaq.NIDAQ(self.logg)
+            self.daq = module_nidaq.NIDAQ()
         except Exception as e:
             self.logg.error(f"{e}")
         try:

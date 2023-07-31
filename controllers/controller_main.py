@@ -67,7 +67,6 @@ class MainController:
         self.v.get_control_widget().Signal_deck_move_stop.connect(self.move_deck_stop)
         # Galvo Scanners
         self.v.get_control_widget().Signal_galvo_set.connect(self.set_galvo)
-        self.v.get_control_widget().Signal_galvo_reset.connect(self.reset_galvo)
         # Cobolt Lasers
         self.v.get_control_widget().Signal_setlaseron_488_0.connect(self.set_laseron_488_0)
         self.v.get_control_widget().Signal_setlaseron_488_1.connect(self.set_laseron_488_1)
@@ -176,9 +175,6 @@ class MainController:
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
         z = self.m.pz.move_position(2, pos_z)
         self.con_controller.display_piezo_position_z(z)
-
-    def reset_galvo(self):
-        self.m.daq.set_galvo(0, 0)
 
     def set_galvo(self):
         voltx, volty = self.con_controller.get_galvo_scan()

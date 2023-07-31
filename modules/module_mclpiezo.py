@@ -69,6 +69,9 @@ class MCLNanoDrive:
         for i in range(len(self.axis)):
             self.calibration.append(self.mclpiezo.MCL_GetCalibration(self.axis[i], self.handle))
 
+    def __del__(self):
+        self.close()
+
     def close(self):
         """
         Closes the connection by releasing the handle.

@@ -67,6 +67,9 @@ class MCLMicroDrive:
         else:
             print('MadDeck Connection failed.')
 
+    def __del__(self):
+        self.close()
+
     def close(self):
         """
         Closes the connection by releasing the handle.
