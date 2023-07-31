@@ -36,6 +36,8 @@ class MainWidget(QtWidgets.QMainWindow):
         self.setWindowTitle("Microscope Control")
         self.setStyleSheet("background-color: #242424")
 
+        print("Finish initiating widgets")
+
     def closeEvent(self, event):
         print("Turning off the microscope")
         self.Signal_quit.emit()
@@ -55,6 +57,6 @@ import sys
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
-    gui = MainWidget()
+    gui = MainWidget(config=None, logg=None, path=None)
     gui.show()
     sys.exit(app.exec_())

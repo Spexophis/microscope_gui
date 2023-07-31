@@ -41,6 +41,7 @@ class MainModule:
             self.pz = module_mclpiezo.MCLNanoDrive()
         except Exception as e:
             self.logg.error(f"{e}")
+        print("Finish initiating devices")
 
     def close(self):
         try:

@@ -12,34 +12,32 @@ from processes import process_main
 from utilities import configurations
 from widgets import widget_main
 
-# Define data folder
-data_folder = Path.home() / 'Documents' / 'data' / time.strftime("%Y%m%d")
-# Try to create directory
-try:
-    os.makedirs(data_folder, exist_ok=True)
-    print(f'Directory {data_folder} has been created successfully.')
-except Exception as e:
-    print(f'Error creating directory {data_folder}: {e}')
-
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    filename=os.path.join(data_folder, time.strftime("%H%M%S") + 'app.log'),
-                    filemode='w')
-
-config = configurations.MicroscopeConfiguration(Path.home() / 'Documents' / 'data')
-
 
 class MicroscopeGUI(QtWidgets.QMainWindow):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.module = module_main.MainModule(config, logging, data_folder)
-        self.process = process_main.MainProcess(config, logging, data_folder)
-        self.view = widget_main.MainWidget(config, logging, data_folder)
-        self.controller = controller_main.MainController(self.view, self.module, self.process, config, logging,
-                                                         data_folder)
+        self.data_folder = Path.home() / 'Documents' / 'data' / time.strftime("%Y%m%d")
+        try:
+            os.makedirs(self.data_folder, exist_ok=True)
+            print(f'Directory {self.data_folder} has been created successfully.')
+        except Exception as e:
+            print(f'Error creating directory {self.data_folder}: {e}')
+
+        self.logging.basicConfig(level=logging.INFO,
+                                 format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
+                                 datefmt='%Y-%m-%d %H:%M:%S',
+                                 filename=os.path.join(self.data_folder, time.strftime("%H%M%S") + 'app.log'),
+                                 filemode='w')
+
+        self.config = configurations.MicroscopeConfiguration(Path.home() / 'Documents' / 'data')
+
+        self.module = module_main.MainModule(self.config, self.logging, self.data_folder)
+        self.process = process_main.MainProcess(self.config, self.logging, self.data_folder)
+        self.view = widget_main.MainWidget(self.config, self.logging, self.data_folder)
+        self.controller = controller_main.MainController(self.view, self.module, self.process,
+                                                         self.config, self.logging, self.data_folder)
 
 
 def close():

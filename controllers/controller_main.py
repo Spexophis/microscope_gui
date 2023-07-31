@@ -132,6 +132,8 @@ class MainController:
         elif "EMCCD" == self.wfs_camera:
             self.wfs_cam = self.m.ccdcam
 
+        print("Finish setting up controllers")
+
     def start_task_thread(self, task, callback, iteration):
         self.task_worker = TaskWorker(task, callback, nl=iteration)
         self.task_threadpool.start(self.task_worker)
