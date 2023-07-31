@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets, QtCore
-
+import pprint
 from utilities import customized_widgets as cw
 from widgets import widget_ao, widget_con, widget_view
 
@@ -36,10 +36,9 @@ class MainWidget(QtWidgets.QMainWindow):
         self.setWindowTitle("Microscope Control")
         self.setStyleSheet("background-color: #242424")
 
-        print("Finish initiating widgets")
+        pprint.pprint("Finish setting up widgets")
 
     def closeEvent(self, event):
-        print("Turning off the microscope")
         self.Signal_quit.emit()
         super().closeEvent(event)
 
@@ -53,10 +52,10 @@ class MainWidget(QtWidgets.QMainWindow):
         return self.ao_view
 
 
-import sys
-
-if __name__ == '__main__':
-    app = QtWidgets.QApplication(sys.argv)
-    gui = MainWidget(config=None, logg=None, path=None)
-    gui.show()
-    sys.exit(app.exec_())
+# import sys
+#
+# if __name__ == '__main__':
+#     app = QtWidgets.QApplication(sys.argv)
+#     gui = MainWidget(config=None, logg=None, path=None)
+#     gui.show()
+#     sys.exit(app.exec_())

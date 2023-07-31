@@ -1,4 +1,5 @@
 from processes import beads_scan_reconstruction, process_shwfs, process_image, process_trigger
+import pprint
 
 
 class MainProcess:
@@ -11,3 +12,4 @@ class MainProcess:
         self.shwfsr = process_shwfs.WavefrontSensing()
         self.trigger = process_trigger.TriggerSequence()
         self.bsrecon = beads_scan_reconstruction.BeadScanReconstruction()
+        pprint.pprint("All processing set up")

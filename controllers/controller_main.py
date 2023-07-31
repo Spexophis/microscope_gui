@@ -113,7 +113,7 @@ class MainController:
         self.con_controller.display_deck_position(p)
 
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        self.m.daq.set_piezo_position(pos_x, pos_y)
+        self.m.daq.set_piezo_position(pos_x / 10., pos_y / 10.)
         self.set_piezo_position_z()
 
         self.m.dm.set_dm(self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
@@ -165,17 +165,17 @@ class MainController:
 
     def set_piezo_position_x(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        self.m.daq.set_piezo_position(pos_x, pos_y)
-        self.con_controller.display_piezo_position_x(self.m.pz.read_position(0))
+        self.m.daq.set_piezo_position(pos_x / 10., pos_y / 10.)
+        # self.con_controller.display_piezo_position_x(self.m.pz.read_position(0))
 
     def set_piezo_position_y(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        self.m.daq.set_piezo_position(pos_x, pos_y)
-        self.con_controller.display_piezo_position_y(self.m.pz.read_position(1))
+        self.m.daq.set_piezo_position(pos_x / 10., pos_y / 10.)
+        # self.con_controller.display_piezo_position_y(self.m.pz.read_position(1))
 
     def set_piezo_position_z(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        z = self.m.pz.move_position(2, pos_z)
+        z = self.m.pz.move_position(0, pos_z)
         self.con_controller.display_piezo_position_z(z)
 
     def set_galvo(self):
@@ -307,24 +307,24 @@ class MainController:
                                            clock_source="100kHzTimebase",
                                            mode="continuous")
         except Exception as e:
-            self.logg.error(f"Error starting main camera video: {e}")
+            self.logg.error_log.error(f"Error starting main camera video: {e}")
         try:
             self.thread_video.start()
         except Exception as e:
-            self.logg.error(f"Error starting imshow: {e}")
+            self.logg.error_log.error(f"Error starting imshow: {e}")
 
     def stop_video(self):
         try:
             self.thread_video.quit()
             self.thread_video.wait()
         except Exception as e:
-            self.logg.error(f"Error stopping imshow: {e}")
+            self.logg.error_log.error(f"Error stopping imshow: {e}")
         try:
             self.m.daq.stop_triggers()
             self.main_cam.stop_live()
             self.lasers_off()
         except Exception as e:
-            self.logg.error(f"Error stopping main camera video: {e}")
+            self.logg.error_log.error(f"Error stopping main camera video: {e}")
 
     def imshow_main(self):
         self.view_controller.plot_main(self.main_cam.get_last_image())
@@ -333,14 +333,14 @@ class MainController:
         try:
             self.thread_fft.start()
         except Exception as e:
-            self.logg.error(f"Error starting fft: {e}")
+            self.logg.error_log.error(f"Error starting fft: {e}")
 
     def stop_fft(self):
         try:
             self.thread_fft.quit()
             self.thread_fft.wait()
         except Exception as e:
-            self.logg.error(f"Error stopping fft: {e}")
+            self.logg.error_log.error(f"Error stopping fft: {e}")
 
     def imshow_fft(self):
         self.view_controller.plot_fft(self.p.imgprocess.fourier_transform(self.main_cam.get_last_image()))
@@ -349,14 +349,14 @@ class MainController:
         try:
             self.thread_plot.start()
         except Exception as e:
-            self.logg.error(f"Error starting plot: {e}")
+            self.logg.error_log.error(f"Error starting plot: {e}")
 
     def stop_plot_live(self):
         try:
             self.thread_plot.quit()
             self.thread_plot.wait()
         except Exception as e:
-            self.logg.error(f"Error stopping plot: {e}")
+            self.logg.error_log.error(f"Error stopping plot: {e}")
 
     def profile_plot(self):
         ax = self.con_controller.get_profile_axis()
@@ -436,24 +436,24 @@ class MainController:
                                            clock_source="100kHzTimebase",
                                            mode="continuous")
         except Exception as e:
-            self.logg.error(f"Error starting wfs: {e}")
+            self.logg.error_log.error(f"Error starting wfs: {e}")
         try:
             self.thread_wfs.start()
         except Exception as e:
-            self.logg.error(f"Error starting wfs imshow: {e}")
+            self.logg.error_log.error(f"Error starting wfs imshow: {e}")
 
     def stop_img_wfs(self):
         try:
             self.thread_wfs.quit()
             self.thread_wfs.wait()
         except Exception as e:
-            self.logg.error(f"Error stopping wfs imshow: {e}")
+            self.logg.error_log.error(f"Error stopping wfs imshow: {e}")
         try:
             self.m.daq.stop_triggers()
             self.wfs_cam.stop_live()
             self.lasers_off()
         except Exception as e:
-            self.logg.error(f"Error stopping wfs: {e}")
+            self.logg.error_log.error(f"Error stopping wfs: {e}")
 
     def imshow_img_wfs(self):
         self.p.shwfsr.offset = self.wfs_cam.get_last_image()
