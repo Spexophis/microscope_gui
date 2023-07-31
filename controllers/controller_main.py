@@ -112,10 +112,12 @@ class MainController:
 
         p = self.m.md.getPositionStepsTakenAxis(3)
         self.con_controller.display_deck_position(p)
-        self.m.dm.set_dm(self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
+
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
         self.m.daq.set_piezo_position(pos_x, pos_y)
         self.set_piezo_position_z()
+
+        self.m.dm.set_dm(self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
 
         self.close_loop_thread = None
 

@@ -60,7 +60,7 @@ class MainModule:
         except Exception as e:
             self.logg.error(f"{e}")
         try:
-            self.daq.reset_daq()
+            self.daq.close()
         except Exception as e:
             self.logg.error(f"{e}")
         try:

@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.INFO,
                     filename=os.path.join(data_folder, time.strftime("%H%M%S") + 'app.log'),
                     filemode='w')
 
-config = configurations.MicroscopeConfiguration()
+config = configurations.MicroscopeConfiguration(Path.home() / 'Documents' / 'data')
 
 
 class MicroscopeGUI(QtWidgets.QMainWindow):
