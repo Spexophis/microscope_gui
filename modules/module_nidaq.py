@@ -121,7 +121,7 @@ class NIDAQ:
             self.tasks["digital"].timing.cfg_samp_clk_timing(self.frequency, source=clock_source,
                                                              active_edge=Edge.RISING,
                                                              sample_mode=mode,
-                                                             samps_per_chan=_samples * _channels)
+                                                             samps_per_chan=_samples)
             self.tasks["digital"].write(digital_sequences == 1.0, auto_start=False)
         except nidaqmx.DaqWarning as e:
             print("DaqWarning caught as exception: {0}\n".format(e))
