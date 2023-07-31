@@ -22,7 +22,7 @@ class DeformableMirror:
             print('No DM found')
 
     def __del__(self):
-        self.reset_dm()
+        pass
 
     def reset_dm(self):
         print("Reset")

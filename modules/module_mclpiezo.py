@@ -45,12 +45,12 @@ class MCLNanoDrive:
             print("Firmware Profile:", pi.FirmwareProfile)
 
         self.axis = []
-        # if (pi.axis_bitmap & 0x1) == 0x1:
-        #     self.axis.append(ct.c_uint(1))
-        #     print("Using X axis")
-        # if (pi.axis_bitmap & 0x2) == 0x2:
-        #     self.axis.append(ct.c_uint(2))
-        #     print("Using Y axis")
+        if (pi.axis_bitmap & 0x1) == 0x1:
+            self.axis.append(ct.c_uint(1))
+            print("Using X axis")
+        if (pi.axis_bitmap & 0x2) == 0x2:
+            self.axis.append(ct.c_uint(2))
+            print("Using Y axis")
         if (pi.axis_bitmap & 0x4) == 0x4:
             self.axis.append(ct.c_uint(3))
             print("Using Z axis")
@@ -70,7 +70,7 @@ class MCLNanoDrive:
             self.calibration.append(self.mclpiezo.MCL_GetCalibration(self.axis[i], self.handle))
 
     def __del__(self):
-        self.close()
+        pass
 
     def close(self):
         """
@@ -79,7 +79,7 @@ class MCLNanoDrive:
         # for i in range(len(self.axis)):
         #     print(self.move_position(i, 0.0))
         self.mclpiezo.MCL_ReleaseHandle(self.handle)
-        print("Handle released")
+        print("Piezo Handle released")
 
     def read_position(self, ax):
         pos = self.mclpiezo.MCL_SingleReadN(self.axis[ax], self.handle)

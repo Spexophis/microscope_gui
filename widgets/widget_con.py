@@ -369,10 +369,10 @@ class ConWidget(QtWidgets.QWidget):
 
     def switch_emccd_cooler(self, checked):
         if checked:
-            self.QPushButton_emccd_cooler_switch.setText("Cooler OFF")
+            self.QPushButton_emccd_cooler_switch.setText("Cooler ON")
             self.Signal_switch_emccd_cooler_on.emit()
         else:
-            self.QPushButton_emccd_cooler_switch.setText("Cooler ON")
+            self.QPushButton_emccd_cooler_switch.setText("Cooler OFF")
             self.Signal_switch_emccd_cooler_off.emit()
 
     def deck_move_up(self):
@@ -641,10 +641,10 @@ class ConWidget(QtWidgets.QWidget):
             self.QDoubleSpinBox_ttl_stop_camera_wfs.setValue(0.050)
 
 
-# import sys
-#
-# if __name__ == "__main__":
-#     app = QtWidgets.QApplication(sys.argv)
-#     window = ConWidget(None, None, None)
-#     window.show()
-#     sys.exit(app.exec_())
+import sys
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    window = ConWidget(None, None, None)
+    window.show()
+    sys.exit(app.exec_())

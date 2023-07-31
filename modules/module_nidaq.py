@@ -40,11 +40,9 @@ class NIDAQ:
             assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE
 
     def __del__(self):
-        self.close()
+        pass
 
     def close(self):
-        for key, _task in self.tasks.items():
-            _task.close()
         self.device.reset_device()
 
     def set_piezo_position(self, pos_x, pos_y):

@@ -166,16 +166,16 @@ class MainController:
     def set_piezo_position_x(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
         self.m.daq.set_piezo_position(pos_x / 10., pos_y / 10.)
-        # self.con_controller.display_piezo_position_x(self.m.pz.read_position(0))
+        self.con_controller.display_piezo_position_x(self.m.pz.read_position(0))
 
     def set_piezo_position_y(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
         self.m.daq.set_piezo_position(pos_x / 10., pos_y / 10.)
-        # self.con_controller.display_piezo_position_y(self.m.pz.read_position(1))
+        self.con_controller.display_piezo_position_y(self.m.pz.read_position(1))
 
     def set_piezo_position_z(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        z = self.m.pz.move_position(0, pos_z)
+        z = self.m.pz.move_position(2, pos_z)
         self.con_controller.display_piezo_position_z(z)
 
     def set_galvo(self):
@@ -571,19 +571,6 @@ class MainController:
         self.run_img_wfr()
         self.view_controller.plot_wf(self.p.shwfsr.wf)
 
-    def start_ao_iteration(self):
-        self.set_lasers()
-        self.set_main_camera_roi()
-        self.main_cam.prepare_live()
-        self.main_cam.start_live()
-        self.m.daq.write_digital_sequences(self.generate_live_triggers())
-        print("sensorless AO ready to start")
-
-    def stop_ao_iteration(self):
-        self.lasers_off()
-        self.main_cam.stop_live()
-        print("sensorless AO finished")
-
     def run_ao_optimize(self):
         print("run sensorless ao")
         self.start_task_thread(task=self.ao_optimize, callback=None, iteration=1)
@@ -603,10 +590,17 @@ class MainController:
         mv = []
         zp = [0] * self.p.shwfsr._n_zernikes
         cmd = self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]
-        self.start_ao_iteration()
+        self.set_lasers()
+        self.set_main_camera_roi()
+        self.main_cam.prepare_live()
+        self.main_cam.start_live()
+        self.m.daq.write_digital_sequences(self.generate_live_triggers())
+        print("Sensorless AO to start")
         self.m.dm.set_dm(cmd)
         time.sleep(0.05)
         self.m.daq.run_digital_triggers(1)
+        time.sleep(0.05)
+        print(len(self.main_cam.data.data_list))
         fn = os.path.join(new_folder, 'original.tif')
         tf.imwrite(fn, self.main_cam.get_last_image())
         for mode in range(mode_start, mode_stop + 1):
@@ -619,7 +613,7 @@ class MainController:
                 # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[mode]], cmd))
                 time.sleep(0.05)
                 self.m.daq.run_digital_triggers(1)
-                time.sleep(0.1)
+                time.sleep(0.05)
                 print(len(self.main_cam.data.data_list))
                 fn = "zm%0.2d_amp%.4f" % (mode, amp)
                 fn1 = os.path.join(new_folder, fn + '.tif')
@@ -645,7 +639,7 @@ class MainController:
         self.m.dm.set_dm(cmd)
         time.sleep(0.05)
         self.m.daq.run_digital_triggers(1)
-        time.sleep(0.1)
+        time.sleep(0.05)
         self.main_cam.get_last_image()
         fn = os.path.join(new_folder, 'final.tif')
         tf.imwrite(fn, self.main_cam.get_last_image())
@@ -655,7 +649,9 @@ class MainController:
         self.p.shwfsr.current_cmd = i
         self.p.shwfsr._write_cmd(new_folder, '_')
         self.p.shwfsr._save_sensorless_results(os.path.join(new_folder, 'results.xlsx'), za, mv, zp)
-        self.stop_ao_iteration()
+        self.lasers_off()
+        self.main_cam.stop_live()
+        print("sensorless AO finished")
 
 
 class TaskWorkerSignals(QtCore.QObject):

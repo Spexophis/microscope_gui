@@ -312,7 +312,7 @@ class HamamatsuCamera(object):
             print("An error occurred:", e)
 
     def __del__(self):
-        self.close()
+        pass
 
     def prepare_capture(self):
         """

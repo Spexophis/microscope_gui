@@ -52,7 +52,7 @@ class EMCCDCamera:
             print('AndorEMCCD is not initiated')
 
     def __del__(self):
-        self.close()
+        pass
 
     def close(self):
         self.cooler_off()

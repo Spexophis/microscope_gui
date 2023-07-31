@@ -87,7 +87,7 @@ class TISCamera:
             print('No TIS camera')
 
     def __del__(self):
-        self.close()
+        pass
 
     def close(self):
         r = ic.IC_CloseVideoCaptureDevice(self.hGrabber)

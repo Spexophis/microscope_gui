@@ -68,7 +68,7 @@ class MCLMicroDrive:
             print('MadDeck Connection failed.')
 
     def __del__(self):
-        self.close()
+        pass
 
     def close(self):
         """
@@ -76,7 +76,7 @@ class MCLMicroDrive:
         """
         self.stopMoving()
         self.mcldeck.MCL_ReleaseHandle(self.handle)
-        print('Handle released.')
+        print('Deck Handle released.')
 
     def getInfo(self):
         """

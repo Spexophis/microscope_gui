@@ -36,7 +36,7 @@ class CoboltLaser:
             self.l488_2_handle = False
 
     def __del__(self):
-        self.close()
+        pass
 
     def close(self):
         self.all_off()
