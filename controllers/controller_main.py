@@ -88,7 +88,7 @@ class MainController:
         self.v.get_control_widget().Signal_run_plot_profile.connect(self.start_plot_live)
         self.v.get_control_widget().Signal_stop_plot_profile.connect(self.stop_plot_live)
         # Main Data Recording
-
+        self.v.get_control_widget().Signal_data_acquire.connect(self.data_acquisition)
         self.v.get_control_widget().Signal_save_file.connect(self.save_data)
         # DM
         self.v.get_ao_widget().Signal_push_actuator.connect(self.push_actuator)
@@ -306,12 +306,12 @@ class MainController:
             self.m.daq.run_digital_trigger(self.generate_live_triggers(),
                                            clock_source="100kHzTimebase",
                                            mode="continuous")
+            try:
+                self.thread_video.start()
+            except Exception as e:
+                self.logg.error_log.error(f"Error starting imshow: {e}")
         except Exception as e:
             self.logg.error_log.error(f"Error starting main camera video: {e}")
-        try:
-            self.thread_video.start()
-        except Exception as e:
-            self.logg.error_log.error(f"Error starting imshow: {e}")
 
     def stop_video(self):
         try:
@@ -374,7 +374,7 @@ class MainController:
     def generate_acquisition_triggers(self):
         self.update_trigger_parameters()
         acq_mod = self.con_controller.get_acquisition_mode()
-        if "Widefield" in acq_mod:
+        if "Resolft" in acq_mod:
             pzsq = self.p.trigger.generate_piezo_sequence()
             gvsq = None
             dgtr = self.p.trigger.generate_digital_triggers()
@@ -382,6 +382,120 @@ class MainController:
             pzsq = self.p.trigger.generate_piezo_sequence()
             gvsq = self.p.trigger.generate_galvo_sequence()
             dgtr = self.p.trigger.generate_digital_triggers()
+
+    def data_acquisition(self):
+        acq_mod = self.con_controller.get_acquisition_mode()
+        if acq_mod == "Widefield 3D":
+            self.run_widefield_zstack()
+        if acq_mod == "Confocal 2D":
+            self.run_confocal_scanning()
+        if acq_mod == "GalvoScan 2D":
+            self.run_galvo_scanning()
+        # if acq_mod == "RESOLFT 2D":
+        #     self.run_resolft()
+
+    def prepare_widefield_zstack(self):
+        try:
+            self.set_lasers()
+            self.m.daq.write_digital_sequences(self.generate_live_triggers())
+            self.set_main_camera_roi()
+            self.main_cam.prepare_live()
+            self.main_cam.start_live()
+        except Exception as e:
+            self.logg.error_log.error(f"Error starting imshow: {e}")
+
+    def widefield_zstack(self):
+        self.prepare_widefield_zstack()
+        positions = self.con_controller.get_piezo_positions()
+        axis_lengths, step_sizes, analog_start = self.con_controller.get_piezo_scan_parameters()
+        num_steps = int(axis_lengths[2] / (2 * step_sizes[2]))
+        start = positions[2] - num_steps * step_sizes[2]
+        end = positions[2] + num_steps * step_sizes[2]
+        zps = np.arange(start, end + step_sizes[2], step_sizes[2])
+        print(zps)
+        data = []
+        for i, z in enumerate(zps):
+            pz = self.m.pz.move_position(2, z)
+            print(i, pz)
+            self.m.daq.run_digital_triggers(1)
+            time.sleep(0.05)
+            data.append(self.main_cam.get_last_image())
+        fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M") + '_widefield_zstack.tif')
+        tf.imwrite(fd, np.asarray(data))
+        self.finish_widefield_zstack()
+
+    def finish_widefield_zstack(self):
+        try:
+            self.set_piezo_position_z()
+            self.main_cam.stop_live()
+            self.lasers_off()
+        except Exception as e:
+            self.logg.error_log.error(f"Error stopping main camera video: {e}")
+
+    def run_widefield_zstack(self):
+        self.start_task_thread(task=self.widefield_zstack, callback=None, iteration=1)
+
+    def prepare_galvo_scanning(self):
+        try:
+            self.set_lasers()
+            self.set_main_camera_roi()
+            self.main_cam.prepare_live()
+            self.main_cam.start_live()
+        except Exception as e:
+            self.logg.error_log.error(f"Error starting imshow: {e}")
+
+    def galvo_scanning(self):
+        self.prepare_galvo_scanning()
+        lasers, camera = self.update_trigger_parameters()
+        atr, dtr, pos = self.p.trigger.generate_galvo_scanning(lasers, camera)
+        self.m.daq.run_triggers(piezo_sequence=None, galvo_sequence=atr, digital_sequences=dtr)
+        time.sleep(0.1)
+        data = self.main_cam.get_last_image()
+        fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M") + '_galvo_scanning.tif')
+        tf.imwrite(fd, data)
+        self.finish_galvo_scanning()
+
+    def finish_galvo_scanning(self):
+        try:
+            self.m.daq.stop_triggers()
+            self.main_cam.stop_live()
+            self.lasers_off()
+        except Exception as e:
+            self.logg.error_log.error(f"Error stopping main camera video: {e}")
+
+    def run_galvo_scanning(self):
+        self.start_task_thread(task=self.galvo_scanning, callback=None, iteration=1)
+
+    def prepare_confocal_scanning(self):
+        try:
+            self.set_lasers()
+            self.set_main_camera_roi()
+            self.main_cam.prepare_live()
+            self.main_cam.start_live()
+        except Exception as e:
+            self.logg.error_log.error(f"Error starting imshow: {e}")
+
+    def confocal_scanning(self):
+        self.prepare_confocal_scanning()
+        lasers, camera = self.update_trigger_parameters()
+        atr, dtr, pos = self.p.trigger.generate_confocal_triggers(lasers, camera)
+        self.m.daq.run_triggers(piezo_sequence=None, galvo_sequence=atr, digital_sequences=dtr)
+        time.sleep(0.1)
+        data = self.main_cam.get_last_image()
+        fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M") + '_confocal_scanning.tif')
+        tf.imwrite(fd, data)
+        self.finish_confocal_scanning()
+
+    def finish_confocal_scanning(self):
+        try:
+            self.m.daq.stop_triggers()
+            self.main_cam.stop_live()
+            self.lasers_off()
+        except Exception as e:
+            self.logg.error_log.error(f"Error stopping main camera video: {e}")
+
+    def run_confocal_scanning(self):
+        self.start_task_thread(task=self.confocal_scanning, callback=None, iteration=1)
 
     def save_data(self, file_name):
         tf.imwrite(file_name + '.tif', self.main_cam.get_last_image())

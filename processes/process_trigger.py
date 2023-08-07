@@ -64,6 +64,10 @@ class TriggerSequence:
         return digital_trigger
 
     def generate_confocal_triggers(self, lasers, camera):
+        """
+        analog to galvo x and y
+        digital to laser and camera
+        """
         t_scan = (self.galvo_stop - self.galvo_start) / self.v_max
         s_scan = int(np.ceil(t_scan / self.dt)) + 1
         seq_scan = np.linspace(-1, 1, s_scan)
@@ -125,7 +129,11 @@ class TriggerSequence:
             digital_trigger[camera + 4] = np.append(temp, camera_trigger)
         return np.asarray(analog_trigger), digital_trigger, pos
 
-    def generate_widefield_sequence(self):
+    def generate_resolft_sequence(self):
+        """
+        analog to piezo x, y, and z
+        digital to laser and camera
+        """
         digital_trigger_sequences = []
         analog_trigger_sequences = []
         cycle_samples = self.sequence_time * self.sample_rate
@@ -197,6 +205,10 @@ class TriggerSequence:
         return np.asarray(analog_trigger_sequences), np.asarray(digital_trigger_sequences), positions
 
     def generate_galvo_scanning(self, lasers, camera):
+        """
+        analog to galvo x and y
+        digital to laser and camera
+        """
         return_samples = 128
         t_scan = (self.galvo_stop - self.galvo_start) / self.v_max
         s_scan = int(np.ceil(t_scan / self.dt)) + 1

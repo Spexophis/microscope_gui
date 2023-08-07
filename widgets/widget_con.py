@@ -34,8 +34,6 @@ class ConWidget(QtWidgets.QWidget):
     Signal_run_plot_profile = QtCore.pyqtSignal()
     Signal_stop_plot_profile = QtCore.pyqtSignal()
     Signal_data_acquire = QtCore.pyqtSignal()
-    Signal_bead_scan = QtCore.pyqtSignal()
-    Signal_galvo_scan = QtCore.pyqtSignal()
     Signal_save_file = QtCore.pyqtSignal(str)
 
     def __init__(self, config, logg, path, *args, **kwargs):
@@ -330,6 +328,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QLabel_acquisition_modes = cw.label_widget(str('Acq Modes'))
         self.QComboBox_acquisition_modes = cw.combobox_widget(list_items=["Live", "Widefield 2D", "Widefield 3D",
                                                                           "Confocal 2D", "Confocal 3D",
+                                                                          "GalvoScan 2D", "GalvoScan 3D",
                                                                           "RESOLFT 2D", "RESOLFT 3D"])
         self.QLabel_camera_selection = cw.label_widget(str('Camera'))
         self.QComboBox_camera_selection = cw.combobox_widget(list_items=['Main', 'WFS', 'TIS'])
@@ -365,7 +364,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_plot_profile.clicked.connect(self.run_plot_profile)
         self.QPushButton_acquire.clicked.connect(self.Signal_data_acquire.emit)
         self.QPushButton_save.clicked.connect(self.save)
-        self.QComboBox_acquisition_modes.currentIndexChanged.connect(self.update_trigger_parameter_sets)
+        # self.QComboBox_acquisition_modes.currentIndexChanged.connect(self.update_trigger_parameter_sets)
 
     def switch_emccd_cooler(self, checked):
         if checked:

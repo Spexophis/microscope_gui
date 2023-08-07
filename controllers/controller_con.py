@@ -75,7 +75,7 @@ class ConController:
         return self.v.QComboBox_profile_axis.currentText()
 
     def get_acquisition_mode(self):
-        return self.v.QComboBox_profile_axis.currentText()
+        return self.v.QComboBox_acquisition_modes.currentText()
 
     def display_camera_temperature(self, temperature):
         self.v.QLCDNumber_ccd_tempetature.display(temperature)
