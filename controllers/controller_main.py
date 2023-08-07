@@ -420,7 +420,7 @@ class MainController:
             self.m.daq.run_digital_triggers(1)
             time.sleep(0.05)
             data.append(self.main_cam.get_last_image())
-        fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M") + '_widefield_zstack.tif')
+        fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_widefield_zstack.tif')
         tf.imwrite(fd, np.asarray(data))
         self.finish_widefield_zstack()
 
@@ -451,7 +451,7 @@ class MainController:
         self.m.daq.run_triggers(piezo_sequence=None, galvo_sequence=atr, digital_sequences=dtr)
         time.sleep(0.1)
         data = self.main_cam.get_last_image()
-        fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M") + '_galvo_scanning.tif')
+        fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_galvo_scanning.tif')
         tf.imwrite(fd, data)
         self.finish_galvo_scanning()
 
@@ -482,7 +482,7 @@ class MainController:
         self.m.daq.run_triggers(piezo_sequence=None, galvo_sequence=atr, digital_sequences=dtr)
         time.sleep(0.1)
         data = self.main_cam.get_last_image()
-        fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M") + '_confocal_scanning.tif')
+        fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_confocal_scanning.tif')
         tf.imwrite(fd, data)
         self.finish_confocal_scanning()
 

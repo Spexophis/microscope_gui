@@ -1,6 +1,6 @@
 import sys
-import threading
-from collections import deque
+# import threading
+# from collections import deque
 
 from pyAndorSDK2 import atmcd, atmcd_codes, atmcd_errors
 
@@ -45,8 +45,8 @@ class EMCCDCamera:
                 print("Detector size: xpixels = {} ypixels = {}".format(self.xpixels, self.ypixels))
             else:
                 print(atmcd_errors.Error_Codes(self.ret))
-            self.data = FixedLengthList(16)
-            self.camera_thread = None
+            # self.data = FixedLengthList(16)
+            # self.camera_thread = None
             self.ps = 13  # micron
         else:
             print('AndorEMCCD is not initiated')
@@ -168,35 +168,42 @@ class EMCCDCamera:
         # self.ret = self.sdk.SetImage(1, 1, 1, self.xpixels, 1, self.ypixels)
         # print("Function SetImage returned {} hbin = 1 vbin = 1 hstart = 1 hend = {} vstart = 1 vend = {}".format(
         #     self.ret, self.xpixels, self.ypixels))
-        self.camera_thread = CameraThread(self)
+        # self.camera_thread = CameraThread(self)
 
     def start_live(self):
         self.ret = self.sdk.StartAcquisition()
         if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
-            self.data.data_list.clear()
-            self.camera_thread.start()
+            # self.data.data_list.clear()
+            # self.camera_thread.start()
             print('Start live image')
         else:
             print(atmcd_errors.Error_Codes(self.ret))
 
     def get_last_image(self):
-        if not self.data.is_empty():
-            return self.data.get_last_element()
-
-    def get_images(self):
-        self.imageSize = self.xpixels * self.ypixels
-        (self.ret, self.first, self.last) = self.sdk.GetNumberNewImages()
-        num = self.last - self.first + 1
-        (self.ret, self.arr, self.valid_first, self.valid_last) = self.sdk.GetImages16(self.first, self.last,
-                                                                                       self.imageSize * num)
+        # (self.ret, self.index) = self.sdk.GetTotalNumberImagesAcquired()
+        (self.ret, self.arr) = self.sdk.GetMostRecentImage16(self.imageSize)
         if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
-            self.arr = self.arr.reshape(num, self.imageSize)
-            for n in range(num):
-                self.data.add_element(self.arr[n].reshape(self.xpixels, self.ypixels))
+            return self.arr.reshape(self.xpixels, self.ypixels)
+        else:
+            print(atmcd_errors.Error_Codes(self.ret))
+        # if not self.data.is_empty():
+        #     return self.data.get_last_element()
+
+    # def get_images(self):
+    #     (self.ret, self.first, self.last) = self.sdk.GetNumberNewImages()
+    #     num = self.last - self.first + 1
+    #     (self.ret, self.arr, self.valid_first, self.valid_last) = self.sdk.GetImages16(self.first, self.last,
+    #                                                                                    self.imageSize * num)
+    #     if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
+    #         return self.arr.reshape(num, self.imageSize.reshape(self.xpixels, self.ypixels))
+    #         # for n in range(num):
+    #         #     self.data.add_element(self.arr[n].reshape(self.xpixels, self.ypixels))
+    #     else:
+    #         print(atmcd_errors.Error_Codes(self.ret))
 
     def stop_live(self):
-        self.camera_thread.stop()
-        self.camera_thread = None
+        # self.camera_thread.stop()
+        # self.camera_thread = None
         self.ret = self.sdk.AbortAcquisition()
         if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
             print('Live image stopped')
@@ -242,14 +249,14 @@ class EMCCDCamera:
                 "number of accumulations completed = {} \n"
                 "kinetic scans completed = {}".format(self.ret, self.numoAccumulate, self.numoKinetics))
 
-    # def get_images(self, num):
-    #     self.imageSize = self.xpixels * self.ypixels
-    #     (self.ret, self.arr) = self.sdk.GetAcquiredData16(num * self.imageSize)
-    #     if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
-    #         self.data = self.arr.reshape(num, self.xpixels, self.ypixels)
-    #         print('Data self.retrieved')
-    #     else:
-    #         print(atmcd_errors.Error_Codes(self.ret))
+    def get_images(self, num):
+        self.imageSize = self.xpixels * self.ypixels
+        (self.ret, self.arr) = self.sdk.GetAcquiredData16(num * self.imageSize)
+        if atmcd_errors.Error_Codes.DRV_SUCCESS == self.ret:
+            print('Data self.retrieved')
+            return self.arr.reshape(num, self.xpixels, self.ypixels)
+        else:
+            print(atmcd_errors.Error_Codes(self.ret))
 
     def finish_data_acquisition(self):
         self.ret = self.sdk.AbortAcquisition()
@@ -265,39 +272,39 @@ class EMCCDCamera:
         print(atmcd_errors.Error_Codes(self.ret))
 
 
-class CameraThread(threading.Thread):
-    def __init__(self, cam):
-        threading.Thread.__init__(self)
-        self.cam = cam
-        self.running = False
-        self.lock = threading.Lock()
-
-    def run(self):
-        self.running = True
-        while self.running:
-            with self.lock:
-                self.cam.get_images()
-
-    def stop(self):
-        self.running = False
-        self.join()
-
-
-class FixedLengthList:
-    def __init__(self, max_length):
-        self.max_length = max_length
-        self.data_list = deque(maxlen=max_length)
-
-    def add_element(self, element):
-        if len(self.data_list) == self.max_length:
-            self.data_list.clear()
-        self.data_list.append(element)
-
-    def get_elements(self):
-        return list(self.data_list)
-
-    def get_last_element(self):
-        return self.data_list[-1] if self.data_list else None
-
-    def is_empty(self):
-        return len(self.data_list) == 0
+# class CameraThread(threading.Thread):
+#     def __init__(self, cam):
+#         threading.Thread.__init__(self)
+#         self.cam = cam
+#         self.running = False
+#         self.lock = threading.Lock()
+#
+#     def run(self):
+#         self.running = True
+#         while self.running:
+#             with self.lock:
+#                 self.cam.get_images()
+#
+#     def stop(self):
+#         self.running = False
+#         self.join()
+#
+#
+# class FixedLengthList:
+#     def __init__(self, max_length):
+#         self.max_length = max_length
+#         self.data_list = deque(maxlen=max_length)
+#
+#     def add_element(self, element):
+#         if len(self.data_list) == self.max_length:
+#             self.data_list.clear()
+#         self.data_list.append(element)
+#
+#     def get_elements(self):
+#         return list(self.data_list)
+#
+#     def get_last_element(self):
+#         return self.data_list[-1] if self.data_list else None
+#
+#     def is_empty(self):
+#         return len(self.data_list) == 0
