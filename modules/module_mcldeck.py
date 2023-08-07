@@ -21,7 +21,8 @@ class MCLMicroDrive:
                                 -7: 'MCL_INVALID_AXIS',
                                 -8: 'MCL_INVALID_HANDLE'}
 
-        # Dictionary to know the axis limit returrns. Dicitionary saves [axis, forward (1) or backward (-1), description]
+        # Dictionary to know the axis limit returns.
+        # Dictionary saves [axis, forward (1) or backward (-1), description]
         self.motorLimits = [[1, -1, 'Axis 1 reverse limit'],  # 126 <-> '1111110' <-> position 0
                             [1, 1, 'Axis 1 forward limit'],  # 125 <-> '1111101' <-> position 1
                             [2, -1, 'Axis 2 reverse limit'],  # 123 <-> '1111011' <-> position 2
@@ -37,17 +38,17 @@ class MCLMicroDrive:
         self.handle = self.mcldeck.MCL_InitHandle()  # Handle number is assigned, which is a positive integer
         # Check if connection was successful
         if self.handle > 0:
-            print(
-                'Connected to MadDeck SN: ' + str(self.mcldeck.MCL_GetSerialNumber(self.handle)) + '\nWith handle: ' + str(
-                    self.handle))
+            print('Connected to MadDeck SN: ' + str(
+                self.mcldeck.MCL_GetSerialNumber(self.handle)) + '\nWith handle: ' + str(self.handle))
             encoderResolution_temp = ct.pointer(ct.c_double())
             stepSize_temp = ct.pointer(ct.c_double())
             maxVelocity_temp = ct.pointer(ct.c_double())
             maxVelocityTwoAxis_temp = ct.pointer(ct.c_double())
             maxVelocityThreeAxis_temp = ct.pointer(ct.c_double())
             minVelocity_temp = ct.pointer(ct.c_double())
-            self.mcldeck.MCL_MDInformation(encoderResolution_temp, stepSize_temp, maxVelocity_temp, maxVelocityTwoAxis_temp,
-                                       maxVelocityThreeAxis_temp, minVelocity_temp, self.handle)
+            self.mcldeck.MCL_MDInformation(encoderResolution_temp, stepSize_temp, maxVelocity_temp,
+                                           maxVelocityTwoAxis_temp,
+                                           maxVelocityThreeAxis_temp, minVelocity_temp, self.handle)
             self.encoderResolution = encoderResolution_temp.contents.value
             self.stepSize = stepSize_temp.contents.value
             self.maxVelocity = maxVelocity_temp.contents.value
@@ -105,7 +106,7 @@ class MCLMicroDrive:
             maxVelocityThreeAxis = ct.pointer(ct.c_double())
             minVelocity = ct.pointer(ct.c_double())
             self.mcldeck.MCL_MDInformation(encoderResolution, stepSize, maxVelocity, maxVelocityTwoAxis,
-                                       maxVelocityThreeAxis, minVelocity, self.handle)
+                                           maxVelocityThreeAxis, minVelocity, self.handle)
             print('encoderResolution: ' + str(encoderResolution.contents.value))
             print('stepSize: ' + str(stepSize.contents.value))
             print('maxVelocity: ' + str(maxVelocity.contents.value))
