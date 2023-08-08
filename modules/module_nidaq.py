@@ -91,8 +91,8 @@ class NIDAQ:
             self.tasks["galvo"].timing.cfg_samp_clk_timing(self.frequency, source="100kHzTimebase",
                                                            active_edge=Edge.RISING,
                                                            sample_mode=AcquisitionType.FINITE,
-                                                           samps_per_chan=2)
-            self.tasks["galvo"].write([pos_x, pos_y], auto_start=True)
+                                                           samps_per_chan=1)
+            self.tasks["galvo"].write([[pos_x], [pos_y]], auto_start=True)
             self.tasks["galvo"].wait_until_done()
             self.tasks["galvo"].stop()
         except nidaqmx.DaqWarning as e:
