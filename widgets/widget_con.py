@@ -443,7 +443,7 @@ class ConWidget(QtWidgets.QWidget):
 
     def save(self):
         dialog = cw.create_file_dialogue(name="Save File", file_filter="All Files (*)",
-                                         default_dir=self.data_folder)
+                                         default_dir=str(self.data_folder))
         if dialog.exec_() == QtWidgets.QFileDialog.Accepted:
             selected_file = dialog.selectedFiles()
             if selected_file:

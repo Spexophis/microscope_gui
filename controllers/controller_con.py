@@ -15,7 +15,7 @@ class ConController:
                 self.v.QSpinBox_scmos_coordinate_n.value(), self.v.QSpinBox_scmos_coordinate_bin.value()]
 
     def get_deck_movement(self):
-        return [self.v.QDoubleSpinBox_deck_movement.value(), self.v.QDoubleSpinBox_deck_velocity]
+        return [self.v.QDoubleSpinBox_deck_movement.value(), self.v.QDoubleSpinBox_deck_velocity.value()]
 
     def get_piezo_positions(self):
         return [self.v.QDoubleSpinBox_stage_x.value(), self.v.QDoubleSpinBox_stage_y.value(),
