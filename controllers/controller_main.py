@@ -1,7 +1,7 @@
 import os
 import time
 import traceback
-
+import threading
 import numpy as np
 import tifffile as tf
 from PyQt5 import QtCore
@@ -54,8 +54,8 @@ class MainController:
         self.thread_wfs.started.connect(self.wfsWorker.start)
         self.thread_wfs.finished.connect(self.wfsWorker.stop)
         # dedicated thread pool for tasks
-        self.task_threadpool = None
         self.task_worker = None
+        self.task_thread = QtCore.QThread()
         # MCL Piezo
         self.v.get_control_widget().Signal_piezo_move_x.connect(self.set_piezo_position_x)
         self.v.get_control_widget().Signal_piezo_move_y.connect(self.set_piezo_position_y)
@@ -134,13 +134,27 @@ class MainController:
 
         print("Finish setting up controllers")
 
-    def start_task_thread(self, task, callback, iteration):
-        try:
-            self.task_threadpool = QtCore.QThreadPool()
-            self.task_worker = TaskWorker(task, callback, nl=iteration)
-            self.task_threadpool.start(self.task_worker)
-        except Exception as e:
-            self.logg.error_log.error(f"Task Thread Error: {e}")
+    # def start_task_thread(self, task, callback, iteration):
+    #     try:
+    #         self.task_threadpool = QtCore.QThreadPool()
+    #         self.task_worker = TaskWorker(task, callback, nl=iteration)
+    #         self.task_threadpool.start(self.task_worker)
+    #     except Exception as e:
+    #         self.logg.error_log.error(f"Task Thread Error: {e}")
+
+    def run_task(self, task, iteration=1, callback=None, parent=None):
+        if self.task_worker is not None:
+            self.task_worker = None
+        self.task_thread = QtCore.QThread()
+        self.task_worker = TaskWorker(task=task, n=iteration, callback=callback, parent=parent)
+        self.task_worker.moveToThread(self.task_thread)
+        self.task_thread.started.connect(self.task_worker.run)
+        self.task_worker.signals.finished.connect(self.task_finish)
+        self.task_thread.start()
+
+    def task_finish(self):
+        self.task_thread.quit()
+        self.task_thread.wait()
 
     def move_deck_up(self):
         try:
@@ -376,7 +390,8 @@ class MainController:
             camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
             self.p.trigger.update_digital_parameters(sequence_time, digital_starts, digital_ends)
             gv_starts, gv_stops, dotspos = self.con_controller.get_galvo_scan_parameters()
-            self.p.trigger.update_galvo_scan_parameters(gv_start=gv_starts[0], gv_stop=gv_stops[0], laser_start=dotspos[0],
+            self.p.trigger.update_galvo_scan_parameters(gv_start=gv_starts[0], gv_stop=gv_stops[0],
+                                                        laser_start=dotspos[0],
                                                         laser_interval=dotspos[1])
             axis_lengths, step_sizes, analog_start = self.con_controller.get_piezo_scan_parameters()
             positions = self.con_controller.get_piezo_positions()
@@ -528,7 +543,7 @@ class MainController:
             self.logg.error_log.error(f"Error stopping widefield zstack: {e}")
 
     def run_widefield_zstack(self):
-        self.start_task_thread(task=self.widefield_zstack, callback=False, iteration=1)
+        self.run_task(task=self.widefield_zstack)
 
     def prepare_galvo_scanning(self):
         try:
@@ -564,7 +579,7 @@ class MainController:
             self.logg.error_log.error(f"Error stopping galvo scanning: {e}")
 
     def run_galvo_scanning(self):
-        self.start_task_thread(task=self.galvo_scanning, callback=None, iteration=1)
+        self.run_task(task=self.galvo_scanning)
 
     def prepare_confocal_scanning(self):
         try:
@@ -585,6 +600,7 @@ class MainController:
             data = self.main_cam.get_last_image()
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_confocal_scanning.tif')
             tf.imwrite(fd, data)
+            # self.view_controller.plot_main(data)
         except Exception as e:
             self.logg.error_log.error(f"Error running confocal scanning: {e}")
         self.finish_confocal_scanning()
@@ -600,7 +616,7 @@ class MainController:
             self.logg.error_log.error(f"Error stopping confocal scanning: {e}")
 
     def run_confocal_scanning(self):
-        self.start_task_thread(task=self.confocal_scanning, callback=None, iteration=1)
+        self.run_task(task=self.confocal_scanning)
 
     def save_data(self, file_name):
         try:
@@ -708,12 +724,15 @@ class MainController:
             self.logg.error_log.error(f"SHWFS Error: {e}")
 
     def run_img_wfr(self):
+        self.run_task(task=self.img_wfr)
+
+    def img_wfr(self):
         try:
             self.p.shwfsr.method = self.ao_controller.get_gradient_method_img()
             # self.p.shwfsr.offset = self.wfs_cam.get_last_image()
             self.p.shwfsr.base = self.view_controller.get_image_data(r'ShackHartmann(Base)')
             self.p.shwfsr.offset = self.view_controller.get_image_data(r'ShackHartmann')
-            self.start_task_thread(task=self.p.shwfsr.wavefront_reconstruction, callback=self.imshow_img_wfr, iteration=1)
+            self.p.shwfsr.wavefront_reconstruction()
         except Exception as e:
             self.logg.error_log.error(f"SHWFS Reconstruction Error: {e}")
 
@@ -740,7 +759,7 @@ class MainController:
         print('WF Data saved')
 
     def run_influence_function(self):
-        self.start_task_thread(task=self.influence_function, callback=None, iteration=1)
+        self.run_task(self.influence_function)
 
     def influence_function(self):
         fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M") + '_influence_function')
@@ -786,117 +805,144 @@ class MainController:
         self.p.shwfsr.generate_influence_matrix(fd, md, True)
 
     def run_close_loop_correction(self, n):
-        self.prepare_close_loop_correction()
-        self.start_task_thread(task=self.close_loop_correction, callback=self.stop_close_loop_correction, iteration=n)
+        self.run_task(task=self.close_loop_correction)
 
     def prepare_close_loop_correction(self):
-        self.set_img_wfs()
-        self.set_lasers()
-        self.set_wfs_camera_roi()
-        self.wfs_cam.prepare_live()
-        self.wfs_cam.start_live()
-        self.m.daq.write_digital_sequences(self.generate_live_triggers())
+        try:
+            self.set_img_wfs()
+            self.set_lasers()
+            self.set_wfs_camera_roi()
+            self.wfs_cam.prepare_live()
+            self.wfs_cam.start_live()
+            self.m.daq.write_digital_sequences(self.generate_live_triggers())
+        except Exception as e:
+            self.logg.error_log.error(f"CloseLoop Correction Error: {e}")
 
     def close_loop_correction(self):
-        self.p.shwfsr.base = self.view_controller.get_image_data(r'ShackHartmann(Base)')
-        self.m.daq.run_digital_triggers(1)
-        self.p.shwfsr.offset = self.wfs_cam.get_last_image()
-        self.p.shwfsr.get_correction(self.ao_controller.get_img_wfs_method())
-        self.m.dm.set_dm(self.p.shwfsr._dm_cmd[-1])
-        self.ao_controller.update_cmd_index()
-        i = int(self.ao_controller.get_cmd_index())
-        self.p.shwfsr.current_cmd = i
+        self.prepare_close_loop_correction()
+        try:
+            self.p.shwfsr.base = self.view_controller.get_image_data(r'ShackHartmann(Base)')
+            self.m.daq.run_digital_triggers(1)
+            self.p.shwfsr.offset = self.wfs_cam.get_last_image()
+            self.p.shwfsr.get_correction(self.ao_controller.get_img_wfs_method())
+            self.m.dm.set_dm(self.p.shwfsr._dm_cmd[-1])
+            self.ao_controller.update_cmd_index()
+            i = int(self.ao_controller.get_cmd_index())
+            self.p.shwfsr.current_cmd = i
+        except Exception as e:
+            self.logg.error_log.error(f"CloseLoop Correction Error: {e}")
+        self.stop_close_loop_correction()
 
     def stop_close_loop_correction(self):
-        self.p.shwfsr.base = self.view_controller.get_image_data(r'ShackHartmann(Base)')
-        self.m.daq.run_digital_triggers(1)
-        self.p.shwfsr.offset = self.wfs_cam.get_last_image()
-        self.wfs_cam.stop_live()
-        self.lasers_off()
-        self.run_img_wfr()
-        self.view_controller.plot_wf(self.p.shwfsr.wf)
+        try:
+            self.p.shwfsr.base = self.view_controller.get_image_data(r'ShackHartmann(Base)')
+            self.m.daq.run_digital_triggers(1)
+            self.p.shwfsr.offset = self.wfs_cam.get_last_image()
+            self.wfs_cam.stop_live()
+            self.lasers_off()
+            self.run_img_wfr()
+            self.view_controller.plot_wf(self.p.shwfsr.wf)
+        except Exception as e:
+            self.logg.error_log.error(f"CloseLoop Correction Error: {e}")
 
     def run_ao_optimize(self):
-        print("run sensorless ao")
-        self.start_task_thread(task=self.ao_optimize, callback=None, iteration=1)
+        self.run_task(task=self.ao_optimize)
 
     def ao_optimize(self):
-        mode_start, mode_stop, amp_start, amp_step, amp_step_number = self.ao_controller.get_ao_iteration()
-        lpr, mindex, metric = self.ao_controller.get_ao_parameters()
-        name = time.strftime("%Y%m%d_%H%M%S_") + '_ao_iteration_' + metric
-        new_folder = self.data_folder / name
         try:
-            os.makedirs(new_folder, exist_ok=True)
-            print(f'Directory {new_folder} has been created successfully.')
+            mode_start, mode_stop, amp_start, amp_step, amp_step_number = self.ao_controller.get_ao_iteration()
+            lpr, mindex, metric = self.ao_controller.get_ao_parameters()
+            name = time.strftime("%Y%m%d_%H%M%S_") + '_ao_iteration_' + metric
+            new_folder = self.data_folder / name
+            try:
+                os.makedirs(new_folder, exist_ok=True)
+                print(f'Directory {new_folder} has been created successfully.')
+            except Exception as e:
+                print(f'Error creating directory {new_folder}: {e}')
+            results = [('Mode', 'Amp', 'Metric')]
+            za = []
+            mv = []
+            zp = [0] * self.p.shwfsr._n_zernikes
+            cmd = self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]
+            self.set_lasers()
+            self.set_main_camera_roi()
+            self.main_cam.prepare_live()
+            self.main_cam.start_live()
+            self.m.daq.write_digital_sequences(self.generate_live_triggers())
+            print("Sensorless AO start")
+            self.m.dm.set_dm(cmd)
+            time.sleep(0.05)
+            self.m.daq.run_digital_triggers(1)
+            time.sleep(0.05)
+            print(len(self.main_cam.data.data_list))
+            fn = os.path.join(new_folder, 'original.tif')
+            tf.imwrite(fn, self.main_cam.get_last_image())
+            for mode in range(mode_start, mode_stop + 1):
+                amprange = []
+                dt = []
+                for stnm in range(amp_step_number):
+                    amp = amp_start + stnm * amp_step
+                    amprange.append(amp)
+                    self.m.dm.set_dm(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
+                    # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[mode]], cmd))
+                    time.sleep(0.05)
+                    self.m.daq.run_digital_triggers(1)
+                    time.sleep(0.05)
+                    print(len(self.main_cam.data.data_list))
+                    fn = "zm%0.2d_amp%.4f" % (mode, amp)
+                    fn1 = os.path.join(new_folder, fn + '.tif')
+                    tf.imwrite(fn1, self.main_cam.get_last_image())
+                    if mindex == 0:
+                        dt.append(self.p.imgprocess.snr(self.main_cam.get_last_image(), lpr))
+                    if mindex == 1:
+                        dt.append(self.p.imgprocess.peakv(self.main_cam.get_last_image()))
+                    if mindex == 2:
+                        dt.append(self.p.imgprocess.hpf(self.main_cam.get_last_image(), lpr))
+                    results.append((mode, amp, dt[stnm]))
+                    print('--', stnm, amp, dt[stnm])
+                za.extend(amprange)
+                mv.extend(dt)
+                pmax = self.p.imgprocess.peak(amprange, dt)
+                if pmax != 0.0:
+                    zp[mode] = pmax
+                    print('--setting mode %d at value of %.4f--' % (mode, pmax))
+                    cmd = self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, pmax), cmd)
+                    self.m.dm.set_dm(cmd)
+                else:
+                    print('----------------mode %d value equals %.4f----' % (mode, pmax))
+            self.m.dm.set_dm(cmd)
+            time.sleep(0.05)
+            self.m.daq.run_digital_triggers(1)
+            time.sleep(0.05)
+            self.main_cam.get_last_image()
+            fn = os.path.join(new_folder, 'final.tif')
+            tf.imwrite(fn, self.main_cam.get_last_image())
+            self.p.shwfsr._dm_cmd.append(cmd)
+            self.ao_controller.update_cmd_index()
+            i = int(self.ao_controller.get_cmd_index())
+            self.p.shwfsr.current_cmd = i
+            self.p.shwfsr._write_cmd(new_folder, '_')
+            self.p.shwfsr._save_sensorless_results(os.path.join(new_folder, 'results.xlsx'), za, mv, zp)
+            self.lasers_off()
+            self.main_cam.stop_live()
+            print("sensorless AO finished")
         except Exception as e:
-            print(f'Error creating directory {new_folder}: {e}')
-        results = [('Mode', 'Amp', 'Metric')]
-        za = []
-        mv = []
-        zp = [0] * self.p.shwfsr._n_zernikes
-        cmd = self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]
-        self.set_lasers()
-        self.set_main_camera_roi()
-        self.main_cam.prepare_live()
-        self.main_cam.start_live()
-        self.m.daq.write_digital_sequences(self.generate_live_triggers())
-        print("Sensorless AO to start")
-        self.m.dm.set_dm(cmd)
-        time.sleep(0.05)
-        self.m.daq.run_digital_triggers(1)
-        time.sleep(0.05)
-        print(len(self.main_cam.data.data_list))
-        fn = os.path.join(new_folder, 'original.tif')
-        tf.imwrite(fn, self.main_cam.get_last_image())
-        for mode in range(mode_start, mode_stop + 1):
-            amprange = []
-            dt = []
-            for stnm in range(amp_step_number):
-                amp = amp_start + stnm * amp_step
-                amprange.append(amp)
-                self.m.dm.set_dm(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
-                # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[mode]], cmd))
-                time.sleep(0.05)
-                self.m.daq.run_digital_triggers(1)
-                time.sleep(0.05)
-                print(len(self.main_cam.data.data_list))
-                fn = "zm%0.2d_amp%.4f" % (mode, amp)
-                fn1 = os.path.join(new_folder, fn + '.tif')
-                tf.imwrite(fn1, self.main_cam.get_last_image())
-                if mindex == 0:
-                    dt.append(self.p.imgprocess.snr(self.main_cam.get_last_image(), lpr))
-                if mindex == 1:
-                    dt.append(self.p.imgprocess.peakv(self.main_cam.get_last_image()))
-                if mindex == 2:
-                    dt.append(self.p.imgprocess.hpf(self.main_cam.get_last_image(), lpr))
-                results.append((mode, amp, dt[stnm]))
-                print('--', stnm, amp, dt[stnm])
-            za.extend(amprange)
-            mv.extend(dt)
-            pmax = self.p.imgprocess.peak(amprange, dt)
-            if pmax != 0.0:
-                zp[mode] = pmax
-                print('--setting mode %d at value of %.4f--' % (mode, pmax))
-                cmd = self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, pmax), cmd)
-                self.m.dm.set_dm(cmd)
-            else:
-                print('----------------mode %d value equals %.4f----' % (mode, pmax))
-        self.m.dm.set_dm(cmd)
-        time.sleep(0.05)
-        self.m.daq.run_digital_triggers(1)
-        time.sleep(0.05)
-        self.main_cam.get_last_image()
-        fn = os.path.join(new_folder, 'final.tif')
-        tf.imwrite(fn, self.main_cam.get_last_image())
-        self.p.shwfsr._dm_cmd.append(cmd)
-        self.ao_controller.update_cmd_index()
-        i = int(self.ao_controller.get_cmd_index())
-        self.p.shwfsr.current_cmd = i
-        self.p.shwfsr._write_cmd(new_folder, '_')
-        self.p.shwfsr._save_sensorless_results(os.path.join(new_folder, 'results.xlsx'), za, mv, zp)
-        self.lasers_off()
-        self.main_cam.stop_live()
-        print("sensorless AO finished")
+            self.logg.error_log.error(f"Sensorless AO Error: {e}")
+
+
+# class TaskThread(threading.Thread):
+#     def __init__(self, task, callback=None):
+#         threading.Thread.__init__(self)
+#         self.task = task
+#         self.lock = threading.Lock()
+#         self.callback = callback
+#
+#     def run(self):
+#         with self.lock:
+#             self.task()
+#             if self.callback is not None:
+#                 self.callback()
+#         print("Task Done")
 
 
 class TaskWorkerSignals(QtCore.QObject):
@@ -904,42 +950,70 @@ class TaskWorkerSignals(QtCore.QObject):
     error = QtCore.pyqtSignal(tuple)
 
 
-class TaskWorker(QtCore.QRunnable):
-    def __init__(self, task=None, callback=None, nl=0):
-        super(TaskWorker, self).__init__()
+class TaskWorker(QtCore.QObject):
+    def __init__(self, task=None, n=1, callback=None, parent=None):
+        super().__init__(parent)
         self.task = task if task is not None else self._do_nothing
         self.callback = callback
-        self.nl = nl
-        self.stop_requested = False
+        self.n = n
         self.signals = TaskWorkerSignals()
-        self.setAutoDelete(True)
 
     def run(self):
         try:
-            if self.nl == 0:
-                while not self.stop_requested:
-                    self.task()
-                    if self.callback is not None:
-                        self.callback()
-                    self.signals.finished.emit()
-            else:
-                for i in range(self.nl):
-                    if self.stop_requested:
-                        break
-                    self.task()
-                    if self.callback is not None:
-                        self.callback()
-                    self.signals.finished.emit()
+            for i in range(self.n):
+                self._do()
+            self.signals.finished.emit()
         except Exception as e:
             self.signals.error.emit((e, traceback.format_exc()))
             return
 
-    def stop(self):
-        self.stop_requested = True
+    @QtCore.pyqtSlot()
+    def _do(self):
+        self.task()
+        if self.callback is not None:
+            self.callback()
 
     @staticmethod
     def _do_nothing():
         pass
+
+
+# class TaskWorker(QtCore.QRunnable):
+#     def __init__(self, task=None, callback=None, nl=0):
+#         super(TaskWorker, self).__init__()
+#         self.task = task if task is not None else self._do_nothing
+#         self.callback = callback
+#         self.nl = nl
+#         self.stop_requested = False
+#         self.signals = TaskWorkerSignals()
+#         self.setAutoDelete(True)
+#
+#     def run(self):
+#         try:
+#             if self.nl == 0:
+#                 while not self.stop_requested:
+#                     self.task()
+#                     if self.callback is not None:
+#                         self.callback()
+#                     self.signals.finished.emit()
+#             else:
+#                 for i in range(self.nl):
+#                     if self.stop_requested:
+#                         break
+#                     self.task()
+#                     if self.callback is not None:
+#                         self.callback()
+#                     self.signals.finished.emit()
+#         except Exception as e:
+#             self.signals.error.emit((e, traceback.format_exc()))
+#             return
+#
+#     def stop(self):
+#         self.stop_requested = True
+#
+#     @staticmethod
+#     def _do_nothing():
+#         pass
 
 
 class LoopWorker(QtCore.QObject):
