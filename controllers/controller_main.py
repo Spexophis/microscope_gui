@@ -1,7 +1,7 @@
 import os
 import time
 import traceback
-import threading
+
 import numpy as np
 import tifffile as tf
 from PyQt5 import QtCore
@@ -131,6 +131,9 @@ class MainController:
             self.wfs_cam = self.m.scmoscam
         elif "EMCCD" == self.wfs_camera:
             self.wfs_cam = self.m.ccdcam
+
+        self.pixel_size_main = self.main_cam.ps / 210
+        # self.pixel_size_wfs = self.main_cam.ps / 210
 
         print("Finish setting up controllers")
 
@@ -527,7 +530,8 @@ class MainController:
                 time.sleep(0.05)
                 data.append(self.main_cam.get_last_image())
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_widefield_zstack.tif')
-            tf.imwrite(fd, np.asarray(data))
+            tf.imwrite(fd, np.asarray(data), imagej=True,
+                       resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main), metadata={'unit': 'um'})
         except Exception as e:
             self.logg.error_log.error(f"Error running widefield zstack: {e}")
         self.finish_widefield_zstack()
@@ -563,7 +567,8 @@ class MainController:
             time.sleep(0.1)
             data = self.main_cam.get_last_image()
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_galvo_scanning.tif')
-            tf.imwrite(fd, data)
+            tf.imwrite(fd, data, imagej=True, resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
+                       metadata={'unit': 'um'})
         except Exception as e:
             self.logg.error_log.error(f"Error running galvo scanning: {e}")
         self.finish_galvo_scanning()
@@ -599,7 +604,8 @@ class MainController:
             time.sleep(0.1)
             data = self.main_cam.get_last_image()
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_confocal_scanning.tif')
-            tf.imwrite(fd, data)
+            tf.imwrite(fd, data, imagej=True, resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
+                       metadata={'unit': 'um'})
             # self.view_controller.plot_main(data)
         except Exception as e:
             self.logg.error_log.error(f"Error running confocal scanning: {e}")
@@ -620,7 +626,8 @@ class MainController:
 
     def save_data(self, file_name):
         try:
-            tf.imwrite(file_name + '.tif', self.main_cam.get_last_image())
+            tf.imwrite(file_name + '.tif', self.main_cam.get_last_image(), imagej=True,
+                       resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main), metadata={'unit': 'um'})
         except Exception as e:
             self.logg.error_log.error(f"Error saving data: {e}")
 
