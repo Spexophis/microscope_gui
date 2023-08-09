@@ -937,21 +937,6 @@ class MainController:
             self.logg.error_log.error(f"Sensorless AO Error: {e}")
 
 
-# class TaskThread(threading.Thread):
-#     def __init__(self, task, callback=None):
-#         threading.Thread.__init__(self)
-#         self.task = task
-#         self.lock = threading.Lock()
-#         self.callback = callback
-#
-#     def run(self):
-#         with self.lock:
-#             self.task()
-#             if self.callback is not None:
-#                 self.callback()
-#         print("Task Done")
-
-
 class TaskWorkerSignals(QtCore.QObject):
     finished = QtCore.pyqtSignal()
     error = QtCore.pyqtSignal(tuple)
@@ -983,44 +968,6 @@ class TaskWorker(QtCore.QObject):
     @staticmethod
     def _do_nothing():
         pass
-
-
-# class TaskWorker(QtCore.QRunnable):
-#     def __init__(self, task=None, callback=None, nl=0):
-#         super(TaskWorker, self).__init__()
-#         self.task = task if task is not None else self._do_nothing
-#         self.callback = callback
-#         self.nl = nl
-#         self.stop_requested = False
-#         self.signals = TaskWorkerSignals()
-#         self.setAutoDelete(True)
-#
-#     def run(self):
-#         try:
-#             if self.nl == 0:
-#                 while not self.stop_requested:
-#                     self.task()
-#                     if self.callback is not None:
-#                         self.callback()
-#                     self.signals.finished.emit()
-#             else:
-#                 for i in range(self.nl):
-#                     if self.stop_requested:
-#                         break
-#                     self.task()
-#                     if self.callback is not None:
-#                         self.callback()
-#                     self.signals.finished.emit()
-#         except Exception as e:
-#             self.signals.error.emit((e, traceback.format_exc()))
-#             return
-#
-#     def stop(self):
-#         self.stop_requested = True
-#
-#     @staticmethod
-#     def _do_nothing():
-#         pass
 
 
 class LoopWorker(QtCore.QObject):
