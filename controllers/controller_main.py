@@ -120,7 +120,6 @@ class MainController:
 
         self.close_loop_thread = None
 
-        # self.main_cam, self.wfs_cam = self.con_controller.get_camera_selections()
         self.main_camera = "EMCCD"
         self.wfs_camera = "sCMOS"
         if "EMCCD" == self.main_camera:
@@ -136,14 +135,6 @@ class MainController:
         # self.pixel_size_wfs = self.main_cam.ps / 210
 
         print("Finish setting up controllers")
-
-    # def start_task_thread(self, task, callback, iteration):
-    #     try:
-    #         self.task_threadpool = QtCore.QThreadPool()
-    #         self.task_worker = TaskWorker(task, callback, nl=iteration)
-    #         self.task_threadpool.start(self.task_worker)
-    #     except Exception as e:
-    #         self.logg.error_log.error(f"Task Thread Error: {e}")
 
     def run_task(self, task, iteration=1, callback=None, parent=None):
         if self.task_worker is not None:
