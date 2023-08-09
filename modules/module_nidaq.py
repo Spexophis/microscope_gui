@@ -26,6 +26,8 @@ class NIDAQ:
                       "clock": nidaqmx.Task("clock")}
         self._runtask = {key: False for key in self.tasks.keys()}
         try:
+            self.tasks["piezo"].ao_channels.add_ao_voltage_chan("Dev1/ao0:1", min_val=0., max_val=10.)
+            self.tasks["galvo"].ao_channels.add_ao_voltage_chan("Dev1/ao2:3", min_val=-10., max_val=10.)
             self.tasks["piezo_pos"].ai_channels.add_ai_voltage_chan("Dev1/ai0:2", min_val=0., max_val=10.)
             self.tasks["digital"].do_channels.add_do_chan("Dev1/port0/line0:5",
                                                           line_grouping=LineGrouping.CHAN_PER_LINE)
@@ -46,9 +48,11 @@ class NIDAQ:
     def set_piezo_position(self, pos_x, pos_y):
         if self.tasks["piezo"].is_task_done():
             self.tasks["piezo"].close()
+            del self.tasks["piezo"]
         else:
             self.tasks["piezo"].stop()
             self.tasks["piezo"].close()
+            del self.tasks["piezo"]
         try:
             self.tasks["piezo"] = nidaqmx.Task("piezo")
             self.tasks["piezo"].ao_channels.add_ao_voltage_chan("Dev1/ao0:1", min_val=0., max_val=10.)
@@ -76,9 +80,11 @@ class NIDAQ:
     def piezo_scan(self, piezo_sequence):
         if self.tasks["piezo"].is_task_done():
             self.tasks["piezo"].close()
+            del self.tasks["piezo"]
         else:
             self.tasks["piezo"].stop()
             self.tasks["piezo"].close()
+            del self.tasks["piezo"]
         try:
             self.tasks["piezo"] = nidaqmx.Task("piezo")
             self.tasks["piezo"].ao_channels.add_ao_voltage_chan("Dev1/ao0:1", min_val=0., max_val=10.)
@@ -95,11 +101,13 @@ class NIDAQ:
     def set_galvo_position(self, pos_x, pos_y):
         if self.tasks["galvo"].is_task_done():
             self.tasks["galvo"].close()
+            del self.tasks["galvo"]
         else:
             self.tasks["galvo"].stop()
             self.tasks["galvo"].close()
+            del self.tasks["galvo"]
         try:
-            self.tasks["galvo"] = nidaqmx.Task("piezo")
+            self.tasks["galvo"] = nidaqmx.Task("galvo")
             self.tasks["galvo"].ao_channels.add_ao_voltage_chan("Dev1/ao2:3", min_val=-10., max_val=10.)
             self.tasks["galvo"].timing.cfg_samp_clk_timing(self.frequency, source="100kHzTimebase",
                                                            active_edge=Edge.RISING,
@@ -115,11 +123,13 @@ class NIDAQ:
     def galvo_scan(self, galvo_sequence):
         if self.tasks["galvo"].is_task_done():
             self.tasks["galvo"].close()
+            del self.tasks["galvo"]
         else:
             self.tasks["galvo"].stop()
             self.tasks["galvo"].close()
+            del self.tasks["galvo"]
         try:
-            self.tasks["galvo"] = nidaqmx.Task("piezo")
+            self.tasks["galvo"] = nidaqmx.Task("galvo")
             self.tasks["galvo"].ao_channels.add_ao_voltage_chan("Dev1/ao2:3", min_val=-10., max_val=10.)
             _channels, _samples = galvo_sequence.shape
             self.tasks["galvo"].timing.cfg_samp_clk_timing(self.frequency, source="Ctr0InternalOutput",
