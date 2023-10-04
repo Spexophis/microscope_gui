@@ -322,9 +322,12 @@ class MainController:
         try:
             if "EMCCD" == self.main_camera:
                 x, y, n, b = self.con_controller.get_emccd_roi()
-                self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
-                gain = self.con_controller.get_emccd_gain()
-                self.main_cam.set_gain(gain)
+                self.main_cam.bin_h, self.main_cam.bin_h = b, b
+                self.main_cam.start_h, self.main_cam.end_h = x, x + n - 1
+                self.main_cam.start_v, self.main_cam.end_v = y, y + n - 1
+                self.main_cam.set_roi()
+                self.main_cam.gain = self.con_controller.get_emccd_gain()
+                self.main_cam.set_gain()
             elif "sCMOS" == self.main_camera:
                 x, y, n, b = self.con_controller.get_scmos_roi()
                 self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
@@ -381,7 +384,8 @@ class MainController:
     def update_trigger_parameters(self):
         try:
             lasers = self.con_controller.get_lasers()
-            camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
+            camera = self.con_controller.get_camera()
+            sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
             self.p.trigger.update_digital_parameters(sequence_time, digital_starts, digital_ends)
             gv_starts, gv_stops, dotspos = self.con_controller.get_galvo_scan_parameters()
             self.p.trigger.update_galvo_scan_parameters(gv_start=gv_starts[0], gv_stop=gv_stops[0],
@@ -389,16 +393,9 @@ class MainController:
                                                         laser_interval=dotspos[1])
             axis_lengths, step_sizes, analog_start = self.con_controller.get_piezo_scan_parameters()
             positions = self.con_controller.get_piezo_positions()
-            axis_start_pos = [i - j for i, j in zip(positions, [k / 2 for k in axis_lengths])]
-            self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, axis_start_pos, analog_start)
+            self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, positions)
+            self.p.trigger.update_camera_parameters(self.main_cam.t_clean, self.main_cam.t_readout, self.main_cam.t_kinetic)
             return lasers, camera
-        except Exception as e:
-            self.logg.error_log.error(f"Trigger Error: {e}")
-
-    def generate_live_triggers(self):
-        try:
-            lasers, camera = self.update_trigger_parameters()
-            return self.p.trigger.generate_digital_triggers(lasers, camera)
         except Exception as e:
             self.logg.error_log.error(f"Trigger Error: {e}")
 
@@ -407,10 +404,10 @@ class MainController:
             self.set_lasers()
             self.set_main_camera_roi()
             self.main_cam.prepare_live()
+            lasers, camera = self.update_trigger_parameters()
+            digital_sequences = self.p.trigger.generate_digital_triggers(lasers, camera)
             self.main_cam.start_live()
-            self.m.daq.run_digital_trigger(self.generate_live_triggers(),
-                                           clock_source="100kHzTimebase",
-                                           mode="continuous")
+            self.m.daq.run_digital_trigger(digital_sequences, clock_source="100kHzTimebase", mode="continuous")
             self.thread_video.start()
         except Exception as e:
             self.logg.error_log.error(f"Error starting main camera video: {e}")
@@ -490,8 +487,8 @@ class MainController:
             self.run_confocal_scanning()
         if acq_mod == "GalvoScan 2D":
             self.run_galvo_scanning()
-        # if acq_mod == "RESOLFT 2D":
-        #     self.run_resolft()
+        if acq_mod == "BeadScan 2D":
+            self.run_bead_scan()
 
     def prepare_widefield_zstack(self):
         try:
@@ -569,7 +566,6 @@ class MainController:
             self.m.daq.stop_triggers()
             self.main_cam.stop_live()
             self.lasers_off()
-            self.m.daq.stop_triggers()
             print("Galvo scanning image acquired")
         except Exception as e:
             self.logg.error_log.error(f"Error stopping galvo scanning: {e}")
@@ -607,13 +603,48 @@ class MainController:
             self.m.daq.stop_triggers()
             self.main_cam.stop_live()
             self.lasers_off()
-            self.m.daq.stop_triggers()
             print("Confocal scanning image acquired")
         except Exception as e:
             self.logg.error_log.error(f"Error stopping confocal scanning: {e}")
 
     def run_confocal_scanning(self):
         self.run_task(task=self.confocal_scanning)
+
+    def prepare_bead_scan(self):
+        try:
+            self.set_lasers()
+            self.set_main_camera_roi()
+        except Exception as e:
+            self.logg.error_log.error(f"Error starting beads scanning: {e}")
+
+    def bead_scan_2d(self):
+        self.prepare_bead_scan()
+        try:
+            lasers, camera = self.update_trigger_parameters()
+            atr, dtr, pos = self.p.trigger.generate_bead_scan_2d(3)
+            self.main_cam.prepare_data_acquisition(pos)
+            self.main_cam.start_data_acquisition()
+            time.sleep(0.02)
+            self.m.daq.run_triggers(piezo_sequence=atr, galvo_sequence=None, digital_sequences=dtr)
+            time.sleep(0.1)
+            data = self.main_cam.get_images(pos)
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_bead_scanning.tif')
+            tf.imwrite(fd, data)
+            # self.view_controller.plot_main(data)
+        except Exception as e:
+            self.logg.error_log.error(f"Error running beads scanning: {e}")
+        self.finish_bead_scan()
+
+    def finish_bead_scan(self):
+        try:
+            self.m.daq.stop_triggers()
+            self.lasers_off()
+            print("Beads scanning image acquired")
+        except Exception as e:
+            self.logg.error_log.error(f"Error stopping confocal scanning: {e}")
+
+    def run_bead_scan(self):
+        self.run_task(task=self.bead_scan_2d)
 
     def save_data(self, file_name):
         try:

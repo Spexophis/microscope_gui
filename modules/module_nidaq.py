@@ -1,7 +1,7 @@
 import warnings
 
 import nidaqmx
-from nidaqmx.constants import Edge, AcquisitionType, LineGrouping, FrequencyUnits, Level
+from nidaqmx.constants import Edge, AcquisitionType, LineGrouping, FrequencyUnits, Level, WAIT_INFINITELY
 from nidaqmx.error_codes import DAQmxWarnings
 from nidaqmx.system import System
 
@@ -61,7 +61,7 @@ class NIDAQ:
                                                            sample_mode=AcquisitionType.FINITE,
                                                            samps_per_chan=1)
             self.tasks["piezo"].write([pos_x, pos_y], auto_start=True)
-            self.tasks["piezo"].wait_until_done()
+            self.tasks["piezo"].wait_until_done(WAIT_INFINITELY)
             self.tasks["piezo"].stop()
         except nidaqmx.DaqWarning as e:
             print("DaqWarning caught as exception: {0}\n".format(e))
@@ -114,7 +114,7 @@ class NIDAQ:
                                                            sample_mode=AcquisitionType.FINITE,
                                                            samps_per_chan=1)
             self.tasks["galvo"].write([[pos_x], [pos_y]], auto_start=True)
-            self.tasks["galvo"].wait_until_done()
+            self.tasks["galvo"].wait_until_done(WAIT_INFINITELY)
             self.tasks["galvo"].stop()
         except nidaqmx.DaqWarning as e:
             print("DaqWarning caught as exception: {0}\n".format(e))
@@ -167,20 +167,20 @@ class NIDAQ:
             self._runtask["digital"] = True
             self._runtask["clock"] = True
             if mode != "continuous":
-                self.tasks["digital"].wait_until_done()
+                self.tasks["digital"].wait_until_done(WAIT_INFINITELY)
         elif clock_source == "100kHzTimebase":
             self.write_digital_sequences(digital_sequences, clock_source, _mode)
             self.tasks["digital"].start()
             self._runtask["digital"] = True
             if mode != "continuous":
-                self.tasks["digital"].wait_until_done()
+                self.tasks["digital"].wait_until_done(WAIT_INFINITELY)
 
     def run_digital_triggers(self, n):
         for i in range(n):
             try:
                 self.tasks["digital"].start()
                 self._runtask["digital"] = True
-                self.tasks["digital"].wait_until_done()
+                self.tasks["digital"].wait_until_done(WAIT_INFINITELY)
                 self.tasks["digital"].stop()
                 self._runtask["digital"] = False
             except nidaqmx.DaqWarning as e:
@@ -203,9 +203,11 @@ class NIDAQ:
                 self.write_digital_sequences(digital_sequences, clock_source, mode)
                 self.tasks["digital"].start()
                 self.tasks["clock"].start()
+                print("Trigger run")
                 self._runtask["digital"] = True
                 self._runtask["clock"] = True
-                self.tasks["digital"].wait_until_done()
+                self.tasks["digital"].wait_until_done(WAIT_INFINITELY)
+                print("Trigger finishe")
             else:
                 clock_source = "100kHzTimebase"
                 mode = AcquisitionType.CONTINUOUS

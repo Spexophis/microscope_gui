@@ -268,6 +268,9 @@ class HamamatsuCamera(object):
         self.number_image_buffers = 0
         self.acquisition_mode = "run_till_abort"
         self.number_frames = 0
+        self.t_exposure = None
+        self.t_readout = None
+        self.t_cycle = None
         # Initialization
         init_param = DCAMAPI_INIT(0, 0, 0, 0, None, None)
         init_param.size = ctypes.sizeof(init_param)

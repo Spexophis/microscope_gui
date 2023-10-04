@@ -10,9 +10,21 @@ class ConController:
     def get_emccd_gain(self):
         return self.v.QSpinBox_emccd_gain.value()
 
+    def get_emccd_expo(self):
+        return self.v.QDoubleSpinBox_emccd_exposure_time.value()
+
+    def set_emccd_expo(self, t):
+        self.v.QDoubleSpinBox_emccd_exposure_time.setValue(t)
+
     def get_scmos_roi(self):
         return [self.v.QSpinBox_scmos_coordinate_x.value(), self.v.QSpinBox_scmos_coordinate_y.value(),
                 self.v.QSpinBox_scmos_coordinate_n.value(), self.v.QSpinBox_scmos_coordinate_bin.value()]
+
+    def get_scmos_expo(self):
+        return self.v.QDoubleSpinBox_scmos_exposure_time.value()
+
+    def set_scmos_expo(self, t):
+        self.v.QDoubleSpinBox_scmos_exposure_time.setValue(t)
 
     def get_deck_movement(self):
         return [self.v.QDoubleSpinBox_deck_movement.value(), self.v.QDoubleSpinBox_deck_velocity.value()]
@@ -40,8 +52,11 @@ class ConController:
         return [self.v.QDoubleSpinBox_laserpower_405.value(), self.v.QDoubleSpinBox_laserpower_488_0.value(),
                 self.v.QDoubleSpinBox_laserpower_488_1.value(), self.v.QDoubleSpinBox_laserpower_488_2.value()]
 
-    def get_digital_parameters(self):
+    def get_camera(self):
         detection_device = self.v.QComboBox_camera_selection.currentIndex()
+        return detection_device
+
+    def get_digital_parameters(self):
         sequence_time = self.v.QDoubleSpinBox_cycle_period.value()
         digital_starts = [self.v.QDoubleSpinBox_ttl_start_on_405.value(),
                           self.v.QDoubleSpinBox_ttl_start_off_488_0.value(),
@@ -55,7 +70,7 @@ class ConController:
                         self.v.QDoubleSpinBox_ttl_stop_read_488_2.value(),
                         self.v.QDoubleSpinBox_ttl_stop_camera_main.value(),
                         self.v.QDoubleSpinBox_ttl_stop_camera_wfs.value()]
-        return detection_device, sequence_time, digital_starts, digital_ends
+        return sequence_time, digital_starts, digital_ends
 
     def get_piezo_scan_parameters(self):
         axis_lengths = [self.v.QDoubleSpinBox_range_x.value(), self.v.QDoubleSpinBox_range_y.value(),

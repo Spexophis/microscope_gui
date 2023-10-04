@@ -330,7 +330,8 @@ class ConWidget(QtWidgets.QWidget):
                                                                           "Widefield 2D", "Widefield 3D",
                                                                           "Confocal 2D", "Confocal 3D",
                                                                           "GalvoScan 2D", "GalvoScan 3D",
-                                                                          "RESOLFT 2D", "RESOLFT 3D"])
+                                                                          "RESOLFT 2D", "RESOLFT 3D",
+                                                                          "BeadScan 2D"])
         self.QLabel_camera_selection = cw.label_widget(str('Camera'))
         self.QComboBox_camera_selection = cw.combobox_widget(list_items=['Main', 'WFS', 'TIS'])
         self.QPushButton_acquire = cw.pushbutton_widget('Acquire')
@@ -644,6 +645,33 @@ class ConWidget(QtWidgets.QWidget):
             self.QDoubleSpinBox_ttl_stop_camera_main.setValue(0.065)
             self.QDoubleSpinBox_ttl_start_camera_wfs.setValue(0.010)
             self.QDoubleSpinBox_ttl_stop_camera_wfs.setValue(0.065)
+        if presets == "BeadScan 2D":
+            self.QDoubleSpinBox_cycle_period.setValue(0.040)
+            self.QDoubleSpinBox_piezo_start.setValue(0.032)
+            self.QDoubleSpinBox_step_x.setValue(0.032)
+            self.QDoubleSpinBox_step_y.setValue(0.032)
+            self.QDoubleSpinBox_step_z.setValue(0.000)
+            self.QDoubleSpinBox_range_x.setValue(0.640)
+            self.QDoubleSpinBox_range_y.setValue(0.640)
+            self.QDoubleSpinBox_range_z.setValue(0.000)
+            self.QDoubleSpinBox_galvo_start_x.setValue(0.000)
+            self.QDoubleSpinBox_galvo_start_y.setValue(0.000)
+            self.QDoubleSpinBox_galvo_stop_x.setValue(0.000)
+            self.QDoubleSpinBox_galvo_stop_y.setValue(0.000)
+            self.QSpinBox_galvo_laser_start.setValue(0)
+            self.QSpinBox_galvo_laser_interval.setValue(0)
+            self.QDoubleSpinBox_ttl_start_on_405.setValue(0.000)
+            self.QDoubleSpinBox_ttl_stop_on_405.setValue(0.000)
+            self.QDoubleSpinBox_ttl_start_off_488_0.setValue(0.000)
+            self.QDoubleSpinBox_ttl_stop_off_488_0.setValue(0.000)
+            self.QDoubleSpinBox_ttl_start_off_488_1.setValue(0.000)
+            self.QDoubleSpinBox_ttl_stop_off_488_1.setValue(0.000)
+            self.QDoubleSpinBox_ttl_start_read_488_2.setValue(0.008)
+            self.QDoubleSpinBox_ttl_stop_read_488_2.setValue(0.032)
+            self.QDoubleSpinBox_ttl_start_camera_main.setValue(0.008)
+            self.QDoubleSpinBox_ttl_stop_camera_main.setValue(0.032)
+            self.QDoubleSpinBox_ttl_start_camera_wfs.setValue(0.000)
+            self.QDoubleSpinBox_ttl_stop_camera_wfs.setValue(0.000)
 
 
 import sys
