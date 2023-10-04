@@ -25,8 +25,8 @@ class TriggerSequence:
     galvo_laser_start = 8
     galvo_laser_interval = 16
     # digital triggers
-    digital_starts = [0.002, 0.007, 0.007, 0.012, 0.007, 0.012]
-    digital_ends = [0.004, 0.010, 0.010, 0.015, 0.010, 0.015]
+    digital_starts = [0.002, 0.007, 0.007, 0.012, 0.012, 0.012]
+    digital_ends = [0.004, 0.010, 0.010, 0.015, 0.015, 0.015]
 
     def __init__(self):
         pass
@@ -292,13 +292,27 @@ class TriggerSequence:
         digital_trigger[camera + 4] = camera_trigger
         return analog_trigger, digital_trigger, pos
 
-    def generate_bead_scan_2d(self, l):
+    def generate_bead_scan_2d(self, cam_ind=4):
         digital_trigger_sequences = []
         analog_trigger_sequences = []
-        cycle_samples = self.sequence_time * self.sample_rate
-        cycle_samples = int(np.ceil(cycle_samples))
-        return_samples = self.piezo_return_time * self.sample_rate
-        return_samples = int(np.ceil(return_samples))
+        cycle_samples = int(np.ceil(self.sequence_time * self.sample_rate))
+        initial_samples = int(np.ceil(self.initial_time * self.sample_rate))
+        standby_samples = int(np.ceil(self.standby_time * self.sample_rate))
+        return_samples = int(np.ceil(self.piezo_return_time * self.sample_rate))
+        _starts = [int(digital_start * self.sample_rate) for digital_start in self.digital_starts]
+        _ends = [int(digital_end * self.sample_rate) for digital_end in self.digital_ends]
+        digital_start = _starts[cam_ind]
+        digital_end = _ends[cam_ind]
+        if digital_start <= initial_samples:
+            temp = initial_samples - digital_start
+            _starts = [(_start + temp) for _start in _starts]
+            _ends = [(_end + temp) for _end in _ends]
+            cycle_samples += temp
+            digital_end = _ends[cam_ind]
+        if (cycle_samples - digital_end) <= standby_samples:
+            cycle_samples = digital_end + standby_samples
+        print(cycle_samples / self.sample_rate)
+
         [fast_axis_size, middle_axis_size] = [(self.piezo_ranges[i] / self.piezo_conv_factors[i]) for i in range(2)]
         [fast_axis_step_size, middle_axis_step_size] = [(self.piezo_step_sizes[i] / self.piezo_conv_factors[i]) for i in
                                                         range(2)]
@@ -309,7 +323,7 @@ class TriggerSequence:
         # total_samples = ((cycle_samples * fast_axis_positions) + return_samples) * middle_axis_positions
 
         cycle = np.zeros(cycle_samples)
-        digital_start = int(np.round(self.piezo_analog_start * self.sample_rate))
+        digital_start = _ends[cam_ind]
         cycle[digital_start:] = np.linspace(0, 1, int(cycle_samples - digital_start))
         temp = cycle * fast_axis_step_size
         for j in range(fast_axis_positions - 2):
@@ -332,18 +346,17 @@ class TriggerSequence:
                 middle_axis_positions - 1)
         analog_trigger_sequences.append(np.append(temp, cycle) + middle_axis_start)
 
-        for i, start in enumerate(self.digital_starts):
+        for i, start in enumerate(_starts):
             temp = np.zeros(cycle_samples)
-            digital_start = int(np.round(start * self.sample_rate))
-            digital_end = int(np.round(self.digital_ends[i] * self.sample_rate))
-            temp[digital_start:digital_end] = 1
+            end = _ends[i]
+            temp[start:end] = 1
             digital_trigger_sequences.append(np.tile(temp, fast_axis_positions))
             digital_trigger_sequences[i] = np.append(digital_trigger_sequences[i], np.zeros(return_samples))
             digital_trigger_sequences[i] = np.tile(digital_trigger_sequences[i], middle_axis_positions)
         digital_trigger_sequences[0].fill(0)
         digital_trigger_sequences[1].fill(0)
         digital_trigger_sequences[2].fill(0)
-        digital_trigger_sequences[l] = digital_trigger_sequences[3]
+        digital_trigger_sequences[cam_ind] = digital_trigger_sequences[3]
 
         return np.asarray(analog_trigger_sequences), np.asarray(digital_trigger_sequences), positions
 
