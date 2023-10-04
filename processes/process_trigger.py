@@ -353,10 +353,10 @@ class TriggerSequence:
             digital_trigger_sequences.append(np.tile(temp, fast_axis_positions))
             digital_trigger_sequences[i] = np.append(digital_trigger_sequences[i], np.zeros(return_samples))
             digital_trigger_sequences[i] = np.tile(digital_trigger_sequences[i], middle_axis_positions)
-        digital_trigger_sequences[0].fill(0)
-        digital_trigger_sequences[1].fill(0)
-        digital_trigger_sequences[2].fill(0)
-        digital_trigger_sequences[cam_ind] = digital_trigger_sequences[3]
+        # digital_trigger_sequences[0].fill(0)
+        # digital_trigger_sequences[1].fill(0)
+        # digital_trigger_sequences[2].fill(0)
+        # digital_trigger_sequences[cam_ind] = digital_trigger_sequences[3]
 
         return np.asarray(analog_trigger_sequences), np.asarray(digital_trigger_sequences), positions
 

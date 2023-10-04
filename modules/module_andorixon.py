@@ -321,6 +321,14 @@ class EMCCDCamera:
                 "number of accumulations completed = {} \n"
                 "kinetic scans completed = {}".format(ret, self.numAccumulate, self.numKinetics))
 
+    def get_data(self, num):
+        (ret, data_array) = self.sdk.GetAcquiredData16(num * self.img_size)
+        if atmcd_errors.Error_Codes.DRV_SUCCESS == ret:
+            print('Data Retrieved')
+            return data_array.reshape(num, self.pixels_x, self.pixels_y)
+        else:
+            print(atmcd_errors.Error_Codes(ret))
+
     def free_memory(self):
         ret = self.sdk.FreeInternalMemory()
         if atmcd_errors.Error_Codes.DRV_SUCCESS == ret:
