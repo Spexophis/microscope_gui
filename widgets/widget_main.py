@@ -52,10 +52,10 @@ class MainWidget(QtWidgets.QMainWindow):
         return self.ao_view
 
 
-# import sys
-#
-# if __name__ == '__main__':
-#     app = QtWidgets.QApplication(sys.argv)
-#     gui = MainWidget(config=None, logg=None, path=None)
-#     gui.show()
-#     sys.exit(app.exec_())
+import sys
+
+if __name__ == '__main__':
+    app = QtWidgets.QApplication(sys.argv)
+    gui = MainWidget(config=None, logg=None, path=None)
+    gui.show()
+    sys.exit(app.exec_())

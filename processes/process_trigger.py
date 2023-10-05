@@ -92,6 +92,21 @@ class TriggerSequence:
             digital_trigger[laser, digital_start:digital_end] = 1
         return digital_trigger
 
+    def generate_wfs_triggers(self, lasers, camera):
+        _starts = [int(digital_start * self.sample_rate) for digital_start in self.digital_starts]
+        _ends = [int(digital_end * self.sample_rate) for digital_end in self.digital_ends]
+        cycle_samples = int(np.ceil(self.sequence_time * self.sample_rate))
+        digital_trigger = np.zeros((len(self.digital_starts), cycle_samples))
+        for laser in lasers:
+            digital_start = _starts[laser]
+            digital_end = _ends[laser]
+            digital_trigger[laser, digital_start:digital_end] = 1
+        cam_ind = camera + 4
+        digital_start = _starts[cam_ind]
+        digital_end = _ends[cam_ind]
+        digital_trigger[cam_ind, digital_start:digital_end] = 1
+        return digital_trigger
+
     def generate_confocal_triggers(self, lasers, camera):
         """
         analog to galvo x and y

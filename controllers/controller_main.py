@@ -394,20 +394,24 @@ class MainController:
             axis_lengths, step_sizes, analog_start = self.con_controller.get_piezo_scan_parameters()
             positions = self.con_controller.get_piezo_positions()
             self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, positions)
-            self.p.trigger.update_camera_parameters(self.main_cam.t_clean, self.main_cam.t_readout, self.main_cam.t_kinetic)
+            self.p.trigger.update_camera_parameters(self.main_cam.t_clean, self.main_cam.t_readout,
+                                                    self.main_cam.t_kinetic)
             return lasers, camera
         except Exception as e:
             self.logg.error_log.error(f"Trigger Error: {e}")
+
+    def generate_live_triggers(self):
+        lasers, camera = self.update_trigger_parameters()
+        return self.p.trigger.generate_digital_triggers(lasers, camera)
 
     def start_video(self):
         try:
             self.set_lasers()
             self.set_main_camera_roi()
             self.main_cam.prepare_live()
-            lasers, camera = self.update_trigger_parameters()
-            digital_sequences = self.p.trigger.generate_digital_triggers(lasers, camera)
             self.main_cam.start_live()
-            self.m.daq.run_digital_trigger(digital_sequences, clock_source="100kHzTimebase", mode="continuous")
+            self.m.daq.run_digital_trigger(self.generate_live_triggers(), clock_source="100kHzTimebase",
+                                           mode="continuous")
             self.thread_video.start()
         except Exception as e:
             self.logg.error_log.error(f"Error starting main camera video: {e}")
@@ -469,13 +473,10 @@ class MainController:
 
     def plot_trigger(self):
         try:
-            lasers = self.con_controller.get_lasers()
-            camera, sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
-            self.p.trigger.update_digital_parameters(sequence_time, digital_starts, digital_ends)
-            dgtr = self.p.trigger.generate_digital_triggers(lasers, camera)
-            self.view_controller.plot_update(dgtr[0])
-            for i in range(len(digital_starts) - 1):
-                self.view_controller.plot(dgtr[i + 1] + i + 1)
+            dtr = self.generate_live_triggers()
+            self.view_controller.plot_update(dtr[0])
+            for i in range(dtr.shape[0] - 1):
+                self.view_controller.plot(dtr[i + 1] + i + 1)
         except Exception as e:
             self.logg.error_log.error(f"Error plotting digital triggers: {e}")
 
@@ -493,16 +494,16 @@ class MainController:
     def prepare_widefield_zstack(self):
         try:
             self.set_lasers()
-            self.m.daq.write_digital_sequences(self.generate_live_triggers())
             self.set_main_camera_roi()
             self.main_cam.prepare_live()
-            self.main_cam.start_live()
+            self.m.daq.write_digital_sequences(self.generate_live_triggers())
         except Exception as e:
             self.logg.error_log.error(f"Error starting widefield zstack: {e}")
 
     def widefield_zstack(self):
         self.prepare_widefield_zstack()
         try:
+            self.main_cam.start_live()
             positions = self.con_controller.get_piezo_positions()
             axis_lengths, step_sizes, analog_start = self.con_controller.get_piezo_scan_parameters()
             num_steps = int(axis_lengths[2] / (2 * step_sizes[2]))
@@ -542,7 +543,6 @@ class MainController:
             self.set_lasers()
             self.set_main_camera_roi()
             self.main_cam.prepare_live()
-            self.main_cam.start_live()
         except Exception as e:
             self.logg.error_log.error(f"Error starting galvo scanning: {e}")
 
@@ -551,6 +551,8 @@ class MainController:
         try:
             lasers, camera = self.update_trigger_parameters()
             atr, dtr, pos = self.p.trigger.generate_galvo_scanning(lasers, camera)
+            self.main_cam.start_live()
+            time.sleep(0.02)
             self.m.daq.run_triggers(piezo_sequence=None, galvo_sequence=atr, digital_sequences=dtr)
             time.sleep(0.1)
             data = self.main_cam.get_last_image()
@@ -578,7 +580,6 @@ class MainController:
             self.set_lasers()
             self.set_main_camera_roi()
             self.main_cam.prepare_live()
-            self.main_cam.start_live()
         except Exception as e:
             self.logg.error_log.error(f"Error starting confocal scanning: {e}")
 
@@ -587,6 +588,8 @@ class MainController:
         try:
             lasers, camera = self.update_trigger_parameters()
             atr, dtr, pos = self.p.trigger.generate_confocal_triggers(lasers, camera)
+            self.main_cam.start_live()
+            time.sleep(0.02)
             self.m.daq.run_triggers(piezo_sequence=None, galvo_sequence=atr, digital_sequences=dtr)
             time.sleep(0.1)
             data = self.main_cam.get_last_image()
@@ -704,6 +707,22 @@ class MainController:
         except Exception as e:
             self.logg.error_log.error(f"DM Error: {e}")
 
+    def update_wfs_trigger_parameters(self):
+        try:
+            lasers = self.con_controller.get_lasers()
+            camera = self.con_controller.get_camera()
+            sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
+            self.p.trigger.update_digital_parameters(sequence_time, digital_starts, digital_ends)
+            # self.p.trigger.update_camera_parameters(self.wfs_cam.t_clean, self.wfs_cam.t_readout,
+            #                                         self.wfs_cam.t_kinetic)
+            return lasers, camera
+        except Exception as e:
+            self.logg.error_log.error(f"Trigger Error: {e}")
+
+    def generate_wfs_trigger(self):
+        lasers, camera = self.update_wfs_trigger_parameters()
+        return self.p.trigger.generate_wfs_triggers(lasers, camera)
+
     def set_img_wfs(self):
         try:
             parameters = self.ao_controller.get_parameters_img()
@@ -719,7 +738,7 @@ class MainController:
             self.set_wfs_camera_roi()
             self.wfs_cam.prepare_live()
             self.wfs_cam.start_live()
-            self.m.daq.run_digital_trigger(self.generate_live_triggers(),
+            self.m.daq.run_digital_trigger(self.generate_wfs_trigger(),
                                            clock_source="100kHzTimebase",
                                            mode="continuous")
             self.thread_wfs.start()
@@ -803,7 +822,7 @@ class MainController:
         self.set_wfs_camera_roi()
         self.wfs_cam.prepare_live()
         self.wfs_cam.start_live()
-        self.m.daq.write_digital_sequences(self.generate_live_triggers())
+        self.m.daq.write_digital_sequences(self.generate_wfs_trigger())
         for i in range(self.m.dm.nbAct):
             shimg = []
             print(i)
@@ -843,7 +862,7 @@ class MainController:
             self.set_wfs_camera_roi()
             self.wfs_cam.prepare_live()
             self.wfs_cam.start_live()
-            self.m.daq.write_digital_sequences(self.generate_live_triggers())
+            self.m.daq.write_digital_sequences(self.generate_wfs_trigger())
         except Exception as e:
             self.logg.error_log.error(f"CloseLoop Correction Error: {e}")
 
