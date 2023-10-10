@@ -1,7 +1,9 @@
 import ctypes as ct
 import logging
 import os
+import sys
 
+sys.path.append(r'C:\Program Files\Mad City Labs\MicroDrive')
 micro_dll_path = os.path.join('C:', os.sep, 'Program Files', 'Mad City Labs', 'MicroDrive', 'MicroDrive.dll')
 
 

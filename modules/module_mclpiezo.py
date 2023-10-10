@@ -1,7 +1,9 @@
 import ctypes as ct
 import logging
 import os
+import sys
 
+sys.path.append(r'C:\Program Files\Mad City Labs\NanoDrive')
 nano_dll_path = os.path.join('C:', os.sep, 'Program Files', 'Mad City Labs', 'NanoDrive', 'Madlib.dll')
 
 
@@ -67,6 +69,7 @@ class MCLNanoDrive:
                         ("FirmwareVersion", ct.c_short),
                         ("FirmwareProfile", ct.c_short)]
             _pack_ = 1  # this is how it is packed in the Madlib dll
+
         pi = ProductInfo()
         ppi = ct.pointer(pi)
         err = self.mcl_piezo.MCL_GetProductInfo(ppi, self.handle)
