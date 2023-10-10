@@ -4,35 +4,18 @@ from utilities import customized_widgets as cw
 
 
 class ConWidget(QtWidgets.QWidget):
+
     Signal_check_emccd_temperature = QtCore.pyqtSignal()
-    Signal_switch_emccd_cooler_on = QtCore.pyqtSignal()
-    Signal_switch_emccd_cooler_off = QtCore.pyqtSignal()
-    Signal_piezo_move_x = QtCore.pyqtSignal()
-    Signal_piezo_move_y = QtCore.pyqtSignal()
-    Signal_piezo_move_z = QtCore.pyqtSignal()
-    Signal_deck_up = QtCore.pyqtSignal()
-    Signal_deck_down = QtCore.pyqtSignal()
-    Signal_deck_move = QtCore.pyqtSignal()
-    Signal_deck_move_stop = QtCore.pyqtSignal()
+    Signal_switch_emccd_cooler = QtCore.pyqtSignal(bool)
+    Signal_piezo_move = QtCore.pyqtSignal(str, float)
+    Signal_deck_move_single_step = QtCore.pyqtSignal(bool)
+    Signal_deck_move_continuous = QtCore.pyqtSignal(bool)
     Signal_galvo_set = QtCore.pyqtSignal()
-    Signal_setcoordinates = QtCore.pyqtSignal()
-    Signal_resetcoordinates = QtCore.pyqtSignal()
-    Signal_setbin = QtCore.pyqtSignal()
-    Signal_setlaseron_488_0 = QtCore.pyqtSignal()
-    Signal_setlaseron_488_1 = QtCore.pyqtSignal()
-    Signal_setlaseron_488_2 = QtCore.pyqtSignal()
-    Signal_setlaseron_405 = QtCore.pyqtSignal()
-    Signal_setlaseroff_488_0 = QtCore.pyqtSignal()
-    Signal_setlaseroff_488_1 = QtCore.pyqtSignal()
-    Signal_setlaseroff_488_2 = QtCore.pyqtSignal()
-    Signal_setlaseroff_405 = QtCore.pyqtSignal()
+    Signal_set_laser = QtCore.pyqtSignal(str, bool)
     Signal_plot_trigger = QtCore.pyqtSignal()
-    Signal_start_video = QtCore.pyqtSignal()
-    Signal_stop_video = QtCore.pyqtSignal()
-    Signal_run_fft = QtCore.pyqtSignal()
-    Signal_stop_fft = QtCore.pyqtSignal()
-    Signal_run_plot_profile = QtCore.pyqtSignal()
-    Signal_stop_plot_profile = QtCore.pyqtSignal()
+    Signal_video = QtCore.pyqtSignal(bool)
+    Signal_fft = QtCore.pyqtSignal(bool)
+    Signal_plot_profile = QtCore.pyqtSignal(bool)
     Signal_data_acquire = QtCore.pyqtSignal()
     Signal_save_file = QtCore.pyqtSignal(str)
 
@@ -352,11 +335,11 @@ class ConWidget(QtWidgets.QWidget):
     def _set_signals(self):
         self.QPushButton_emccd_cooler_check.clicked.connect(self.Signal_check_emccd_temperature.emit)
         self.QPushButton_emccd_cooler_switch.clicked.connect(self.switch_emccd_cooler)
-        self.QDoubleSpinBox_stage_x.valueChanged.connect(self.Signal_piezo_move_x.emit)
-        self.QDoubleSpinBox_stage_y.valueChanged.connect(self.Signal_piezo_move_y.emit)
-        self.QDoubleSpinBox_stage_z.valueChanged.connect(self.Signal_piezo_move_z.emit)
-        self.QPushButton_move_deck_up.clicked.connect(self.deck_move_up)
-        self.QPushButton_move_deck_down.clicked.connect(self.deck_move_down)
+        self.QDoubleSpinBox_stage_x.valueChanged.connect(lambda value: self.Signal_piezo_move.emit("x", value))
+        self.QDoubleSpinBox_stage_y.valueChanged.connect(lambda value: self.Signal_piezo_move.emit("y", value))
+        self.QDoubleSpinBox_stage_z.valueChanged.connect(lambda value: self.Signal_piezo_move.emit("z", value))
+        self.QPushButton_move_deck_up.clicked.connect(lambda: self.Signal_deck_move_single_step.emit("True"))
+        self.QPushButton_move_deck_down.clicked.connect(lambda: self.Signal_deck_move_single_step.emit("False"))
         self.QPushButton_move_deck.clicked.connect(self.deck_move)
         self.QDoubleSpinBox_galvo_x.valueChanged.connect(self.Signal_galvo_set.emit)
         self.QDoubleSpinBox_galvo_y.valueChanged.connect(self.Signal_galvo_set.emit)
@@ -365,7 +348,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_laser_488_2.clicked.connect(self.set_laser_488_2)
         self.QPushButton_laser_405.clicked.connect(self.set_laser_405)
         self.QPushButton_plot_trigger.clicked.connect(self.plot_trigger_sequence)
-        self.QPushButton_video.clicked.connect(self.video)
+        self.QPushButton_video.clicked.connect(self.run_video)
         self.QPushButton_fft.clicked.connect(self.run_fft)
         self.QPushButton_plot_profile.clicked.connect(self.run_plot_profile)
         self.QPushButton_acquire.clicked.connect(self.Signal_data_acquire.emit)
@@ -375,77 +358,71 @@ class ConWidget(QtWidgets.QWidget):
     def switch_emccd_cooler(self, checked):
         if checked:
             self.QPushButton_emccd_cooler_switch.setText("Cooler ON")
-            self.Signal_switch_emccd_cooler_on.emit()
+            self.Signal_switch_emccd_cooler.emit(True)
         else:
             self.QPushButton_emccd_cooler_switch.setText("Cooler OFF")
-            self.Signal_switch_emccd_cooler_off.emit()
-
-    def deck_move_up(self):
-        self.Signal_deck_up.emit()
-
-    def deck_move_down(self):
-        self.Signal_deck_down.emit()
+            self.Signal_switch_emccd_cooler.emit(False)
 
     def deck_move(self):
         if self.QPushButton_move_deck.isChecked():
-            self.Signal_deck_move.emit()
+            self.Signal_deck_move_continuous.emit(True)
         else:
-            self.Signal_deck_move_stop.emit()
+            self.Signal_deck_move_continuous.emit(False)
 
     def set_laser_488_0(self):
         if self.QPushButton_laser_488_0.isChecked():
-            self.Signal_setlaseron_488_0.emit()
+            self.Signal_set_laser.emit("488_0", True)
         else:
-            self.Signal_setlaseroff_488_0.emit()
+            self.Signal_set_laser.emit("488_0", False)
 
     def set_laser_488_1(self):
         if self.QPushButton_laser_488_1.isChecked():
-            self.Signal_setlaseron_488_1.emit()
+            self.Signal_set_laser.emit("488_1", True)
         else:
-            self.Signal_setlaseroff_488_1.emit()
+            self.Signal_set_laser.emit("488_1", False)
 
     def set_laser_488_2(self):
         if self.QPushButton_laser_488_2.isChecked():
-            self.Signal_setlaseron_488_2.emit()
+            self.Signal_set_laser.emit("488_2", True)
         else:
-            self.Signal_setlaseroff_488_2.emit()
+            self.Signal_set_laser.emit("488_2", False)
 
     def set_laser_405(self):
         if self.QPushButton_laser_405.isChecked():
-            self.Signal_setlaseron_405.emit()
+            self.Signal_set_laser.emit("405", True)
         else:
-            self.Signal_setlaseroff_405.emit()
+            self.Signal_set_laser.emit("405", False)
 
     def plot_trigger_sequence(self):
         self.Signal_plot_trigger.emit()
 
-    def video(self):
+    def run_video(self):
         if self.QPushButton_video.isChecked():
-            self.Signal_start_video.emit()
+            self.Signal_video.emit(True)
             self.QPushButton_fft.setEnabled(True)
             self.QPushButton_plot_profile.setEnabled(True)
         else:
-            self.Signal_stop_video.emit()
+            self.Signal_video.emit(False)
             if self.QPushButton_fft.isChecked():
-                self.Signal_stop_plot_profile.emit()
+                self.Signal_fft.emit(False)
             self.QPushButton_fft.setEnabled(False)
             self.QPushButton_fft.setChecked(False)
             if self.QPushButton_plot_profile.isChecked():
-                self.Signal_stop_plot_profile.emit()
+                self.Signal_plot_profile.emit(False)
             self.QPushButton_plot_profile.setEnabled(False)
             self.QPushButton_plot_profile.setChecked(False)
 
     def run_fft(self):
         if self.QPushButton_fft.isChecked():
-            self.Signal_run_fft.emit()
+            self.Signal_fft.emit(True)
         else:
-            self.Signal_stop_fft.emit()
+            self.Signal_fft.emit(False)
 
     def run_plot_profile(self):
         if self.QPushButton_plot_profile.isChecked():
-            self.Signal_run_plot_profile.emit()
+            self.Signal_plot_profile.emit(True)
         else:
-            self.Signal_stop_plot_profile.emit()
+            self.Signal_plot_profile.emit(False)
 
     def save(self):
         dialog = cw.create_file_dialogue(name="Save File", file_filter="All Files (*)",

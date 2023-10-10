@@ -11,149 +11,64 @@ class CoboltLaser:
             self.logg = logging
         else:
             self.logg = logg
+        self.lasers = {}
         try:
-            self.l405 = pycobolt.Cobolt06MLD(port='COM4')
+            self.lasers["405"] = pycobolt.Cobolt06MLD(port='COM4')
             self.logg.info('405 nm Laser Connected')
-            self.l405_handle = True
         except Exception as e:
             self.logg.error(f"405 nm Laser Error: {e}")
-            self.l405_handle = False
         try:
-            self.l488_0 = pycobolt.Cobolt06MLD(port='COM5')
-            self.logg.info('488 nm Laser Connected')
-            self.l488_0_handle = True
+            self.lasers["488_0"] = pycobolt.Cobolt06MLD(port='COM5')
+            self.logg.info('488 nm #0 Laser Connected')
         except Exception as e:
-            self.logg.error(f"488 nm Laser Error: {e}")
-            self.l488_0_handle = False
+            self.logg.error(f"488 nm #0 Laser Error: {e}")
         try:
-            self.l488_1 = pycobolt.Cobolt06MLD(port='COM6')
+            self.lasers["488_1"] = pycobolt.Cobolt06MLD(port='COM6')
             self.logg.info('488 nm Laser #1 Connected')
-            self.l488_1_handle = True
         except Exception as e:
             self.logg.error(f"488 nm Laser #1 Error: {e}")
-            self.l488_1_handle = False
         try:
-            self.l488_2 = pycobolt.Cobolt06MLD(port='COM7')
+            self.lasers["488_2"] = pycobolt.Cobolt06MLD(port='COM7')
             self.logg.info('488 nm Laser #2 Connected')
-            self.l488_2_handle = True
         except Exception as e:
             self.logg.error(f"488 nm Laser #2 Error: {e}")
-            self.l488_2_handle = False
+        self._h = {key: True for key in self.lasers.keys()}
 
     def __del__(self):
         pass
 
     def close(self):
-        self.all_off()
-        if self.l405_handle:
-            del self.l405
-        if self.l488_0_handle:
-            del self.l488_0
-        if self.l488_1_handle:
-            del self.l488_1
-        if self.l488_2_handle:
-            del self.l488_2
+        self.laser_off("all")
+        for key, _l in self._h.items():
+            if _l:
+                del self.lasers[key]
 
-    def all_off(self):
-        if self.l405_handle:
-            self.l405.send_cmd('l0')
-        if self.l488_0_handle:
-            self.l488_0.send_cmd('l0')
-        if self.l488_1_handle:
-            self.l488_1.send_cmd('l0')
-        if self.l488_2_handle:
-            self.l488_2.send_cmd('l0')
+    def laser_off(self, laser):
+        if laser == "all":
+            for key, _l in self.lasers.items():
+                _l.send_cmd('l0')
+        else:
+            self.lasers[laser].send_cmd('l0')
 
-    def all_on(self):
-        if self.l405_handle:
-            self.l405.send_cmd('l1')
-        if self.l488_0_handle:
-            self.l488_0.send_cmd('l1')
-        if self.l488_1_handle:
-            self.l488_1.send_cmd('l1')
-        if self.l488_2_handle:
-            self.l488_2.send_cmd('l1')
+    def laser_on(self, laser):
+        if laser == "all":
+            for key, _l in self.lasers.items():
+                _l.send_cmd('l1')
+        else:
+            self.lasers[laser].send_cmd('l1')
 
-    def laserON_488_0(self):
-        if self.l488_0_handle:
-            self.l488_0.send_cmd('l1')
+    def set_constant_power(self, laser, power):
+        for ind, ln in enumerate(laser):
+            if self._h.get(ln, False):
+                self.lasers[ln].constant_power(power[ind])
 
-    def laserON_488_1(self):
-        if self.l488_1_handle:
-            self.l488_1.send_cmd('l1')
+    def set_constant_current(self, laser, current):
+        for ind, ln in enumerate(laser):
+            if self._h.get(ln, False):
+                self.lasers[ln].constant_current(current[ind])
 
-    def laserON_488_2(self):
-        if self.l488_2_handle:
-            self.l488_2.send_cmd('l1')
-
-    def laserON_405(self):
-        if self.l405_handle:
-            self.l405.send_cmd('l1')
-
-    def laserOFF_488_0(self):
-        if self.l488_0_handle:
-            self.l488_0.send_cmd('l0')
-
-    def laserOFF_488_1(self):
-        if self.l488_1_handle:
-            self.l488_1.send_cmd('l0')
-
-    def laserOFF_488_2(self):
-        if self.l488_2_handle:
-            self.l488_2.send_cmd('l0')
-
-    def laserOFF_405(self):
-        if self.l405_handle:
-            self.l405.send_cmd('l0')
-
-    def constant_power_488_0(self, p488_0):
-        if self.l488_0_handle:
-            self.l488_0.constant_power(p488_0)
-
-    def constant_power_488_1(self, p488_1):
-        if self.l488_1_handle:
-            self.l488_1.constant_power(p488_1)
-
-    def constant_power_488_2(self, p488_2):
-        if self.l488_2_handle:
-            self.l488_2.constant_power(p488_2)
-
-    def constant_power_405(self, p405):
-        if self.l405_handle:
-            self.l405.constant_power(p405)
-
-    def constant_current_488_0(self, i488_0):
-        if self.l488_0_handle:
-            self.l488_0.constant_current(i488_0)
-
-    def constant_current_488_1(self, i488_1):
-        if self.l488_1_handle:
-            self.l488_1.constant_current(i488_1)
-
-    def constant_current_488_2(self, i488_2):
-        if self.l488_2_handle:
-            self.l488_2.constant_current(i488_2)
-
-    def constant_current_405(self, i405):
-        if self.l405_handle:
-            self.l405.constant_current(i405)
-
-    def modulation_mode_488_0(self, p488_0):
-        if self.l488_0_handle:
-            self.l488_0.modulation_mode(p488_0)
-            self.l488_0.digital_modulation(enable=1)
-
-    def modulation_mode_488_1(self, p488_1):
-        if self.l488_1_handle:
-            self.l488_1.modulation_mode(p488_1)
-            self.l488_1.digital_modulation(enable=1)
-
-    def modulation_mode_488_2(self, p488_2):
-        if self.l488_2_handle:
-            self.l488_2.modulation_mode(p488_2)
-            self.l488_2.digital_modulation(enable=1)
-
-    def modulation_mode_405(self, p405):
-        if self.l405_handle:
-            self.l405.modulation_mode(p405)
-            self.l405.digital_modulation(enable=1)
+    def set_modulation_mode(self, laser, pw):
+        for ind, ln in enumerate(laser):
+            if self._h.get(ln, False):
+                self.lasers[ln].modulation_mode(pw[ind])
+                self.lasers[ln].digital_modulation(enable=1)

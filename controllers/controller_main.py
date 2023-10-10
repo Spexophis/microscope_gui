@@ -57,36 +57,21 @@ class MainController:
         self.task_worker = None
         self.task_thread = QtCore.QThread()
         # MCL Piezo
-        self.v.get_control_widget().Signal_piezo_move_x.connect(self.set_piezo_position_x)
-        self.v.get_control_widget().Signal_piezo_move_y.connect(self.set_piezo_position_y)
-        self.v.get_control_widget().Signal_piezo_move_z.connect(self.set_piezo_position_z)
+        self.v.get_control_widget().Signal_piezo_move.connect(self.set_piezo)
         # MCL Mad Deck
-        self.v.get_control_widget().Signal_deck_up.connect(self.move_deck_up)
-        self.v.get_control_widget().Signal_deck_down.connect(self.move_deck_down)
-        self.v.get_control_widget().Signal_deck_move.connect(self.move_deck)
-        self.v.get_control_widget().Signal_deck_move_stop.connect(self.move_deck_stop)
+        self.v.get_control_widget().Signal_deck_move_single_step.connect(self.move_deck_single_step)
+        self.v.get_control_widget().Signal_deck_move_continuous.connect(self.move_deck_continuous)
         # Galvo Scanners
         self.v.get_control_widget().Signal_galvo_set.connect(self.set_galvo)
         # Cobolt Lasers
-        self.v.get_control_widget().Signal_setlaseron_488_0.connect(self.set_laser_on_488_0)
-        self.v.get_control_widget().Signal_setlaseron_488_1.connect(self.set_laser_on_488_1)
-        self.v.get_control_widget().Signal_setlaseron_488_2.connect(self.set_laser_on_488_2)
-        self.v.get_control_widget().Signal_setlaseron_405.connect(self.set_laser_on_405)
-        self.v.get_control_widget().Signal_setlaseroff_488_0.connect(self.set_laser_off_488_0)
-        self.v.get_control_widget().Signal_setlaseroff_488_1.connect(self.set_laser_off_488_1)
-        self.v.get_control_widget().Signal_setlaseroff_488_2.connect(self.set_laser_off_488_2)
-        self.v.get_control_widget().Signal_setlaseroff_405.connect(self.set_laser_off_405)
+        self.v.get_control_widget().Signal_set_laser.connect(self.set_laser)
         # Main Image Control
         self.v.get_control_widget().Signal_check_emccd_temperature.connect(self.check_emdccd_temperature)
-        self.v.get_control_widget().Signal_switch_emccd_cooler_on.connect(self.switch_emdccd_cooler_on)
-        self.v.get_control_widget().Signal_switch_emccd_cooler_off.connect(self.switch_emdccd_cooler_off)
+        self.v.get_control_widget().Signal_switch_emccd_cooler.connect(self.switch_emdccd_cooler)
         self.v.get_control_widget().Signal_plot_trigger.connect(self.plot_trigger)
-        self.v.get_control_widget().Signal_start_video.connect(self.start_video)
-        self.v.get_control_widget().Signal_stop_video.connect(self.stop_video)
-        self.v.get_control_widget().Signal_run_fft.connect(self.run_fft)
-        self.v.get_control_widget().Signal_stop_fft.connect(self.stop_fft)
-        self.v.get_control_widget().Signal_run_plot_profile.connect(self.start_plot_live)
-        self.v.get_control_widget().Signal_stop_plot_profile.connect(self.stop_plot_live)
+        self.v.get_control_widget().Signal_video.connect(self.video)
+        self.v.get_control_widget().Signal_fft.connect(self.fft)
+        self.v.get_control_widget().Signal_plot_profile.connect(self.plot_live)
         # Main Data Recording
         self.v.get_control_widget().Signal_data_acquire.connect(self.data_acquisition)
         self.v.get_control_widget().Signal_save_file.connect(self.save_data)
@@ -152,6 +137,12 @@ class MainController:
         self.task_thread.wait()
         self.v.dialog.accept()
 
+    def move_deck_single_step(self, direction):
+        if direction:
+            self.move_deck_up()
+        else:
+            self.move_deck_down()
+
     def move_deck_up(self):
         try:
             _moving = self.m.md.isMoving()
@@ -178,6 +169,12 @@ class MainController:
         except Exception as e:
             self.logg.error_log.error(f"MadDeck Error: {e}")
 
+    def move_deck_continuous(self, moving):
+        if moving:
+            self.move_deck()
+        else:
+            self.stop_deck()
+
     def move_deck(self):
         try:
             _moving = self.m.md.isMoving()
@@ -193,7 +190,7 @@ class MainController:
         except Exception as e:
             self.logg.error_log.error(f"MadDeck Error: {e}")
 
-    def move_deck_stop(self):
+    def stop_deck(self):
         try:
             _moving = self.m.md.isMoving()
             if _moving:
@@ -205,6 +202,14 @@ class MainController:
                 print("MadDeck is Stopped")
         except Exception as e:
             self.logg.error_log.error(f"MadDeck Error: {e}")
+
+    def set_piezo(self, axis):
+        if axis == "x":
+            self.set_piezo_position_x()
+        elif axis == "y":
+            self.set_piezo_position_y()
+        elif axis == "z":
+            self.set_piezo_position_z()
 
     def set_piezo_position_x(self):
         try:
@@ -237,86 +242,30 @@ class MainController:
         except Exception as e:
             self.logg.error_log.error(f"Galvo Error: {e}")
 
-    def set_laser_on_488_0(self):
-        try:
-            p405, p488_0, p488_1, p488_2 = self.con_controller.get_cobolt_laser_power()
-            self.m.laser.constant_power_488_0(p488_0)
-            self.m.laser.laserON_488_0()
-        except Exception as e:
-            self.logg.error_log.error(f"Cobolt Laser Error: {e}")
-
-    def set_laser_on_488_1(self):
-        try:
-            p405, p488_0, p488_1, p488_2 = self.con_controller.get_cobolt_laser_power()
-            self.m.laser.constant_power_488_1(p488_1)
-            self.m.laser.laserON_488_1()
-        except Exception as e:
-            self.logg.error_log.error(f"Cobolt Laser Error: {e}")
-
-    def set_laser_on_488_2(self):
-        try:
-            p405, p488_0, p488_1, p488_2 = self.con_controller.get_cobolt_laser_power()
-            self.m.laser.constant_power_488_2(p488_2)
-            self.m.laser.laserON_488_2()
-        except Exception as e:
-            self.logg.error_log.error(f"Cobolt Laser Error: {e}")
-
-    def set_laser_on_405(self):
-        try:
-            p405, p488_0, p488_1, p488_2 = self.con_controller.get_cobolt_laser_power()
-            self.m.laser.constant_power_405(p405)
-            self.m.laser.laserON_405()
-        except Exception as e:
-            self.logg.error_log.error(f"Cobolt Laser Error: {e}")
-
-    def set_laser_off_488_0(self):
-        try:
-            self.m.laser.laserOFF_488_0()
-        except Exception as e:
-            self.logg.error_log.error(f"Cobolt Laser Error: {e}")
-
-    def set_laser_off_488_1(self):
-        try:
-            self.m.laser.laserOFF_488_1()
-        except Exception as e:
-            self.logg.error_log.error(f"Cobolt Laser Error: {e}")
-
-    def set_laser_off_488_2(self):
-        try:
-            self.m.laser.laserOFF_488_2()
-        except Exception as e:
-            self.logg.error_log.error(f"Cobolt Laser Error: {e}")
-
-    def set_laser_off_405(self):
-        try:
-            self.m.laser.laserOFF_405()
-        except Exception as e:
-            self.logg.error_log.error(f"Cobolt Laser Error: {e}")
+    def set_laser(self, laser, switch):
+        if switch:
+            try:
+                self.m.laser.set_constant_power(laser, self.con_controller.get_cobolt_laser_power(laser))
+                self.m.laser.laser_on(laser)
+            except Exception as e:
+                self.logg.error_log.error(f"Cobolt Laser Error: {e}")
+        else:
+            try:
+                self.m.laser.laser_off(laser)
+            except Exception as e:
+                self.logg.error_log.error(f"Cobolt Laser Error: {e}")
 
     def set_lasers(self):
         try:
-            p405, p488_0, p488_1, p488_2 = self.con_controller.get_cobolt_laser_power()
-            self.m.laser.modulation_mode_488_0(0)
-            self.m.laser.laserON_488_0()
-            self.m.laser.modulation_mode_488_1(0)
-            self.m.laser.laserON_488_1()
-            self.m.laser.modulation_mode_488_2(0)
-            self.m.laser.laserON_488_2()
-            self.m.laser.modulation_mode_405(0)
-            self.m.laser.laserON_405()
-            self.m.laser.modulation_mode_488_1(p488_1)
-            self.m.laser.modulation_mode_488_2(p488_2)
-            self.m.laser.modulation_mode_488_0(p488_0)
-            self.m.laser.modulation_mode_405(p405)
+            self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0, 0, 0, 0])
+            self.m.laser.laser_on("all")
+            self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], self.con_controller.get_cobolt_laser_power("all"))
         except Exception as e:
             self.logg.error_log.error(f"Cobolt Laser Error: {e}")
 
     def lasers_off(self):
         try:
-            self.m.laser.laserOFF_488_0()
-            self.m.laser.laserOFF_488_1()
-            self.m.laser.laserOFF_488_2()
-            self.m.laser.laserOFF_405()
+            self.m.laser.laser_off("all")
         except Exception as e:
             self.logg.error_log.error(f"Cobolt Laser Error: {e}")
 
@@ -370,6 +319,12 @@ class MainController:
             self.con_controller.display_camera_temperature(self.m.ccdcam.get_ccd_temperature())
         except Exception as e:
             self.logg.error_log.error(f"CCD Camera Error: {e}")
+
+    def switch_emdccd_cooler(self, sw):
+        if sw:
+            self.switch_emdccd_cooler_on()
+        else:
+            self.switch_emdccd_cooler_off()
 
     def switch_emdccd_cooler_on(self):
         try:
@@ -434,11 +389,23 @@ class MainController:
         except Exception as e:
             self.logg.error_log.error(f"Error stopping main camera video: {e}")
 
+    def video(self, sw):
+        if sw:
+            self.start_video()
+        else:
+            self.stop_video()
+
     def imshow_main(self):
         try:
             self.view_controller.plot_main(self.main_cam.get_last_image())
         except Exception as e:
             self.logg.error_log.error(f"Error showing main camera video: {e}")
+
+    def fft(self, sw):
+        if sw:
+            self.run_fft()
+        else:
+            self.stop_fft()
 
     def run_fft(self):
         try:
@@ -458,6 +425,12 @@ class MainController:
             self.view_controller.plot_fft(self.p.imgprocess.fourier_transform(self.main_cam.get_last_image()))
         except Exception as e:
             self.logg.error_log.error(f"Error showing fft: {e}")
+
+    def plot_live(self, sw):
+        if sw:
+            self.start_plot_live()
+        else:
+            self.stop_plot_live()
 
     def start_plot_live(self):
         try:

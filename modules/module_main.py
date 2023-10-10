@@ -55,7 +55,7 @@ class MainModule:
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.laser.all_off()
+            self.laser.close()
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
