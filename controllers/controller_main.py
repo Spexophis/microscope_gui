@@ -93,7 +93,7 @@ class MainController:
         self.v.get_ao_widget().Signal_img_shwfs_correct_wf.connect(self.run_close_loop_correction)
         self.v.get_ao_widget().Signal_sensorlessAO_run.connect(self.run_ao_optimize)
 
-        p = self.m.md.getPositionStepsTakenAxis(3)
+        p = self.m.md.get_position_steps_taken(3)
         self.con_controller.display_deck_position(p)
 
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
@@ -144,26 +144,26 @@ class MainController:
 
     def move_deck_up(self):
         try:
-            _moving = self.m.md.isMoving()
+            _moving = self.m.md.is_moving()
             if _moving:
                 print("MadDeck is moving")
             else:
-                self.m.md.moveRelativeAxis(3, 0.001524, velocity=1.5)
+                self.m.md.move_relative(3, 9.525e-05, velocity=1.5)
                 self.m.md.wait()
-                p = self.m.md.getPositionStepsTakenAxis(3)
+                p = self.m.md.get_position_steps_taken(3)
                 self.con_controller.display_deck_position(p)
         except Exception as e:
             self.logg.error_log.error(f"MadDeck Error: {e}")
 
     def move_deck_down(self):
         try:
-            _moving = self.m.md.isMoving()
+            _moving = self.m.md.is_moving()
             if _moving:
                 print("MadDeck is moving")
             else:
-                self.m.md.moveRelativeAxis(3, -0.001524, velocity=1.5)
+                self.m.md.move_relative(3, -9.525e-05, velocity=1.5)
                 self.m.md.wait()
-                p = self.m.md.getPositionStepsTakenAxis(3)
+                p = self.m.md.get_position_steps_taken(3)
                 self.con_controller.display_deck_position(p)
         except Exception as e:
             self.logg.error_log.error(f"MadDeck Error: {e}")
@@ -176,25 +176,25 @@ class MainController:
 
     def move_deck(self):
         try:
-            _moving = self.m.md.isMoving()
+            _moving = self.m.md.is_moving()
             if _moving:
-                self.m.md.stopMoving()
-                p = self.m.md.getPositionStepsTakenAxis(3)
+                self.m.md.stop_moving()
+                p = self.m.md.get_position_steps_taken(3)
                 self.con_controller.display_deck_position(p)
                 distance, velocity = self.con_controller.get_deck_movement()
-                self.m.md.moveRelativeAxis(3, distance, velocity=velocity)
+                self.m.md.move_relative(3, distance, velocity=velocity)
             else:
                 distance, velocity = self.con_controller.get_deck_movement()
-                self.m.md.moveRelativeAxis(3, distance, velocity=velocity)
+                self.m.md.move_relative(3, distance, velocity=velocity)
         except Exception as e:
             self.logg.error_log.error(f"MadDeck Error: {e}")
 
     def stop_deck(self):
         try:
-            _moving = self.m.md.isMoving()
+            _moving = self.m.md.is_moving()
             if _moving:
-                self.m.md.stopMoving()
-                p = self.m.md.getPositionStepsTakenAxis(3)
+                self.m.md.stop_moving()
+                p = self.m.md.get_position_steps_taken(3)
                 self.con_controller.display_deck_position(p)
                 print("MadDeck is Stopped")
             else:
