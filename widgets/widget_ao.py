@@ -5,8 +5,7 @@ from utilities import customized_widgets as cw
 
 class AOWidget(QtWidgets.QWidget):
     Signal_img_shwfs_initiate = QtCore.pyqtSignal()
-    Signal_img_wfs_start = QtCore.pyqtSignal()
-    Signal_img_wfs_stop = QtCore.pyqtSignal()
+    Signal_img_wfs = QtCore.pyqtSignal(bool)
     Signal_img_shwfr_run = QtCore.pyqtSignal()
     Signal_img_shwfs_compute_wf = QtCore.pyqtSignal()
     Signal_img_shwfs_correct_wf = QtCore.pyqtSignal(int)
@@ -227,9 +226,9 @@ class AOWidget(QtWidgets.QWidget):
 
     def run_img_wfs(self):
         if self.QPushButton_run_img_wfs.isChecked():
-            self.Signal_img_wfs_start.emit()
+            self.Signal_img_wfs.emit(True)
         else:
-            self.Signal_img_wfs_stop.emit()
+            self.Signal_img_wfs.emit(False)
 
     def run_img_wfr(self):
         self.Signal_img_shwfr_run.emit()

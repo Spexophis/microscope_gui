@@ -85,8 +85,7 @@ class MainController:
         self.v.get_ao_widget().Signal_influence_function.connect(self.run_influence_function)
         # WFS
         self.v.get_ao_widget().Signal_img_shwfs_initiate.connect(self.set_img_wfs_base)
-        self.v.get_ao_widget().Signal_img_wfs_start.connect(self.start_img_wfs)
-        self.v.get_ao_widget().Signal_img_wfs_stop.connect(self.stop_img_wfs)
+        self.v.get_ao_widget().Signal_img_wfs.connect(self.img_wfs)
         self.v.get_ao_widget().Signal_img_shwfr_run.connect(self.run_img_wfr)
         self.v.get_ao_widget().Signal_img_shwfs_compute_wf.connect(self.compute_img_wf)
         self.v.get_ao_widget().Signal_img_shwfs_save_wf.connect(self.save_img_wf)
@@ -744,6 +743,12 @@ class MainController:
             self.lasers_off()
         except Exception as e:
             self.logg.error_log.error(f"Error stopping wfs: {e}")
+
+    def img_wfs(self, sw):
+        if sw:
+            self.start_img_wfs()
+        else:
+            self.stop_img_wfs()
 
     def imshow_img_wfs(self):
         try:
