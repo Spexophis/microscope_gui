@@ -413,6 +413,23 @@ def dia_widget(mi, ma, value):
     return dial
 
 
+def dialog():
+    dialog = QtWidgets.QDialog()
+    dialog.setStyleSheet(''' 
+        QDialog {
+            background-color: #333;
+            color: #FFF;
+        }
+        ''')
+    dialog.setWindowTitle("Please Wait")
+    layout = QtWidgets.QVBoxLayout()
+    label = QtWidgets.QLabel("Task is running, please wait...")
+    layout.addWidget(label)
+    dialog.setLayout(layout)
+    dialog.setModal(True)
+    return dialog
+
+
 def message_box(title):
     msg = QtWidgets.QMessageBox()
     msg.setWindowTitle(title)

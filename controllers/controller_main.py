@@ -145,10 +145,12 @@ class MainController:
         self.task_thread.started.connect(self.task_worker.run)
         self.task_worker.signals.finished.connect(self.task_finish)
         self.task_thread.start()
+        self.v.get_dialog()
 
     def task_finish(self):
         self.task_thread.quit()
         self.task_thread.wait()
+        self.v.dialog.accept()
 
     def move_deck_up(self):
         try:

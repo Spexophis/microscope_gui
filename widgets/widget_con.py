@@ -346,6 +346,10 @@ class ConWidget(QtWidgets.QWidget):
         Layout_DataAcquisition.addWidget(self.QPushButton_save, 1, 3, 1, 1)
         group_DataAcquisition.setLayout(Layout_DataAcquisition)
 
+        self._set_signals()
+        self.update_trigger_parameter_sets()
+
+    def _set_signals(self):
         self.QPushButton_emccd_cooler_check.clicked.connect(self.Signal_check_emccd_temperature.emit)
         self.QPushButton_emccd_cooler_switch.clicked.connect(self.switch_emccd_cooler)
         self.QDoubleSpinBox_stage_x.valueChanged.connect(self.Signal_piezo_move_x.emit)
@@ -367,8 +371,6 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_acquire.clicked.connect(self.Signal_data_acquire.emit)
         self.QPushButton_save.clicked.connect(self.save)
         self.QComboBox_acquisition_modes.currentIndexChanged.connect(self.update_trigger_parameter_sets)
-
-        self.update_trigger_parameter_sets()
 
     def switch_emccd_cooler(self, checked):
         if checked:

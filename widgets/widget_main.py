@@ -1,5 +1,7 @@
-from PyQt5 import QtWidgets, QtCore
 import pprint
+
+from PyQt5 import QtWidgets, QtCore
+
 from utilities import customized_widgets as cw
 from widgets import widget_ao, widget_con, widget_view
 
@@ -29,6 +31,8 @@ class MainWidget(QtWidgets.QMainWindow):
         title_bar_widget_ao.setFixedHeight(0)
         self.dock_ao.setTitleBarWidget(title_bar_widget_ao)
 
+        self.dialog = cw.dialog()
+
         self.setCentralWidget(self.view_view)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock_con)
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock_ao)
@@ -50,6 +54,9 @@ class MainWidget(QtWidgets.QMainWindow):
 
     def get_ao_widget(self):
         return self.ao_view
+
+    def get_dialog(self):
+        self.dialog.exec_()
 
 
 import sys
