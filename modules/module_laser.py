@@ -3,36 +3,41 @@ import pycobolt
 
 class CoboltLaser:
 
-    def __init__(self):
+    def __init__(self, logg=None):
         super().__init__()
-
+        if logg is None:
+            import logging
+            logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+            self.logg = logging
+        else:
+            self.logg = logg
         try:
             self.l405 = pycobolt.Cobolt06MLD(port='COM4')
-            print('405 nm Laser Connected')
+            self.logg.info('405 nm Laser Connected')
             self.l405_handle = True
-        except:
-            print("405 nm Laser Not Found")
+        except Exception as e:
+            self.logg.error(f"405 nm Laser Error: {e}")
             self.l405_handle = False
         try:
             self.l488_0 = pycobolt.Cobolt06MLD(port='COM5')
-            print('488 nm Laser Connected')
+            self.logg.info('488 nm Laser Connected')
             self.l488_0_handle = True
-        except:
-            print("488 nm Laser Not Found")
+        except Exception as e:
+            self.logg.error(f"488 nm Laser Error: {e}")
             self.l488_0_handle = False
         try:
             self.l488_1 = pycobolt.Cobolt06MLD(port='COM6')
-            print('488 nm Laser #1 Connected')
+            self.logg.info('488 nm Laser #1 Connected')
             self.l488_1_handle = True
-        except:
-            print("488 nm Laser #1 Not Found")
+        except Exception as e:
+            self.logg.error(f"488 nm Laser #1 Error: {e}")
             self.l488_1_handle = False
         try:
             self.l488_2 = pycobolt.Cobolt06MLD(port='COM7')
-            print('488 nm Laser #2 Connected')
+            self.logg.info('488 nm Laser #2 Connected')
             self.l488_2_handle = True
-        except:
-            print("488 nm Laser #2 Not Found")
+        except Exception as e:
+            self.logg.error(f"488 nm Laser #2 Error: {e}")
             self.l488_2_handle = False
 
     def __del__(self):

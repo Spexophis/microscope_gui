@@ -3,33 +3,40 @@ from scipy.interpolate import BPoly
 
 
 class TriggerSequence:
-    sample_rate = 100000
-    dt = 1 / sample_rate
-    sequence_time = 0.04
-    initial_time = 0.008
-    standby_time = 0.04
-    # piezo scanner
-    piezo_step_sizes = [0.032, 0.032, 0.0]
-    piezo_ranges = [0.64, 0.64, 0.0]
-    piezo_positions = [50., 50., 50.]
-    piezo_starts = [i - j for i, j in zip(piezo_positions, [k / 2 for k in piezo_ranges])]
-    piezo_return_time = 0.016
-    piezo_conv_factors = [10., 10., 10.]
-    piezo_analog_start = 0.032
-    # galvo scanner
-    v_max = 4e2  # V/s
-    a_max = 2.4e7  # V/s^2
-    voltage_range = 10.  # V
-    galvo_start = -1.0
-    galvo_stop = 1.0
-    galvo_laser_start = 8
-    galvo_laser_interval = 16
-    # digital triggers
-    digital_starts = [0.002, 0.007, 0.007, 0.012, 0.012, 0.012]
-    digital_ends = [0.004, 0.010, 0.010, 0.015, 0.015, 0.015]
+    class TriggerParameters:
+        def __init__(self):
+            self.sample_rate = 100000
+            self.dt = 1 / self.sample_rate
+            self.sequence_time = 0.04
+            self.initial_time = 0.008
+            self.standby_time = 0.04
+            # piezo scanner
+            self.piezo_step_sizes = [0.032, 0.032, 0.0]
+            self.piezo_ranges = [0.64, 0.64, 0.0]
+            self.piezo_positions = [50., 50., 50.]
+            self.piezo_starts = [i - j for i, j in zip(self.piezo_positions, [k / 2 for k in self.piezo_ranges])]
+            self.piezo_return_time = 0.016
+            self.piezo_conv_factors = [10., 10., 10.]
+            self.piezo_analog_start = 0.032
+            # galvo scanner
+            self.v_max = 4e2  # V/s
+            self.a_max = 2.4e7  # V/s^2
+            self.voltage_range = 10.  # V
+            self.galvo_start = -1.0
+            self.galvo_stop = 1.0
+            self.galvo_laser_start = 8
+            self.galvo_laser_interval = 16
+            # digital triggers
+            self.digital_starts = [0.002, 0.007, 0.007, 0.012, 0.012, 0.012]
+            self.digital_ends = [0.004, 0.010, 0.010, 0.015, 0.015, 0.015]
 
     def __init__(self):
-        pass
+        self._parameters = self.TriggerParameters()
+
+    def __getattr__(self, item):
+        if hasattr(self._parameters, item):
+            return getattr(self._parameters, item)
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{item}'")
 
     def update_piezo_scan_parameters(self, piezo_ranges=None, piezo_step_sizes=None, piezo_positions=None):
         if piezo_ranges is not None:

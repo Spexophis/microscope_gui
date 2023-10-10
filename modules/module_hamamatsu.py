@@ -4,6 +4,7 @@ A ctypes based interface to Hamamatsu sCMOS Flash 4.0
 
 import ctypes
 import ctypes.util
+
 # import threading
 # from collections import deque
 import numpy as np
@@ -693,8 +694,14 @@ class HamamatsuCameraMR(HamamatsuCamera):
            counting scheme.
     """
 
-    def __init__(self, **kwds):
+    def __init__(self, logg=None, **kwds):
         super().__init__(**kwds)
+        if logg is None:
+            import logging
+            logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+            self.logg = logging
+        else:
+            self.logg = logg
 
         # self.data = FixedLengthList(64)
         self.hcam_data = []
@@ -808,11 +815,10 @@ class HamamatsuCameraMR(HamamatsuCamera):
         for n in self.retrieve_new_frames():
             print(n)
             data.append(self.hcam_data[n].getData().reshape(self.frame_y, self.frame_x))
-        print(np.asarray(data))
+        # print(np.asarray(data))
 
     def finish_data_acquisition(self):
         self.stop_acquisition()
-
 
 # class CameraThread(threading.Thread):
 #     def __init__(self, cam):

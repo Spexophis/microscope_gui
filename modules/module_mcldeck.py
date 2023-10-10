@@ -8,8 +8,15 @@ micro_dll = r'C:\Program Files\Mad City Labs\MicroDrive\MicroDrive.dll'
 
 class MCLMicroDrive:
 
-    def __init__(self):
+    def __init__(self, logg=None):
         super().__init__()
+
+        if logg is None:
+            import logging
+            logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+            self.logg = logging
+        else:
+            self.logg = logg
 
         self.errorDictionary = {0: 'MCL_SUCCESS',
                                 -1: 'MCL_GENERAL_ERROR',

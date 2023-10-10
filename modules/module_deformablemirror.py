@@ -8,38 +8,45 @@ import csv
 
 class DeformableMirror:
 
-    def __init__(self):
-
+    def __init__(self, logg):
+        if logg is None:
+            import logging
+            logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+            self.logg = logging
+        else:
+            self.logg = logg
         try:
-            serialName = 'BAX513'
-            self.dm = DM(serialName)
-            print("Connect the mirror")
-            print("Retrieve number of actuators")
+            serial_name = 'BAX513'
+            self.dm = DM(serial_name)
+            self.logg.info("Retrieve number of actuators")
             self.nbAct = int(self.dm.Get('NBOfActuator'))
-            print("Number of actuator for " + serialName + ": " + str(self.nbAct))
+            self.logg.info("Number of actuator for " + serial_name + ": " + str(self.nbAct))
             self.z2c = self.zernike_modes()
-        except:
-            print('No DM found')
+        except Exception as e:
+            self.logg.error(f"Error Initializing DM: {e}")
 
     def __del__(self):
         pass
 
+    def close(self):
+        self.reset_dm()
+        self.logg.info("Exit")
+
     def reset_dm(self):
-        print("Reset")
         self.dm.Reset()
-        print("Exit")
+        self.logg.info("Reset")
 
     def set_dm(self, values):
         if all(np.abs(v) < 1. for v in values):
             self.dm.Send(values)
-            print('DM set')
+            self.logg.info('DM set')
         else:
-            print("Some actuators exceed the DM push range!")
+            self.logg.error("Some actuators exceed the DM push range!")
             pass
 
     def null_dm(self):
         self.dm.Send([0.] * self.nbAct)
-        print('DM set to null')
+        self.logg.info('DM set to null')
 
     def zernike_modes(self):
         Z2C = []

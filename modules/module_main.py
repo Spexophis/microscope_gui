@@ -1,11 +1,13 @@
+import pprint
+
 from modules import module_andorixon
-from modules import module_hamamatsu
 from modules import module_deformablemirror
+from modules import module_hamamatsu
 from modules import module_laser
-from modules import module_nidaq
 from modules import module_mcldeck
 from modules import module_mclpiezo
-import pprint
+from modules import module_nidaq
+
 
 class MainModule:
 
@@ -14,31 +16,31 @@ class MainModule:
         self.logg = logg
         self.data_folder = path
         try:
-            self.ccdcam = module_andorixon.EMCCDCamera()
+            self.ccdcam = module_andorixon.EMCCDCamera(self.logg.error_log)
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.scmoscam = module_hamamatsu.HamamatsuCameraMR()
+            self.scmoscam = module_hamamatsu.HamamatsuCameraMR(self.logg.error_log)
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.dm = module_deformablemirror.DeformableMirror()
+            self.dm = module_deformablemirror.DeformableMirror(self.logg.error_log)
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.laser = module_laser.CoboltLaser()
+            self.laser = module_laser.CoboltLaser(self.logg.error_log)
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.daq = module_nidaq.NIDAQ()
+            self.daq = module_nidaq.NIDAQ(self.logg.error_log)
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.md = module_mcldeck.MCLMicroDrive()
+            self.md = module_mcldeck.MCLMicroDrive(self.logg.error_log)
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.pz = module_mclpiezo.MCLNanoDrive()
+            self.pz = module_mclpiezo.MCLNanoDrive(self.logg.error_log)
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         pprint.pprint("Finish initiating devices")
@@ -57,7 +59,7 @@ class MainModule:
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.dm.reset_dm()
+            self.dm.close()
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:

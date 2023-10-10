@@ -8,8 +8,15 @@ nano_dll = r'C:\Program Files\Mad City Labs\NanoDrive\Madlib.dll'
 
 class MCLNanoDrive:
 
-    def __init__(self):
+    def __init__(self, logg=None):
         super().__init__()
+
+        if logg is None:
+            import logging
+            logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+            self.logg = logging
+        else:
+            self.logg = logg
 
         self.mclpiezo = ct.cdll.LoadLibrary(nano_dll)
 

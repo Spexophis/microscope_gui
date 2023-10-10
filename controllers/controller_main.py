@@ -347,7 +347,7 @@ class MainController:
                 gain = self.con_controller.get_emccd_gain()
                 self.main_cam.set_gain(gain)
             else:
-                print("Invalid WFS Camera")
+                self.logg.error_log.info("Invalid WFS Camera")
         except Exception as e:
             self.logg.error_log.error(f"Camera Error: {e}")
 
@@ -404,14 +404,20 @@ class MainController:
         lasers, camera = self.update_trigger_parameters()
         return self.p.trigger.generate_digital_triggers(lasers, camera)
 
-    def start_video(self):
+    def prepare_video(self):
         try:
             self.set_lasers()
             self.set_main_camera_roi()
             self.main_cam.prepare_live()
+            self.m.daq.write_digital_sequences(self.generate_live_triggers(), mode="continuous")
+        except Exception as e:
+            self.logg.error_log.error(f"Error starting main camera video: {e}")
+
+    def start_video(self):
+        try:
+            self.prepare_video()
             self.main_cam.start_live()
-            self.m.daq.run_digital_trigger(self.generate_live_triggers(), clock_source="100kHzTimebase",
-                                           mode="continuous")
+            self.m.daq.run_digital_trigger()
             self.thread_video.start()
         except Exception as e:
             self.logg.error_log.error(f"Error starting main camera video: {e}")
@@ -496,7 +502,7 @@ class MainController:
             self.set_lasers()
             self.set_main_camera_roi()
             self.main_cam.prepare_live()
-            self.m.daq.write_digital_sequences(self.generate_live_triggers())
+            self.m.daq.write_digital_sequences(self.generate_live_triggers(), mode="finite")
         except Exception as e:
             self.logg.error_log.error(f"Error starting widefield zstack: {e}")
 
@@ -515,9 +521,10 @@ class MainController:
             for i, z in enumerate(zps):
                 pz = self.m.pz.move_position(2, z)
                 print(i, pz)
-                self.m.daq.run_digital_triggers(1)
+                self.m.daq.run_digital_trigger()
                 time.sleep(0.05)
                 data.append(self.main_cam.get_last_image())
+                self.m.daq.stop_triggers(_close=False)
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_widefield_zstack.tif')
             tf.imwrite(fd, np.asarray(data), imagej=True,
                        resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main), metadata={'unit': 'um'})
@@ -531,7 +538,7 @@ class MainController:
             self.main_cam.stop_live()
             self.lasers_off()
             self.m.daq.stop_triggers()
-            print("Widefield image stack acquired")
+            self.logg.error_log.info("Widefield image stack acquired")
         except Exception as e:
             self.logg.error_log.error(f"Error stopping widefield zstack: {e}")
 
@@ -543,17 +550,18 @@ class MainController:
             self.set_lasers()
             self.set_main_camera_roi()
             self.main_cam.prepare_live()
+            lasers, camera = self.update_trigger_parameters()
+            atr, dtr, pos = self.p.trigger.generate_galvo_scanning(lasers, camera)
+            self.m.daq.write_triggers(piezo_sequence=None, galvo_sequence=atr, digital_sequences=dtr)
         except Exception as e:
             self.logg.error_log.error(f"Error starting galvo scanning: {e}")
 
     def galvo_scanning(self):
         self.prepare_galvo_scanning()
         try:
-            lasers, camera = self.update_trigger_parameters()
-            atr, dtr, pos = self.p.trigger.generate_galvo_scanning(lasers, camera)
             self.main_cam.start_live()
             time.sleep(0.02)
-            self.m.daq.run_triggers(piezo_sequence=None, galvo_sequence=atr, digital_sequences=dtr)
+            self.m.daq.run_triggers()
             time.sleep(0.1)
             data = self.main_cam.get_last_image()
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_galvo_scanning.tif')
@@ -568,7 +576,7 @@ class MainController:
             self.m.daq.stop_triggers()
             self.main_cam.stop_live()
             self.lasers_off()
-            print("Galvo scanning image acquired")
+            self.logg.error_log.info("Galvo scanning image acquired")
         except Exception as e:
             self.logg.error_log.error(f"Error stopping galvo scanning: {e}")
 
@@ -580,17 +588,18 @@ class MainController:
             self.set_lasers()
             self.set_main_camera_roi()
             self.main_cam.prepare_live()
+            lasers, camera = self.update_trigger_parameters()
+            atr, dtr, pos = self.p.trigger.generate_confocal_triggers(lasers, camera)
+            self.m.daq.write_triggers(piezo_sequence=None, galvo_sequence=atr, digital_sequences=dtr)
         except Exception as e:
             self.logg.error_log.error(f"Error starting confocal scanning: {e}")
 
     def confocal_scanning(self):
         self.prepare_confocal_scanning()
         try:
-            lasers, camera = self.update_trigger_parameters()
-            atr, dtr, pos = self.p.trigger.generate_confocal_triggers(lasers, camera)
             self.main_cam.start_live()
             time.sleep(0.02)
-            self.m.daq.run_triggers(piezo_sequence=None, galvo_sequence=atr, digital_sequences=dtr)
+            self.m.daq.run_triggers()
             time.sleep(0.1)
             data = self.main_cam.get_last_image()
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_confocal_scanning.tif')
@@ -606,7 +615,7 @@ class MainController:
             self.m.daq.stop_triggers()
             self.main_cam.stop_live()
             self.lasers_off()
-            print("Confocal scanning image acquired")
+            self.logg.error_log.info("Confocal scanning image acquired")
         except Exception as e:
             self.logg.error_log.error(f"Error stopping confocal scanning: {e}")
 
@@ -628,7 +637,8 @@ class MainController:
             self.main_cam.prepare_data_acquisition(pos)
             self.main_cam.start_data_acquisition()
             time.sleep(0.02)
-            self.m.daq.run_triggers(piezo_sequence=atr, galvo_sequence=None, digital_sequences=dtr)
+            self.m.daq.write_triggers(piezo_sequence=None, galvo_sequence=atr, digital_sequences=dtr)
+            self.m.daq.run_triggers()
             time.sleep(0.1)
             data = self.main_cam.get_data(pos)
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_bead_scanning.tif')
@@ -642,7 +652,7 @@ class MainController:
         try:
             self.m.daq.stop_triggers()
             self.lasers_off()
-            print("Beads scanning image acquired")
+            self.logg.error_log.info("Beads scanning image acquired")
         except Exception as e:
             self.logg.error_log.error(f"Error stopping confocal scanning: {e}")
 
@@ -731,16 +741,21 @@ class MainController:
         except Exception as e:
             self.logg.error_log.error(f"SHWFS Error: {e}")
 
-    def start_img_wfs(self):
+    def prepare_img_wfs(self):
         try:
             self.set_lasers()
             self.set_img_wfs()
             self.set_wfs_camera_roi()
             self.wfs_cam.prepare_live()
+            self.m.daq.write_digital_sequences(self.generate_wfs_trigger(), mode="continuous")
+        except Exception as e:
+            self.logg.error_log.error(f"Error starting wfs: {e}")
+
+    def start_img_wfs(self):
+        try:
+            self.prepare_img_wfs()
             self.wfs_cam.start_live()
-            self.m.daq.run_digital_trigger(self.generate_wfs_trigger(),
-                                           clock_source="100kHzTimebase",
-                                           mode="continuous")
+            self.m.daq.run_digital_trigger()
             self.thread_wfs.start()
         except Exception as e:
             self.logg.error_log.error(f"Error starting wfs: {e}")
@@ -821,33 +836,38 @@ class MainController:
         self.set_img_wfs()
         self.set_wfs_camera_roi()
         self.wfs_cam.prepare_live()
+        self.m.daq.write_digital_sequences(self.generate_wfs_trigger(), mode="finite")
         self.wfs_cam.start_live()
-        self.m.daq.write_digital_sequences(self.generate_wfs_trigger())
         for i in range(self.m.dm.nbAct):
             shimg = []
             print(i)
             values = [0.] * self.m.dm.nbAct
             self.m.dm.set_dm(values)
             time.sleep(0.04)
-            self.m.daq.run_digital_triggers(1)
+            self.m.daq.run_digital_trigger()
             shimg.append(self.wfs_cam.get_last_image())
+            self.m.daq.stop_triggers(_close=False)
             values[i] = amp
             self.m.dm.set_dm(values)
             time.sleep(0.04)
-            self.m.daq.run_digital_triggers(1)
+            self.m.daq.run_digital_trigger()
             shimg.append(self.wfs_cam.get_last_image())
+            self.m.daq.stop_triggers(_close=False)
             values = [0.] * self.m.dm.nbAct
             self.m.dm.set_dm(values)
             time.sleep(0.04)
-            self.m.daq.run_digital_triggers(1)
+            self.m.daq.run_digital_trigger()
             shimg.append(self.wfs_cam.get_last_image())
+            self.m.daq.stop_triggers(_close=False)
             values[i] = - amp
             self.m.dm.set_dm(values)
             time.sleep(0.04)
-            self.m.daq.run_digital_triggers(1)
+            self.m.daq.run_digital_trigger()
             shimg.append(self.wfs_cam.get_last_image())
+            self.m.daq.stop_triggers(_close=False)
             tf.imwrite(fd + r'/' + 'actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
         self.wfs_cam.stop_live()
+        self.m.daq.stop_triggers()
         self.lasers_off()
         md = self.ao_controller.get_img_wfs_method()
         self.p.shwfsr.generate_influence_matrix(fd, md, True)
@@ -861,8 +881,8 @@ class MainController:
             self.set_lasers()
             self.set_wfs_camera_roi()
             self.wfs_cam.prepare_live()
+            self.m.daq.write_digital_sequences(self.generate_wfs_trigger(), mode="finite")
             self.wfs_cam.start_live()
-            self.m.daq.write_digital_sequences(self.generate_wfs_trigger())
         except Exception as e:
             self.logg.error_log.error(f"CloseLoop Correction Error: {e}")
 
@@ -870,8 +890,9 @@ class MainController:
         self.prepare_close_loop_correction()
         try:
             self.p.shwfsr.base = self.view_controller.get_image_data(r'ShackHartmann(Base)')
-            self.m.daq.run_digital_triggers(1)
+            self.m.daq.run_digital_trigger()
             self.p.shwfsr.offset = self.wfs_cam.get_last_image()
+            self.m.daq.stop_triggers(_close=False)
             self.p.shwfsr.get_correction(self.ao_controller.get_img_wfs_method())
             self.m.dm.set_dm(self.p.shwfsr._dm_cmd[-1])
             self.ao_controller.update_cmd_index()
@@ -884,9 +905,10 @@ class MainController:
     def stop_close_loop_correction(self):
         try:
             self.p.shwfsr.base = self.view_controller.get_image_data(r'ShackHartmann(Base)')
-            self.m.daq.run_digital_triggers(1)
+            self.m.daq.run_digital_trigger()
             self.p.shwfsr.offset = self.wfs_cam.get_last_image()
             self.wfs_cam.stop_live()
+            self.m.daq.stop_triggers()
             self.lasers_off()
             self.run_img_wfr()
             self.view_controller.plot_wf(self.p.shwfsr.wf)
@@ -915,12 +937,12 @@ class MainController:
             self.set_lasers()
             self.set_main_camera_roi()
             self.main_cam.prepare_live()
+            self.m.daq.write_digital_sequences(self.generate_live_triggers(), mode="finite")
             self.main_cam.start_live()
-            self.m.daq.write_digital_sequences(self.generate_live_triggers())
             print("Sensorless AO start")
             self.m.dm.set_dm(cmd)
             time.sleep(0.05)
-            self.m.daq.run_digital_triggers(1)
+            self.m.daq.run_digital_trigger()
             time.sleep(0.05)
             print(len(self.main_cam.data.data_list))
             fn = os.path.join(new_folder, 'original.tif')
@@ -934,9 +956,10 @@ class MainController:
                     self.m.dm.set_dm(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
                     # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[mode]], cmd))
                     time.sleep(0.05)
-                    self.m.daq.run_digital_triggers(1)
+                    self.m.daq.run_digital_trigger()
                     time.sleep(0.05)
                     print(len(self.main_cam.data.data_list))
+                    self.m.daq.stop_triggers(_close=False)
                     fn = "zm%0.2d_amp%.4f" % (mode, amp)
                     fn1 = os.path.join(new_folder, fn + '.tif')
                     tf.imwrite(fn1, self.main_cam.get_last_image())
@@ -960,7 +983,7 @@ class MainController:
                     print('----------------mode %d value equals %.4f----' % (mode, pmax))
             self.m.dm.set_dm(cmd)
             time.sleep(0.05)
-            self.m.daq.run_digital_triggers(1)
+            self.m.daq.run_digital_trigger()
             time.sleep(0.05)
             self.main_cam.get_last_image()
             fn = os.path.join(new_folder, 'final.tif')
@@ -972,6 +995,7 @@ class MainController:
             self.p.shwfsr._write_cmd(new_folder, '_')
             self.p.shwfsr._save_sensorless_results(os.path.join(new_folder, 'results.xlsx'), za, mv, zp)
             self.lasers_off()
+            self.m.daq.stop_triggers()
             self.main_cam.stop_live()
             print("sensorless AO finished")
         except Exception as e:
