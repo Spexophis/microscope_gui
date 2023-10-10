@@ -105,7 +105,7 @@ class EMCCDCamera:
         else:
             self.logg.error(atmcd_errors.Error_Codes(ret))
 
-    def cooler_off(self) -> None:
+    def cooler_off(self):
         ret = self.sdk.CoolerOFF()
         if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
             self.logg.info("EMCCD Cooler OFF")

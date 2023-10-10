@@ -11,31 +11,25 @@ class CoboltLaser:
             self.logg = logging
         else:
             self.logg = logg
-        self.lasers = {}
-        try:
-            self.lasers["405"] = pycobolt.Cobolt06MLD(port='COM4')
-            self.logg.info('405 nm Laser Connected')
-        except Exception as e:
-            self.logg.error(f"405 nm Laser Error: {e}")
-        try:
-            self.lasers["488_0"] = pycobolt.Cobolt06MLD(port='COM5')
-            self.logg.info('488 nm #0 Laser Connected')
-        except Exception as e:
-            self.logg.error(f"488 nm #0 Laser Error: {e}")
-        try:
-            self.lasers["488_1"] = pycobolt.Cobolt06MLD(port='COM6')
-            self.logg.info('488 nm Laser #1 Connected')
-        except Exception as e:
-            self.logg.error(f"488 nm Laser #1 Error: {e}")
-        try:
-            self.lasers["488_2"] = pycobolt.Cobolt06MLD(port='COM7')
-            self.logg.info('488 nm Laser #2 Connected')
-        except Exception as e:
-            self.logg.error(f"488 nm Laser #2 Error: {e}")
-        self._h = {key: True for key in self.lasers.keys()}
+        laser_dict = {"405": 'COM4',
+                      "488_0": 'COM5',
+                      "488_1": 'COM6',
+                      "488_2": 'COM7'}
+        self.lasers, self._h = self._initiate_lasers(laser_dict)
 
     def __del__(self):
         pass
+
+    def _initiate_lasers(self, laser_dict):
+        lasers = {}
+        for laser, com_port in laser_dict.items():
+            try:
+                lasers[laser] = pycobolt.Cobolt06MLD(port=com_port)
+                self.logg.info("{} Laser Connected".format(laser))
+            except Exception as e:
+                self.logg.error(f"405 nm Laser Error: {e}")
+        _h = {key: True for key in lasers.keys()}
+        return lasers, _h
 
     def close(self):
         self.laser_off("all")

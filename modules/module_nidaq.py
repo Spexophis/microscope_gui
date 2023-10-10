@@ -34,6 +34,17 @@ class NIDAQ:
         self._running = {}
         self.tasks, self._active, self._running, = self._configure()
 
+    def __del__(self):
+        pass
+
+    def __getattr__(self, item):
+        if hasattr(self._settings, item):
+            return getattr(self._settings, item)
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{item}'")
+
+    def close(self):
+        self.device.reset_device()
+
     def _initialize(self):
         try:
             local_system = System.local()
@@ -57,17 +68,6 @@ class NIDAQ:
                     e.error_code)
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
-
-    def __del__(self):
-        pass
-
-    def __getattr__(self, item):
-        if hasattr(self._settings, item):
-            return getattr(self._settings, item)
-        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{item}'")
-
-    def close(self):
-        self.device.reset_device()
 
     def set_piezo_position(self, pos_x, pos_y):
         try:
