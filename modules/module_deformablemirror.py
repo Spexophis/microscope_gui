@@ -9,12 +9,7 @@ import csv
 class DeformableMirror:
 
     def __init__(self, logg):
-        if logg is None:
-            import logging
-            logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-            self.logg = logging
-        else:
-            self.logg = logg
+        self.logg = logg or self.setup_logging()
         try:
             serial_name = 'BAX513'
             self.dm = DM(serial_name)
@@ -27,6 +22,12 @@ class DeformableMirror:
 
     def __del__(self):
         pass
+
+    @staticmethod
+    def setup_logging():
+        import logging
+        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+        return logging
 
     def close(self):
         self.reset_dm()

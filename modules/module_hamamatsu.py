@@ -696,18 +696,18 @@ class HamamatsuCameraMR(HamamatsuCamera):
 
     def __init__(self, logg=None, **kwds):
         super().__init__(**kwds)
-        if logg is None:
-            import logging
-            logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-            self.logg = logging
-        else:
-            self.logg = logg
-
-        # self.data = FixedLengthList(64)
+        self.logg = logg or self.setup_logging()
         self.hcam_data = []
         self.date_ptr = False
         self.old_frame_bytes = -1
+        # self.data = FixedLengthList(64)
         # self.camera_thread = None
+
+    @staticmethod
+    def setup_logging():
+        import logging
+        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+        return logging
 
     def start_acquisition(self):
         """
@@ -756,7 +756,7 @@ class HamamatsuCameraMR(HamamatsuCamera):
         # self.check_status(dcam.dcamcap_stop(self.camera_handle), "dcamcap_stop")
         # self.check_status(dcam.dcam_releasebuffer(self.camera_handle), "dcam_releasebuffer")
         self.check_status(dcam.dcambuf_release(self.camera_handle, DCAMBUF_ATTACHKIND_FRAME), "dcambuf_release")
-        print(f"Max camera backlog was: {self.max_backlog}")
+        self.logg.info(f"Max camera backlog was: {self.max_backlog}")
         self.max_backlog = 0
 
     def set_roi(self, hbin, vbin, hstart, hend, vstart, vend):

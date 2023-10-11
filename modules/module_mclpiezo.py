@@ -1,5 +1,4 @@
 import ctypes as ct
-import logging
 import os
 import sys
 
@@ -56,6 +55,7 @@ class MCLNanoDrive:
 
     @staticmethod
     def setup_logging():
+        import logging
         logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
         return logging
 

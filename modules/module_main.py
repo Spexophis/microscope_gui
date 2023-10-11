@@ -1,5 +1,3 @@
-import pprint
-
 from modules import module_andorixon
 from modules import module_deformablemirror
 from modules import module_hamamatsu
@@ -43,7 +41,7 @@ class MainModule:
             self.pz = module_mclpiezo.MCLNanoDrive(self.logg.error_log)
         except Exception as e:
             self.logg.error_log.error(f"{e}")
-        pprint.pprint("Finish initiating devices")
+        self.logg.error_log.info("Finish initiating devices")
 
     def close(self):
         try:

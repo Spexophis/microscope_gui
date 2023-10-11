@@ -4,13 +4,7 @@ import pycobolt
 class CoboltLaser:
 
     def __init__(self, logg=None):
-        super().__init__()
-        if logg is None:
-            import logging
-            logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-            self.logg = logging
-        else:
-            self.logg = logg
+        self.logg = logg or self.setup_logging()
         laser_dict = {"405": 'COM4',
                       "488_0": 'COM5',
                       "488_1": 'COM6',
@@ -36,6 +30,12 @@ class CoboltLaser:
         for key, _l in self._h.items():
             if _l:
                 del self.lasers[key]
+
+    @staticmethod
+    def setup_logging():
+        import logging
+        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+        return logging
 
     def laser_off(self, laser):
         if laser == "all":

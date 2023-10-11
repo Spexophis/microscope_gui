@@ -21,12 +21,7 @@ class NIDAQ:
             self.mode = None
 
     def __init__(self, logg=None):
-        if logg is None:
-            import logging
-            logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-            self.logg = logging
-        else:
-            self.logg = logg
+        self.logg = logg or self.setup_logging()
         self.device = self._initialize()
         self._settings = self.NIDAQSettings()
         self.tasks = {}
@@ -44,6 +39,12 @@ class NIDAQ:
 
     def close(self):
         self.device.reset_device()
+
+    @staticmethod
+    def setup_logging():
+        import logging
+        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+        return logging
 
     def _initialize(self):
         try:

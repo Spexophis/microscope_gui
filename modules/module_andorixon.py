@@ -40,12 +40,7 @@ class EMCCDCamera:
             self.valid_index = 0
 
     def __init__(self, logg=None):
-        if logg is None:
-            import logging
-            logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-            self.logg = logging
-        else:
-            self.logg = logg
+        self.logg = logg or self.setup_logging()
         self._settings = self.CameraSettings()
         self.sdk = self._initialize_sdk()
         if self.sdk:
@@ -60,6 +55,12 @@ class EMCCDCamera:
         if hasattr(self._settings, item):
             return getattr(self._settings, item)
         raise AttributeError(f"'{type(self).__name__}' object has no attribute '{item}'")
+
+    @staticmethod
+    def setup_logging():
+        import logging
+        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+        return logging
 
     def _initialize_sdk(self):
         try:
