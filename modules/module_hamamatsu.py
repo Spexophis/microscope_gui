@@ -250,12 +250,12 @@ class HamamatsuCamera(object):
     copied out of the camera buffers.
     """
 
-    def __init__(self, **kwds):
+    def __init__(self, logg=None, **kwds):
         """
         Open the connection to the camera specified by camera_id.
         """
         super().__init__(**kwds)
-
+        self.logg = logg
         self.buffer_index = 0
         self.camera_id = 0
         self.debug = False
@@ -279,7 +279,8 @@ class HamamatsuCamera(object):
             error_code = dcam.dcamapi_init(ctypes.byref(init_param))
             if error_code == DCAMERR_NOERROR:
                 n_cameras = init_param.iDeviceCount
-                print("found:", n_cameras, "cameras")
+                if self.logg:
+                    self.logg.info("found: {} cameras".format(n_cameras))
                 if n_cameras == 1:
                     # Get camera model.
                     self.camera_model = self.get_camera_model(self.camera_id)
@@ -665,7 +666,7 @@ class HamamatsuCamera(object):
         """
         # Stop acquisition.
         self.check_status(dcam.dcamcap_stop(self.camera_handle), "dcamcap_stop")
-        print("max camera backlog was", self.max_backlog, "of", self.number_image_buffers)
+        self.logg.info("max camera backlog was", self.max_backlog, "of", self.number_image_buffers)
         self.max_backlog = 0
         # Free image buffers.
         self.number_image_buffers = 0
@@ -700,14 +701,20 @@ class HamamatsuCameraMR(HamamatsuCamera):
            counting scheme.
     """
 
-    def __init__(self, logg=None, **kwds):
-        super().__init__(**kwds)
+    def __init__(self, logg, **kwds):
+        super().__init__(logg, **kwds)
         self.logg = logg or self.setup_logging()
         self.hcam_data = []
         self.date_ptr = False
         self.old_frame_bytes = -1
         # self.data = FixedLengthList(64)
         # self.camera_thread = None
+
+    @staticmethod
+    def setup_logging():
+        import logging
+        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+        return logging
 
     def start_acquisition(self):
         """
@@ -756,7 +763,7 @@ class HamamatsuCameraMR(HamamatsuCamera):
         # self.check_status(dcam.dcamcap_stop(self.camera_handle), "dcamcap_stop")
         # self.check_status(dcam.dcam_releasebuffer(self.camera_handle), "dcam_releasebuffer")
         self.check_status(dcam.dcambuf_release(self.camera_handle, DCAMBUF_ATTACHKIND_FRAME), "dcambuf_release")
-        print(f"Max camera backlog was: {self.max_backlog}")
+        self.logg.info(f"Max camera backlog was: {self.max_backlog}")
         self.max_backlog = 0
 
     def set_roi(self, hbin, vbin, hstart, hend, vstart, vend):

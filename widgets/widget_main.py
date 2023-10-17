@@ -1,5 +1,3 @@
-import pprint
-
 from PyQt5 import QtWidgets, QtCore
 
 from utilities import customized_widgets as cw
@@ -40,7 +38,7 @@ class MainWidget(QtWidgets.QMainWindow):
         self.setWindowTitle("Microscope Control")
         self.setStyleSheet("background-color: #242424")
 
-        pprint.pprint("Finish setting up widgets")
+        self.logg.error_log.info("Finish setting up widgets")
 
     def closeEvent(self, event):
         self.Signal_quit.emit()

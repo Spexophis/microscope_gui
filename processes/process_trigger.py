@@ -7,7 +7,7 @@ class TriggerSequence:
         def __init__(self):
             self.sample_rate = 100000
             self.dt = 1 / self.sample_rate
-            self.cycle_time = 0.04
+            self.cycle_time = 0.05
             self.initial_time = 0.008
             self.standby_time = 0.04
             # piezo scanner
@@ -72,13 +72,12 @@ class TriggerSequence:
             self.initial_time = initial_time
         if standby_time is not None:
             self.standby_time = standby_time
-        if self.cycle_time <= cycle_time:
+        if self.cycle_time is not None:
             self.cycle_time = cycle_time
 
     def generate_digital_triggers(self, lasers, camera):
         _starts = [int(digital_start * self.sample_rate) for digital_start in self.digital_starts]
         _ends = [int(digital_end * self.sample_rate) for digital_end in self.digital_ends]
-        cycle_samples = int(np.ceil(self.cycle_time * self.sample_rate))
         initial_samples = int(np.ceil(self.initial_time * self.sample_rate))
         standby_samples = int(np.ceil(self.standby_time * self.sample_rate))
         cam_ind = camera + 4
@@ -88,11 +87,9 @@ class TriggerSequence:
             temp = initial_samples - digital_start
             _starts = [(_start + temp) for _start in _starts]
             _ends = [(_end + temp) for _end in _ends]
-            cycle_samples += temp
             digital_start = _starts[cam_ind]
             digital_end = _ends[cam_ind]
-        if (cycle_samples - digital_end) <= standby_samples:
-            cycle_samples = digital_end + standby_samples
+        cycle_samples = digital_end + standby_samples
         digital_trigger = np.zeros((len(self.digital_starts), int(cycle_samples)))
         digital_trigger[cam_ind, digital_start:digital_end] = 1
         for laser in lasers:

@@ -111,7 +111,7 @@ class MainController:
         self.pixel_size_main = self.main_cam.ps / 210
         # self.pixel_size_wfs = self.main_cam.ps / 210
 
-        print("Finish setting up controllers")
+        self.logg.error_log.info("Finish setting up controllers")
 
     def run_task(self, task, iteration=1, callback=None, parent=None):
         if self.task_worker is not None:
@@ -272,11 +272,9 @@ class MainController:
                 self.main_cam.set_roi()
                 self.main_cam.gain = self.con_controller.get_emccd_gain()
                 self.main_cam.set_gain()
-            elif self._camset[0] == 1:
+            if self._camset[0] == 1:
                 x, y, n, b = self.con_controller.get_scmos_roi()
                 self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
-            else:
-                print("Invalid Main Camera")
         except Exception as e:
             self.logg.error_log.error(f"Camera Error: {e}")
 
@@ -285,7 +283,7 @@ class MainController:
             if self._camset[1] == 1:
                 x, y, n, b = self.con_controller.get_scmos_roi()
                 self.wfs_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
-            elif self._camset[1] == 0:
+            if self._camset[1] == 0:
                 x, y, n, b = self.con_controller.get_emccd_roi()
                 self.wfs_cam.bin_h, self.wfs_cam.bin_h = b, b
                 self.wfs_cam.start_h, self.wfs_cam.end_h = x, x + n - 1
@@ -293,22 +291,8 @@ class MainController:
                 self.wfs_cam.set_roi()
                 self.wfs_cam.gain = self.con_controller.get_emccd_gain()
                 self.wfs_cam.set_gain()
-            else:
-                self.logg.error_log.info("Invalid WFS Camera")
         except Exception as e:
             self.logg.error_log.error(f"Camera Error: {e}")
-
-    # def reset_main_camera_roi(self):
-    #     if self.main_cam == "EMCCD":
-    #         self.main_cam.set_roi(1, 1, 1, 1024, 1, 1024)
-    #     if self.main_cam == "sCMOS":
-    #         self.main_cam.set_roi(1, 1, 1, 2048, 1, 2048)
-    #
-    # def reset_wfs_camera_roi(self):
-    #     if self.wfs_cam == "sCMOS":
-    #         self.wfs_cam.set_roi(1, 1, 1, 2048, 1, 2048)
-    #     elif self.wfs_cam == "EMCCD":
-    #         self.wfs_cam.set_roi(1, 1, 1, 1024, 1, 1024)
 
     def check_emdccd_temperature(self):
         try:
