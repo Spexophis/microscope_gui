@@ -318,6 +318,12 @@ class HamamatsuCamera(object):
     def __del__(self):
         pass
 
+    @staticmethod
+    def setup_logging():
+        import logging
+        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+        return logging
+
     def prepare_capture(self):
         """
         Capture setup (internal use only). This is called at the start of new acquisition sequence
@@ -703,12 +709,6 @@ class HamamatsuCameraMR(HamamatsuCamera):
         # self.data = FixedLengthList(64)
         # self.camera_thread = None
 
-    @staticmethod
-    def setup_logging():
-        import logging
-        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-        return logging
-
     def start_acquisition(self):
         """
         Allocate as many frames as will fit in 2GB of memory and start data acquisition.
@@ -756,7 +756,7 @@ class HamamatsuCameraMR(HamamatsuCamera):
         # self.check_status(dcam.dcamcap_stop(self.camera_handle), "dcamcap_stop")
         # self.check_status(dcam.dcam_releasebuffer(self.camera_handle), "dcam_releasebuffer")
         self.check_status(dcam.dcambuf_release(self.camera_handle, DCAMBUF_ATTACHKIND_FRAME), "dcambuf_release")
-        self.logg.info(f"Max camera backlog was: {self.max_backlog}")
+        print(f"Max camera backlog was: {self.max_backlog}")
         self.max_backlog = 0
 
     def set_roi(self, hbin, vbin, hstart, hend, vstart, vend):

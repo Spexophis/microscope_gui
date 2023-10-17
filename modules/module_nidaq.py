@@ -50,8 +50,8 @@ class NIDAQ:
         try:
             local_system = System.local()
             driver_version = local_system.driver_version
-            print("DAQmx {0}.{1}.{2}".format(driver_version.major_version, driver_version.minor_version,
-                                             driver_version.update_version))
+            self.logg.info("DAQmx {0}.{1}.{2}".format(driver_version.major_version, driver_version.minor_version,
+                                                      driver_version.update_version))
             return local_system.devices[0]
         except Exception as e:
             self.logg.error(f"Error initializing NIDAQ: {e}")
@@ -262,10 +262,9 @@ class NIDAQ:
         self._running = {key: False for key in self._running}
         if _close:
             self.close_triggers()
-        
+
     def close_triggers(self):
         for key, _task in self.tasks.items():
             if self._active.get(key, False):
                 _task.close()
-        self._active = {key: False for key in self._active}        
-        
+        self._active = {key: False for key in self._active}

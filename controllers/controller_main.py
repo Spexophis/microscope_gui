@@ -264,7 +264,7 @@ class MainController:
 
     def set_main_camera_roi(self):
         try:
-            if "EMCCD" == self.main_camera:
+            if self._camset[0] == 0:
                 x, y, n, b = self.con_controller.get_emccd_roi()
                 self.main_cam.bin_h, self.main_cam.bin_h = b, b
                 self.main_cam.start_h, self.main_cam.end_h = x, x + n - 1
@@ -272,7 +272,7 @@ class MainController:
                 self.main_cam.set_roi()
                 self.main_cam.gain = self.con_controller.get_emccd_gain()
                 self.main_cam.set_gain()
-            elif "sCMOS" == self.main_camera:
+            elif self._camset[0] == 1:
                 x, y, n, b = self.con_controller.get_scmos_roi()
                 self.main_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
             else:
@@ -282,14 +282,17 @@ class MainController:
 
     def set_wfs_camera_roi(self):
         try:
-            if "sCMOS" == self.wfs_camera:
+            if self._camset[1] == 1:
                 x, y, n, b = self.con_controller.get_scmos_roi()
                 self.wfs_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
-            elif "EMCCD" == self.wfs_camera:
+            elif self._camset[1] == 0:
                 x, y, n, b = self.con_controller.get_emccd_roi()
-                self.wfs_cam.set_roi(b, b, x, x + n - 1, y, y + n - 1)
-                gain = self.con_controller.get_emccd_gain()
-                self.main_cam.set_gain(gain)
+                self.wfs_cam.bin_h, self.wfs_cam.bin_h = b, b
+                self.wfs_cam.start_h, self.wfs_cam.end_h = x, x + n - 1
+                self.wfs_cam.start_v, self.wfs_cam.end_v = y, y + n - 1
+                self.wfs_cam.set_roi()
+                self.wfs_cam.gain = self.con_controller.get_emccd_gain()
+                self.wfs_cam.set_gain()
             else:
                 self.logg.error_log.info("Invalid WFS Camera")
         except Exception as e:
