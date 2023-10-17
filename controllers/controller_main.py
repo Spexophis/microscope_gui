@@ -104,16 +104,9 @@ class MainController:
 
         self.close_loop_thread = None
 
-        self.main_camera = "EMCCD"
-        self.wfs_camera = "sCMOS"
-        if "EMCCD" == self.main_camera:
-            self.main_cam = self.m.ccdcam
-        elif "sCMOS" == self.main_camera:
-            self.main_cam = self.m.scmoscam
-        if "sCMOS" == self.wfs_camera:
-            self.wfs_cam = self.m.scmoscam
-        elif "EMCCD" == self.wfs_camera:
-            self.wfs_cam = self.m.ccdcam
+        self._camset = self.con_controller.get_cameras()
+        self.main_cam = self.m.cam_set[self._camset[0]]
+        self.wfs_cam = self.m.cam_set[self._camset[1]]
 
         self.pixel_size_main = self.main_cam.ps / 210
         # self.pixel_size_wfs = self.main_cam.ps / 210
@@ -258,7 +251,8 @@ class MainController:
         try:
             self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0, 0, 0, 0])
             self.m.laser.laser_on("all")
-            self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], self.con_controller.get_cobolt_laser_power("all"))
+            self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"],
+                                             self.con_controller.get_cobolt_laser_power("all"))
         except Exception as e:
             self.logg.error_log.error(f"Cobolt Laser Error: {e}")
 
@@ -341,13 +335,13 @@ class MainController:
         try:
             lasers = self.con_controller.get_lasers()
             camera = self.con_controller.get_camera()
-            sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
-            self.p.trigger.update_digital_parameters(sequence_time, digital_starts, digital_ends)
-            gv_starts, gv_stops, dotspos = self.con_controller.get_galvo_scan_parameters()
+            digital_starts, digital_ends = self.con_controller.get_digital_parameters()
+            self.p.trigger.update_digital_parameters(digital_starts, digital_ends)
+            gv_starts, gv_stops, dotspos, galvo_movement = self.con_controller.get_galvo_scan_parameters()
             self.p.trigger.update_galvo_scan_parameters(gv_start=gv_starts[0], gv_stop=gv_stops[0],
-                                                        laser_start=dotspos[0],
-                                                        laser_interval=dotspos[1])
-            axis_lengths, step_sizes, analog_start = self.con_controller.get_piezo_scan_parameters()
+                                                        laser_start=dotspos[0], laser_interval=dotspos[1],
+                                                        acceleration=galvo_movement[0], velocity=galvo_movement[1])
+            axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             positions = self.con_controller.get_piezo_positions()
             self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, positions)
             self.p.trigger.update_camera_parameters(self.main_cam.t_clean, self.main_cam.t_readout,
@@ -485,7 +479,7 @@ class MainController:
         try:
             self.main_cam.start_live()
             positions = self.con_controller.get_piezo_positions()
-            axis_lengths, step_sizes, analog_start = self.con_controller.get_piezo_scan_parameters()
+            axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             num_steps = int(axis_lengths[2] / (2 * step_sizes[2]))
             start = positions[2] - num_steps * step_sizes[2]
             end = positions[2] + num_steps * step_sizes[2]
@@ -695,8 +689,8 @@ class MainController:
         try:
             lasers = self.con_controller.get_lasers()
             camera = self.con_controller.get_camera()
-            sequence_time, digital_starts, digital_ends = self.con_controller.get_digital_parameters()
-            self.p.trigger.update_digital_parameters(sequence_time, digital_starts, digital_ends)
+            digital_starts, digital_ends = self.con_controller.get_digital_parameters()
+            self.p.trigger.update_digital_parameters(digital_starts, digital_ends)
             # self.p.trigger.update_camera_parameters(self.wfs_cam.t_clean, self.wfs_cam.t_readout,
             #                                         self.wfs_cam.t_kinetic)
             return lasers, camera

@@ -13,12 +13,15 @@ class MainModule:
         self.config = config
         self.logg = logg
         self.data_folder = path
+        self.cam_set = {}
         try:
             self.ccdcam = module_andorixon.EMCCDCamera(self.logg.error_log)
+            self.cam_set[0] = self.ccdcam
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
             self.scmoscam = module_hamamatsu.HamamatsuCameraMR(self.logg.error_log)
+            self.cam_set[1] = self.scmoscam
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:

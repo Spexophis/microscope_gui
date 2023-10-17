@@ -7,7 +7,7 @@ class TriggerSequence:
         def __init__(self):
             self.sample_rate = 100000
             self.dt = 1 / self.sample_rate
-            self.sequence_time = 0.04
+            self.cycle_time = 0.04
             self.initial_time = 0.008
             self.standby_time = 0.04
             # piezo scanner
@@ -17,7 +17,6 @@ class TriggerSequence:
             self.piezo_starts = [i - j for i, j in zip(self.piezo_positions, [k / 2 for k in self.piezo_ranges])]
             self.piezo_return_time = 0.016
             self.piezo_conv_factors = [10., 10., 10.]
-            self.piezo_analog_start = 0.032
             # galvo scanner
             self.v_max = 4e2  # V/s
             self.a_max = 2.4e7  # V/s^2
@@ -47,7 +46,8 @@ class TriggerSequence:
             self.piezo_positions = piezo_positions
         self.piezo_starts = [i - j for i, j in zip(self.piezo_positions, [k / 2 for k in self.piezo_ranges])]
 
-    def update_galvo_scan_parameters(self, gv_start=None, gv_stop=None, laser_start=None, laser_interval=None):
+    def update_galvo_scan_parameters(self, gv_start=None, gv_stop=None, laser_start=None, laser_interval=None,
+                                     acceleration=None, velocity=None):
         if gv_start is not None:
             self.galvo_start = gv_start
         if gv_stop is not None:
@@ -56,27 +56,29 @@ class TriggerSequence:
             self.galvo_laser_start = laser_start
         if laser_interval is not None:
             self.galvo_laser_interval = laser_interval
+        if acceleration is not None:
+            self.a_max = acceleration
+        if velocity is not None:
+            self.v_max = velocity
 
-    def update_digital_parameters(self, sequence_time=None, digital_starts=None, digital_ends=None):
-        if sequence_time is not None:
-            self.sequence_time = sequence_time
+    def update_digital_parameters(self, digital_starts=None, digital_ends=None):
         if digital_starts is not None:
             self.digital_starts = digital_starts
         if digital_ends is not None:
             self.digital_ends = digital_ends
-        
+
     def update_camera_parameters(self, initial_time=None, standby_time=None, cycle_time=None):
         if initial_time is not None:
             self.initial_time = initial_time
         if standby_time is not None:
             self.standby_time = standby_time
-        if self.sequence_time <= cycle_time:
-            self.sequence_time = cycle_time
-        
+        if self.cycle_time <= cycle_time:
+            self.cycle_time = cycle_time
+
     def generate_digital_triggers(self, lasers, camera):
         _starts = [int(digital_start * self.sample_rate) for digital_start in self.digital_starts]
         _ends = [int(digital_end * self.sample_rate) for digital_end in self.digital_ends]
-        cycle_samples = int(np.ceil(self.sequence_time * self.sample_rate))
+        cycle_samples = int(np.ceil(self.cycle_time * self.sample_rate))
         initial_samples = int(np.ceil(self.initial_time * self.sample_rate))
         standby_samples = int(np.ceil(self.standby_time * self.sample_rate))
         cam_ind = camera + 4
@@ -102,7 +104,7 @@ class TriggerSequence:
     def generate_wfs_triggers(self, lasers, camera):
         _starts = [int(digital_start * self.sample_rate) for digital_start in self.digital_starts]
         _ends = [int(digital_end * self.sample_rate) for digital_end in self.digital_ends]
-        cycle_samples = int(np.ceil(self.sequence_time * self.sample_rate))
+        cycle_samples = int(np.ceil(self.cycle_time * self.sample_rate))
         digital_trigger = np.zeros((len(self.digital_starts), cycle_samples))
         for laser in lasers:
             digital_start = _starts[laser]
@@ -187,7 +189,7 @@ class TriggerSequence:
         """
         digital_trigger_sequences = []
         analog_trigger_sequences = []
-        cycle_samples = self.sequence_time * self.sample_rate
+        cycle_samples = self.cycle_time * self.sample_rate
         cycle_samples = int(np.ceil(cycle_samples))
         return_samples = self.piezo_return_time * self.sample_rate
         return_samples = int(np.ceil(return_samples))
@@ -317,7 +319,7 @@ class TriggerSequence:
     def generate_bead_scan_2d(self, cam_ind=4):
         digital_trigger_sequences = []
         analog_trigger_sequences = []
-        cycle_samples = int(np.ceil(self.sequence_time * self.sample_rate))
+        cycle_samples = int(np.ceil(self.cycle_time * self.sample_rate))
         initial_samples = int(np.ceil(self.initial_time * self.sample_rate))
         standby_samples = int(np.ceil(self.standby_time * self.sample_rate))
         return_samples = int(np.ceil(self.piezo_return_time * self.sample_rate))
@@ -354,7 +356,8 @@ class TriggerSequence:
         cycle = np.ones(digital_start) * fast_axis_step_size * (fast_axis_positions - 1)
         temp = np.append(temp, cycle)
         temp = np.append(temp,
-                         np.linspace(1, 0, int(cycle_samples - digital_start) + return_samples) * fast_axis_step_size * (
+                         np.linspace(1, 0,
+                                     int(cycle_samples - digital_start) + return_samples) * fast_axis_step_size * (
                                  fast_axis_positions - 1))
         analog_trigger_sequences.append(np.tile(temp, middle_axis_positions) + fast_axis_start)
 

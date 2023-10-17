@@ -3,6 +3,9 @@ class ConController:
     def __init__(self, view):
         self.v = view
 
+    def get_cameras(self):
+        return self.v.QComboBox_emccd.currentIndex(), self.v.QComboBox_scmos.currentIndex()
+
     def get_emccd_roi(self):
         return [self.v.QSpinBox_emccd_coordinate_x.value(), self.v.QSpinBox_emccd_coordinate_y.value(),
                 self.v.QSpinBox_emccd_coordinate_n.value(), self.v.QSpinBox_emccd_coordinate_bin.value()]
@@ -66,34 +69,33 @@ class ConController:
         return detection_device
 
     def get_digital_parameters(self):
-        sequence_time = self.v.QDoubleSpinBox_cycle_period.value()
         digital_starts = [self.v.QDoubleSpinBox_ttl_start_on_405.value(),
                           self.v.QDoubleSpinBox_ttl_start_off_488_0.value(),
                           self.v.QDoubleSpinBox_ttl_start_off_488_1.value(),
                           self.v.QDoubleSpinBox_ttl_start_read_488_2.value(),
-                          self.v.QDoubleSpinBox_ttl_start_camera_main.value(),
-                          self.v.QDoubleSpinBox_ttl_start_camera_wfs.value()]
+                          self.v.QDoubleSpinBox_ttl_start_emccd.value(),
+                          self.v.QDoubleSpinBox_ttl_start_scmos.value()]
         digital_ends = [self.v.QDoubleSpinBox_ttl_stop_on_405.value(),
                         self.v.QDoubleSpinBox_ttl_stop_off_488_0.value(),
                         self.v.QDoubleSpinBox_ttl_stop_off_488_1.value(),
                         self.v.QDoubleSpinBox_ttl_stop_read_488_2.value(),
-                        self.v.QDoubleSpinBox_ttl_stop_camera_main.value(),
-                        self.v.QDoubleSpinBox_ttl_stop_camera_wfs.value()]
-        return sequence_time, digital_starts, digital_ends
+                        self.v.QDoubleSpinBox_ttl_stop_emccd.value(),
+                        self.v.QDoubleSpinBox_ttl_stop_scmos.value()]
+        return digital_starts, digital_ends
 
     def get_piezo_scan_parameters(self):
         axis_lengths = [self.v.QDoubleSpinBox_range_x.value(), self.v.QDoubleSpinBox_range_y.value(),
                         self.v.QDoubleSpinBox_range_z.value()]
         step_sizes = [self.v.QDoubleSpinBox_step_x.value(), self.v.QDoubleSpinBox_step_y.value(),
                       self.v.QDoubleSpinBox_step_z.value()]
-        analog_start = self.v.QDoubleSpinBox_piezo_start.value()
-        return axis_lengths, step_sizes, analog_start
+        return axis_lengths, step_sizes
 
     def get_galvo_scan_parameters(self):
         galvo_starts = [self.v.QDoubleSpinBox_galvo_start_x.value(), self.v.QDoubleSpinBox_galvo_start_y.value()]
         galvo_stops = [self.v.QDoubleSpinBox_galvo_stop_x.value(), self.v.QDoubleSpinBox_galvo_stop_y.value()]
         galvo_dotspos = [self.v.QSpinBox_galvo_laser_start.value(), self.v.QSpinBox_galvo_laser_interval.value()]
-        return galvo_starts, galvo_stops, galvo_dotspos
+        galvo_movement = [self.v.QDoubleSpinBox_galvo_accelaration.value(), self.v.QDoubleSpinBox_galvo_velocity.value()]
+        return galvo_starts, galvo_stops, galvo_dotspos, galvo_movement
 
     def get_profile_axis(self):
         return self.v.QComboBox_profile_axis.currentText()

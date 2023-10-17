@@ -121,6 +121,13 @@ def create_scroll_area():
     return scroll_area, layout
 
 
+def frame_widget():
+    line = QtWidgets.QFrame()
+    line.setFrameShape(QtWidgets.QFrame.HLine)
+    line.setFrameShadow(QtWidgets.QFrame.Sunken)
+    return line
+
+
 def label_widget(name=''):
     label = QtWidgets.QLabel(name)
     label.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
