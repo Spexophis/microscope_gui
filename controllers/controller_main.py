@@ -331,8 +331,9 @@ class MainController:
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             positions = self.con_controller.get_piezo_positions()
             self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, positions)
-            self.p.trigger.update_camera_parameters(self.main_cam.t_clean, self.main_cam.t_readout,
-                                                    self.main_cam.t_kinetic)
+            self.p.trigger.update_camera_parameters([self.main_cam.t_clean, self.wfs_cam.t_clean],
+                                                    [self.main_cam.t_readout, self.wfs_cam.t_readout],
+                                                    [self.main_cam.t_kinetic, self.wfs_cam.t_kinetic])
             return lasers, camera
         except Exception as e:
             self.logg.error_log.error(f"Trigger Error: {e}")
@@ -686,7 +687,7 @@ class MainController:
 
     def generate_wfs_trigger(self):
         lasers, camera = self.update_wfs_trigger_parameters()
-        return self.p.trigger.generate_wfs_triggers(lasers, camera)
+        return self.p.trigger.generate_digital_triggers(lasers, camera)
 
     def set_img_wfs(self):
         try:
