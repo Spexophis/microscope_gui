@@ -599,7 +599,8 @@ class MainController:
             time.sleep(0.1)
             data = self.main_cam.get_data(pos)
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_bead_scanning.tif')
-            tf.imwrite(fd, data)
+            tf.imwrite(fd, data, imagej=True, resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
+                       metadata={'unit': 'um'})
             # self.view_controller.plot_main(data)
         except Exception as e:
             self.logg.error_log.error(f"Error running beads scanning: {e}")
@@ -775,13 +776,21 @@ class MainController:
 
     def save_img_wf(self, file_name):
         if isinstance(self.p.shwfsr.base, np.ndarray) and self.p.shwfsr.base.size > 0:
-            tf.imwrite(file_name + '_shimg_base_raw.tif', self.p.shwfsr.base)
+            tf.imwrite(file_name + '_shimg_base_raw.tif', self.p.shwfsr.base, imagej=True,
+                       resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
+                       metadata={'unit': 'um'})
         if isinstance(self.p.shwfsr.offset, np.ndarray) and self.p.shwfsr.offset.size > 0:
-            tf.imwrite(file_name + '_shimg_offset_raw.tif', self.p.shwfsr.offset)
+            tf.imwrite(file_name + '_shimg_offset_raw.tif', self.p.shwfsr.offset, imagej=True,
+                       resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
+                       metadata={'unit': 'um'})
         if isinstance(self.p.shwfsr.im, np.ndarray) and self.p.shwfsr.im.size > 0:
-            tf.imwrite(file_name + '_shimg_processed.tif', self.p.shwfsr.im)
+            tf.imwrite(file_name + '_shimg_processed.tif', self.p.shwfsr.im, imagej=True,
+                       resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
+                       metadata={'unit': 'um'})
         if isinstance(self.p.shwfsr.wf, np.ndarray) and self.p.shwfsr.wf.size > 0:
-            tf.imwrite(file_name + '_reconstructed_wf.tif', self.p.shwfsr.wf)
+            tf.imwrite(file_name + '_reconstructed_wf.tif', self.p.shwfsr.wf, imagej=True,
+                       resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
+                       metadata={'unit': 'um'})
         print('WF Data saved')
 
     def run_influence_function(self):
