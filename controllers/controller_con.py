@@ -93,9 +93,13 @@ class ConController:
     def get_galvo_scan_parameters(self):
         galvo_starts = [self.v.QDoubleSpinBox_galvo_start_x.value(), self.v.QDoubleSpinBox_galvo_start_y.value()]
         galvo_stops = [self.v.QDoubleSpinBox_galvo_stop_x.value(), self.v.QDoubleSpinBox_galvo_stop_y.value()]
-        galvo_dotspos = [self.v.QSpinBox_galvo_laser_start.value(), self.v.QSpinBox_galvo_laser_interval.value()]
-        galvo_movement = [self.v.QDoubleSpinBox_galvo_accelaration.value(), self.v.QDoubleSpinBox_galvo_velocity.value()]
-        return galvo_starts, galvo_stops, galvo_dotspos, galvo_movement
+        galvo_frequency = self.v.QSpinBox_galvo_frequency.value()
+        dot_pos = [self.v.QDoubleSpinBox_dot_start.value(), self.v.QDoubleSpinBox_dot_range.value(),
+                   self.v.QDoubleSpinBox_dot_step.value()]
+        laser_pulse = [self.v.QSpinBox_galvo_delay.value(), self.v.QSpinBox_galvo_interval.value()]
+        # galvo_dotspos = [self.v.QSpinBox_galvo_laser_start.value(), self.v.QSpinBox_galvo_laser_interval.value()]
+        # galvo_movement = [self.v.QDoubleSpinBox_galvo_accelaration.value(), self.v.QDoubleSpinBox_galvo_velocity.value()]
+        return galvo_starts, galvo_stops, galvo_frequency, dot_pos, laser_pulse  # galvo_dotspos, galvo_movement
 
     def get_profile_axis(self):
         return self.v.QComboBox_profile_axis.currentText()

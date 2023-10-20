@@ -33,6 +33,7 @@ def dock_widget(name=''):
         }
     ''')
     dock.setFeatures(QtWidgets.QDockWidget.NoDockWidgetFeatures)
+    dock.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
     return dock
 
 
@@ -56,6 +57,7 @@ def group_widget(name=''):
             padding: 0 0px;
         }
     ''')
+    group.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
     return group
 
 
@@ -107,6 +109,7 @@ def create_file_dialogue(name="Save File", file_filter="All Files (*)", default_
 def create_scroll_area():
     scroll_area = QtWidgets.QScrollArea()
     scroll_area.setWidgetResizable(True)
+    scroll_area.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
     scroll_area.setStyleSheet("""
                                 QScrollArea {
                                     background-color: #444444;

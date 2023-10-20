@@ -324,10 +324,11 @@ class MainController:
             camera = self.con_controller.get_camera()
             digital_starts, digital_ends = self.con_controller.get_digital_parameters()
             self.p.trigger.update_digital_parameters(digital_starts, digital_ends)
-            gv_starts, gv_stops, dotspos, galvo_movement = self.con_controller.get_galvo_scan_parameters()
+            gv_starts, gv_stops, gv_frequency, dot_pos, laser_pulse = self.con_controller.get_galvo_scan_parameters()
             self.p.trigger.update_galvo_scan_parameters(gv_start=gv_starts[0], gv_stop=gv_stops[0],
-                                                        laser_start=dotspos[0], laser_interval=dotspos[1],
-                                                        acceleration=galvo_movement[0], velocity=galvo_movement[1])
+                                                        dot_start=dot_pos[0], dot_range=dot_pos[1], dot_step=dot_pos[2],
+                                                        frequency=gv_frequency,
+                                                        samples_delay=laser_pulse[0], samples_low=laser_pulse[1])
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             positions = self.con_controller.get_piezo_positions()
             self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, positions)
@@ -507,8 +508,8 @@ class MainController:
             self.set_main_camera_roi()
             self.main_cam.prepare_live()
             lasers, camera = self.update_trigger_parameters()
-            atr, dtr, pos = self.p.trigger.generate_galvo_scanning(lasers, camera)
-            self.m.daq.write_triggers(piezo_sequence=None, galvo_sequence=atr, digital_sequences=dtr)
+            gtr, ptr, dtr, pos = self.p.trigger.generate_galvo_resolft_2d()
+            self.m.daq.write_triggers(piezo_sequence=ptr, galvo_sequence=gtr, digital_sequences=dtr)
         except Exception as e:
             self.logg.error_log.error(f"Error starting galvo scanning: {e}")
 
@@ -545,8 +546,8 @@ class MainController:
             self.set_main_camera_roi()
             self.main_cam.prepare_live()
             lasers, camera = self.update_trigger_parameters()
-            atr, dtr, pos = self.p.trigger.generate_confocal_triggers(lasers, camera)
-            self.m.daq.write_triggers(piezo_sequence=None, galvo_sequence=atr, digital_sequences=dtr)
+            gtr, ptr, dtr, pos = self.p.trigger.generate_confocal_resolft_2d()
+            self.m.daq.write_triggers(piezo_sequence=ptr, galvo_sequence=gtr, digital_sequences=dtr)
         except Exception as e:
             self.logg.error_log.error(f"Error starting confocal scanning: {e}")
 
