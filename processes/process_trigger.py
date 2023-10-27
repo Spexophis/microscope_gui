@@ -14,8 +14,8 @@ class TriggerSequence:
             self.standby_time = [0.04, 0.04]
             # piezo scanner
             self.piezo_conv_factors = [10., 10., 10.]
-            self.piezo_steps = [0.032, 0.032, 0.0]
-            self.piezo_ranges = [0.64, 0.64, 0.0]
+            self.piezo_steps = [0.038, 0.038, 0.0]
+            self.piezo_ranges = [0.76, 0.76, 0.0]
             self.piezo_positions = [50., 50., 50.]
             self.piezo_return_time = 0.016
             self.piezo_steps = [step_size / conv_factor for step_size, conv_factor in
@@ -37,14 +37,14 @@ class TriggerSequence:
             # dot array
             self.dot_start = -1.0  # V
             self.dot_range = 2.0  # V
-            self.dot_step = 0.05  # V
+            self.dot_step = 0.04  # V
             self.dot_pos = np.arange(self.dot_start, self.dot_start + self.dot_range + self.dot_step, self.dot_step)
             # sawtooth wave
-            self.frequency = 200  # Hz
+            self.frequency = 500  # Hz
             self.duration = self.dot_pos.size / self.frequency
             # square wave
-            self.samples_high = 2
-            self.samples_low = 4
+            self.samples_high = 1
+            self.samples_low = 2
             self.samples_period = int(self.sample_rate / self.frequency)
             self.samples_delay = int(np.floor(np.abs(self.dot_start - self.galvo_start) / (
                     np.abs(self.galvo_stop - self.galvo_start) / self.samples_period)))
