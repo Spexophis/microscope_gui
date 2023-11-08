@@ -1,14 +1,19 @@
+import csv
+import struct
 import sys
 
-sys.path.append(r'C:\Program Files\Alpao\sourcefiles')
-from Lib64.asdk import DM
 import numpy as np
-import csv
+
+sys.path.append(r'C:\Program Files\Alpao\SDK\Samples\Python3')
+if (8 * struct.calcsize("P")) == 32:
+    from Lib.asdk import DM
+else:
+    from Lib64.asdk import DM
 
 
 class DeformableMirror:
 
-    def __init__(self, logg):
+    def __init__(self, logg=None):
         self.logg = logg or self.setup_logging()
         try:
             serial_name = 'BAX513'
@@ -49,9 +54,10 @@ class DeformableMirror:
         self.dm.Send([0.] * self.nbAct)
         self.logg.info('DM set to null')
 
-    def zernike_modes(self):
+    @staticmethod
+    def zernike_modes():
         Z2C = []
-        with open(r'C:/Program Files/Alpao/sourcefiles/BAX513-Z2C.csv', newline='') as csvfile:
+        with open(r'C:\Program Files\Alpao\SDK\Config\BAX513-Z2C.csv', newline='') as csvfile:
             csvrows = csv.reader(csvfile, delimiter=' ')
             for row in csvrows:
                 x = row[0].split(",")
