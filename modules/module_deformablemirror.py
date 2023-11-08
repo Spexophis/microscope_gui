@@ -56,6 +56,15 @@ class DeformableMirror:
 
     @staticmethod
     def zernike_modes():
+        """
+        z2c index:
+        0, 1 - tip / tilt
+        2 - defocus
+        3, 4 - astigmatism
+        5, 6 - coma
+        7, 8 - trefoil
+        9 - spherical
+        """
         Z2C = []
         with open(r'C:\Program Files\Alpao\SDK\Config\BAX513-Z2C.csv', newline='') as csvfile:
             csvrows = csv.reader(csvfile, delimiter=' ')
@@ -66,14 +75,3 @@ class DeformableMirror:
             for j in range(len(Z2C[i])):
                 Z2C[i][j] = float(Z2C[i][j])
         return Z2C
-
-
-"""
-z2c index:
-0, 1 - tip / tilt
-2 - defocus
-3, 4 - astigmatism
-5, 6 - coma
-7, 8 - trefoil
-9 - spherical
-"""
