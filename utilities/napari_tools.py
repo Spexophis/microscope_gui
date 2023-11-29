@@ -1,6 +1,6 @@
 import napari
-from napari.utils.translations import trans
 from PyQt5 import QtWidgets
+from napari.utils.translations import trans
 
 
 def addNapariGrayclipColormap():
@@ -38,7 +38,7 @@ class EmbeddedNapari(napari.Viewer):
         self.layers._delitem_indices = newDelitemIndices
 
         # Make menu bar not native
-        self.window._qt_window.menuBar().setVisible(False)        # setNativeMenuBar(False)
+        self.window._qt_window.menuBar().setNativeMenuBar(False)
 
         # Remove unwanted menu bar items
         menuChildren = self.window._qt_window.findChildren(QtWidgets.QAction)
@@ -63,7 +63,6 @@ class EmbeddedNapari(napari.Viewer):
     def get_widget(self):
         return self.window._qt_window
 
-        
 # Copyright (C) 2020-2021 ImSwitch developers
 # This file is part of ImSwitch.
 #
