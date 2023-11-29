@@ -4,9 +4,9 @@ A ctypes based interface to Hamamatsu sCMOS Flash 4.0
 
 import ctypes
 import ctypes.util
-
 # import threading
 # from collections import deque
+
 import numpy as np
 
 dcam = ctypes.windll.dcamapi
@@ -701,7 +701,7 @@ class HamamatsuCameraMR(HamamatsuCamera):
            counting scheme.
     """
 
-    def __init__(self, logg, **kwds):
+    def __init__(self, logg=None, **kwds):
         super().__init__(logg, **kwds)
         self.logg = logg or self.setup_logging()
         self.hcam_data = []
@@ -744,8 +744,7 @@ class HamamatsuCameraMR(HamamatsuCamera):
         # Attach image buffers and start acquisition.
         # We need to attach & release for each acquisition otherwise
         # we'll get an error if we try to change the ROI in any way between acquisitions.
-        paramattach = DCAMBUF_ATTACH(0, DCAMBUF_ATTACHKIND_FRAME,
-                                     self.date_ptr, self.number_image_buffers)
+        paramattach = DCAMBUF_ATTACH(0, DCAMBUF_ATTACHKIND_FRAME, self.date_ptr, self.number_image_buffers)
         paramattach.size = ctypes.sizeof(paramattach)
         if self.acquisition_mode == "run_till_abort":
             self.check_status(dcam.dcambuf_attach(self.camera_handle, paramattach), "dcam_attachbuffer")
@@ -822,17 +821,18 @@ class HamamatsuCameraMR(HamamatsuCamera):
         for n in self.retrieve_new_frames():
             print(n)
             data.append(self.hcam_data[n].getData().reshape(self.frame_y, self.frame_x))
-        # print(np.asarray(data))
 
     def finish_data_acquisition(self):
         self.stop_acquisition()
 
-# class CameraThread(threading.Thread):
+
+# class AcquisitionThread(threading.Thread):
+#     running = False
+#     lock = threading.Lock()
+#
 #     def __init__(self, cam):
 #         threading.Thread.__init__(self)
 #         self.cam = cam
-#         self.running = False
-#         self.lock = threading.Lock()
 #
 #     def run(self):
 #         self.running = True
@@ -845,13 +845,15 @@ class HamamatsuCameraMR(HamamatsuCamera):
 #         self.join()
 #
 #
-# class FixedLengthList:
-#     def __init__(self, max_length):
-#         self.max_length = max_length
-#         self.data_list = deque(maxlen=max_length)
+# class DataList:
 #
-#     def add_element(self, element):
-#         self.data_list.append(element)
+#     def __init__(self, max_length):
+#         self.data_list = deque(maxlen=max_length)
+#         self.ind_list = deque(maxlen=max_length)
+#
+#     def add_element(self, elements, start_ind, end_ind):
+#         self.data_list.extend(elements)
+#         self.ind_list.extend(list(range(start_ind, end_ind + 1)))
 #
 #     def get_elements(self):
 #         return list(self.data_list)

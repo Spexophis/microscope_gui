@@ -1,7 +1,6 @@
 import sys
 import threading
 from collections import deque
-from typing import Optional
 
 import numpy as np
 from pyAndorSDK2 import atmcd, atmcd_errors
@@ -354,7 +353,7 @@ class EMCCDCamera:
                 "number of accumulations completed = {} \n"
                 "kinetic scans completed = {}".format(ret, self.numAccumulate, self.numKinetics))
 
-    def get_data(self, num) -> Optional[np.ndarray]:
+    def get_data(self, num):
         ret, data_array = self.sdk.GetAcquiredData16(num * self.img_size)
         if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
             self.logg.info('Data Retrieved')
@@ -399,11 +398,11 @@ class DataList:
         self.data_list.extend(elements)
         self.ind_list.extend(list(range(start_ind, end_ind + 1)))
 
-    def get_elements(self) -> list:
+    def get_elements(self):
         return list(self.data_list)
 
-    def get_last_element(self) -> Optional[np.ndarray]:
+    def get_last_element(self):
         return self.data_list[-1] if self.data_list else None
 
-    def is_empty(self) -> bool:
+    def is_empty(self):
         return len(self.data_list) == 0
