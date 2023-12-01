@@ -93,10 +93,10 @@ class ViewWidget(QtWidgets.QWidget):
         self.canvas.axes.plot(data)
         self.canvas.draw()
 
-# import sys
-#
-# if __name__ == "__main__":
-#     app = QtWidgets.QApplication(sys.argv)
-#     window = ViewWidget()
-#     window.show()
-#     sys.exit(app.exec_())
+import sys
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    window = ViewWidget()
+    window.show()
+    sys.exit(app.exec_())

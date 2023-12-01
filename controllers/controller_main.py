@@ -325,7 +325,7 @@ class MainController:
             digital_starts, digital_ends = self.con_controller.get_digital_parameters()
             self.p.trigger.update_digital_parameters(digital_starts, digital_ends)
             gv_starts, gv_stops, gv_frequency, dot_pos, laser_pulse = self.con_controller.get_galvo_scan_parameters()
-            self.p.trigger.update_galvo_scan_parameters(gv_start=gv_starts[0], gv_stop=gv_stops[0],
+            self.p.trigger.update_galvo_scan_parameters(galvo_start=gv_starts[0], galvo_stop=gv_stops[0],
                                                         dot_start=dot_pos[0], dot_range=dot_pos[1], dot_step=dot_pos[2],
                                                         frequency=gv_frequency,
                                                         samples_delay=laser_pulse[0], samples_low=laser_pulse[1])

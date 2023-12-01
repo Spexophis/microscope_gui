@@ -249,6 +249,28 @@ class HamamatsuCamera(object):
     Storage for the data from the camera is allocated dynamically and
     copied out of the camera buffers.
     """
+    class CameraSettings:
+        def __init__(self):
+            self.t_clean = None
+            self.t_readout = None
+            self.t_exposure = None
+            self.t_accumulate = None
+            self.t_kinetic = None
+            self.bin_h = 1
+            self.bin_v = 1
+            self.start_h = 1
+            self.end_h = 1024
+            self.start_v = 1
+            self.end_v = 1024
+            self.pixels_x = 1024
+            self.pixels_y = 1024
+            self.img_size = self.pixels_x * self.pixels_y
+            self.ps = 13  # micron
+            self.buffer_size = None
+            self.acq_num = 0
+            self.acq_first = 0
+            self.acq_last = 0
+            self.valid_index = 0
 
     def __init__(self, logg=None, **kwds):
         """
@@ -256,6 +278,7 @@ class HamamatsuCamera(object):
         """
         super().__init__(**kwds)
         self.logg = logg
+        self._settings = self.CameraSettings()
         self.buffer_index = 0
         self.camera_id = 0
         self.debug = False
@@ -324,6 +347,11 @@ class HamamatsuCamera(object):
         import logging
         logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
         return logging
+
+    def __getattr__(self, item):
+        if hasattr(self._settings, item):
+            return getattr(self._settings, item)
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{item}'")
 
     def prepare_capture(self):
         """
