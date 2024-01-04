@@ -189,9 +189,9 @@ class MainController:
                 self.m.md.stop_moving()
                 p = self.m.md.get_position_steps_taken(3)
                 self.con_controller.display_deck_position(p)
-                print("MadDeck is Stopped")
+                self.logg.error_log.info("MadDeck is Stopped")
             else:
-                print("MadDeck is Stopped")
+                self.logg.error_log.info("MadDeck is Stopped")
         except Exception as e:
             self.logg.error_log.error(f"MadDeck Error: {e}")
 
