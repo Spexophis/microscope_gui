@@ -42,19 +42,24 @@ class CoboltLaser:
             for key, _l in self.lasers.items():
                 _l.send_cmd('l0')
         else:
-            self.lasers[laser].send_cmd('l0')
+            for ind, ln in enumerate(laser):
+                if self._h.get(ln, False):
+                    self.lasers[ln].send_cmd('l0')
 
     def laser_on(self, laser):
         if laser == "all":
             for key, _l in self.lasers.items():
                 _l.send_cmd('l1')
         else:
-            self.lasers[laser].send_cmd('l1')
+            for ind, ln in enumerate(laser):
+                if self._h.get(ln, False):
+                    self.lasers[ln].send_cmd('l1')
 
     def set_constant_power(self, laser, power):
         for ind, ln in enumerate(laser):
             if self._h.get(ln, False):
                 self.lasers[ln].constant_power(power[ind])
+                self.logg.info("Set Laser " + ln + "to" + str(power[ind]) + "mW")
 
     def set_constant_current(self, laser, current):
         for ind, ln in enumerate(laser):

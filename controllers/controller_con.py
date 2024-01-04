@@ -53,13 +53,13 @@ class ConController:
 
     def get_cobolt_laser_power(self, laser):
         if laser == "405":
-            return self.v.QDoubleSpinBox_laserpower_405.value()
+            return [self.v.QDoubleSpinBox_laserpower_405.value()]
         if laser == "488_0":
-            return self.v.QDoubleSpinBox_laserpower_488_0.value()
+            return [self.v.QDoubleSpinBox_laserpower_488_0.value()]
         if laser == "488_1":
-            return self.v.QDoubleSpinBox_laserpower_488_1.value()
+            return [self.v.QDoubleSpinBox_laserpower_488_1.value()]
         if laser == "488_2":
-            return self.v.QDoubleSpinBox_laserpower_488_2.value()
+            return [self.v.QDoubleSpinBox_laserpower_488_2.value()]
         if laser == "all":
             return [self.v.QDoubleSpinBox_laserpower_405.value(), self.v.QDoubleSpinBox_laserpower_488_0.value(),
                     self.v.QDoubleSpinBox_laserpower_488_1.value(), self.v.QDoubleSpinBox_laserpower_488_2.value()]

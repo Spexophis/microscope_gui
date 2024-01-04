@@ -10,7 +10,7 @@ class ConWidget(QtWidgets.QWidget):
     Signal_deck_move_single_step = QtCore.pyqtSignal(bool)
     Signal_deck_move_continuous = QtCore.pyqtSignal(bool)
     Signal_galvo_set = QtCore.pyqtSignal()
-    Signal_set_laser = QtCore.pyqtSignal(str, bool)
+    Signal_set_laser = QtCore.pyqtSignal(list, bool)
     Signal_plot_trigger = QtCore.pyqtSignal()
     Signal_video = QtCore.pyqtSignal(bool)
     Signal_fft = QtCore.pyqtSignal(bool)
@@ -291,8 +291,8 @@ class ConWidget(QtWidgets.QWidget):
         self.QDoubleSpinBox_stage_x.valueChanged.connect(lambda value: self.Signal_piezo_move.emit("x", value))
         self.QDoubleSpinBox_stage_y.valueChanged.connect(lambda value: self.Signal_piezo_move.emit("y", value))
         self.QDoubleSpinBox_stage_z.valueChanged.connect(lambda value: self.Signal_piezo_move.emit("z", value))
-        self.QPushButton_move_deck_up.clicked.connect(lambda: self.Signal_deck_move_single_step.emit("True"))
-        self.QPushButton_move_deck_down.clicked.connect(lambda: self.Signal_deck_move_single_step.emit("False"))
+        self.QPushButton_move_deck_up.clicked.connect(lambda: self.Signal_deck_move_single_step.emit(True))
+        self.QPushButton_move_deck_down.clicked.connect(lambda: self.Signal_deck_move_single_step.emit(False))
         self.QPushButton_move_deck.clicked.connect(self.deck_move)
         self.QDoubleSpinBox_galvo_x.valueChanged.connect(self.Signal_galvo_set.emit)
         self.QDoubleSpinBox_galvo_y.valueChanged.connect(self.Signal_galvo_set.emit)
@@ -334,27 +334,27 @@ class ConWidget(QtWidgets.QWidget):
 
     def set_laser_488_0(self):
         if self.QPushButton_laser_488_0.isChecked():
-            self.Signal_set_laser.emit("488_0", True)
+            self.Signal_set_laser.emit(["488_0"], True)
         else:
-            self.Signal_set_laser.emit("488_0", False)
+            self.Signal_set_laser.emit(["488_0"], False)
 
     def set_laser_488_1(self):
         if self.QPushButton_laser_488_1.isChecked():
-            self.Signal_set_laser.emit("488_1", True)
+            self.Signal_set_laser.emit(["488_1"], True)
         else:
-            self.Signal_set_laser.emit("488_1", False)
+            self.Signal_set_laser.emit(["488_1"], False)
 
     def set_laser_488_2(self):
         if self.QPushButton_laser_488_2.isChecked():
-            self.Signal_set_laser.emit("488_2", True)
+            self.Signal_set_laser.emit(["488_2"], True)
         else:
-            self.Signal_set_laser.emit("488_2", False)
+            self.Signal_set_laser.emit(["488_2"], False)
 
     def set_laser_405(self):
         if self.QPushButton_laser_405.isChecked():
-            self.Signal_set_laser.emit("405", True)
+            self.Signal_set_laser.emit(["405"], True)
         else:
-            self.Signal_set_laser.emit("405", False)
+            self.Signal_set_laser.emit(["405"], False)
 
     def plot_trigger_sequence(self):
         self.Signal_plot_trigger.emit()

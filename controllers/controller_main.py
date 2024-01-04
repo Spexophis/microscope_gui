@@ -237,7 +237,7 @@ class MainController:
     def set_laser(self, laser, switch):
         if switch:
             try:
-                self.m.laser.set_constant_power(laser, self.con_controller.get_cobolt_laser_power(laser))
+                self.m.laser.set_constant_power(laser, self.con_controller.get_cobolt_laser_power(laser[0]))
                 self.m.laser.laser_on(laser)
             except Exception as e:
                 self.logg.error_log.error(f"Cobolt Laser Error: {e}")
