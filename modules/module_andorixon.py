@@ -312,8 +312,11 @@ class EMCCDCamera:
         # else:
         #     self.logg.error(atmcd_errors.Error_Codes(ret))
 
-    def get_last_image(self) -> np.ndarray:
-        return self.data.get_last_element()
+    def get_last_image(self):
+        if self.data is not None:
+            return self.data.get_last_element()
+        else:
+            return None
 
     def prepare_data_acquisition(self, num):
         self.set_readout_mode(4)
@@ -353,11 +356,25 @@ class EMCCDCamera:
                 "number of accumulations completed = {} \n"
                 "kinetic scans completed = {}".format(ret, self.numAccumulate, self.numKinetics))
 
+    def stop_data_acquisition(self):
+        ret = self.sdk.AbortAcquisition()
+        if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
+            self.logg.info('Kinetic acquisition stopped')
+        else:
+            self.logg.error(atmcd_errors.Error_Codes(ret))
+
     def get_data(self, num):
         ret, data_array = self.sdk.GetAcquiredData16(num * self.img_size)
         if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
             self.logg.info('Data Retrieved')
             return data_array.reshape(num, self.pixels_x, self.pixels_y)
+        else:
+            self.logg.error(atmcd_errors.Error_Codes(ret))
+
+    def wait_for_acquisition(self):
+        ret = self.sdk.WaitForAcquisition()
+        if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
+            self.logg.info('Waiting for Acquisition')
         else:
             self.logg.error(atmcd_errors.Error_Codes(ret))
 

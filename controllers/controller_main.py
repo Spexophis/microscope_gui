@@ -507,21 +507,22 @@ class MainController:
         try:
             self.set_lasers()
             self.set_main_camera_roi()
-            self.main_cam.prepare_live()
             lasers, camera = self.update_trigger_parameters()
             gtr, ptr, dtr, pos = self.p.trigger.generate_galvo_resolft_2d()
-            self.m.daq.write_triggers(piezo_sequence=ptr, galvo_sequence=gtr, digital_sequences=dtr)
+            self.main_cam.acq_num = pos
+            self.main_cam.prepare_data_acquisition(pos)
+            self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=gtr, digital_sequences=dtr)
         except Exception as e:
-            self.logg.error_log.error(f"Error starting galvo scanning: {e}")
+            self.logg.error_log.error(f"Error preparing galvo scanning: {e}")
 
     def galvo_scanning(self):
         self.prepare_galvo_scanning()
         try:
-            self.main_cam.start_live()
+            self.main_cam.start_data_acquisition()
             time.sleep(0.02)
             self.m.daq.run_triggers()
-            time.sleep(0.1)
-            data = self.main_cam.get_last_image()
+            self.main_cam.wait_for_acquisition()
+            data = self.main_cam.get_data(self.main_cam.acq_num)
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_galvo_scanning.tif')
             tf.imwrite(fd, data, imagej=True, resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
                        metadata={'unit': 'um'})
@@ -532,7 +533,7 @@ class MainController:
     def finish_galvo_scanning(self):
         try:
             self.m.daq.stop_triggers()
-            self.main_cam.stop_live()
+            # self.main_cam.stop_data_acquisition()
             self.lasers_off()
             self.logg.error_log.info("Galvo scanning image acquired")
         except Exception as e:
@@ -545,21 +546,22 @@ class MainController:
         try:
             self.set_lasers()
             self.set_main_camera_roi()
-            self.main_cam.prepare_live()
             lasers, camera = self.update_trigger_parameters()
             gtr, ptr, dtr, pos = self.p.trigger.generate_confocal_resolft_2d()
-            self.m.daq.write_triggers(piezo_sequence=ptr, galvo_sequence=gtr, digital_sequences=dtr)
+            self.main_cam.acq_num = pos
+            self.main_cam.prepare_data_acquisition(pos)
+            self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=gtr, digital_sequences=dtr)
         except Exception as e:
             self.logg.error_log.error(f"Error starting confocal scanning: {e}")
 
     def confocal_scanning(self):
         self.prepare_confocal_scanning()
         try:
-            self.main_cam.start_live()
+            self.main_cam.start_data_acquisition()
             time.sleep(0.02)
             self.m.daq.run_triggers()
-            time.sleep(0.1)
-            data = self.main_cam.get_last_image()
+            self.main_cam.wait_for_acquisition()
+            data = self.main_cam.get_data(self.main_cam.acq_num)
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_confocal_scanning.tif')
             tf.imwrite(fd, data, imagej=True, resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
                        metadata={'unit': 'um'})
@@ -571,7 +573,7 @@ class MainController:
     def finish_confocal_scanning(self):
         try:
             self.m.daq.stop_triggers()
-            self.main_cam.stop_live()
+            # self.main_cam.stop_data_acquisition()
             self.lasers_off()
             self.logg.error_log.info("Confocal scanning image acquired")
         except Exception as e:
@@ -595,7 +597,7 @@ class MainController:
             self.main_cam.prepare_data_acquisition(pos)
             self.main_cam.start_data_acquisition()
             time.sleep(0.02)
-            self.m.daq.write_triggers(piezo_sequence=None, galvo_sequence=atr, digital_sequences=dtr)
+            self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=atr, digital_sequences=dtr)
             self.m.daq.run_triggers()
             time.sleep(0.1)
             data = self.main_cam.get_data(pos)

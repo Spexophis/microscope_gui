@@ -31,7 +31,6 @@ class NIDAQ:
         self._active = {}
         self._running = {}
         self.tasks, self._active, self._running, = self._configure()
-        self.write_clock_channel()
 
     def __del__(self):
         pass
@@ -174,6 +173,7 @@ class NIDAQ:
             self.clock = "100kHzTimebase"
         else:
             self.clock = "Ctr0InternalOutput"
+            self.write_clock_channel()
         if mode == "finite":
             self.mode = AcquisitionType.FINITE
         else:

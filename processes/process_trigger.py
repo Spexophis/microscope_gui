@@ -456,9 +456,11 @@ class TriggerSequence:
             digital_sequences[i] = np.concatenate((digital_sequences[i], np.zeros(standby_samples)))
             digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[0])
             digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[1])
-        self.logg.info("Trigger Generated")
-        return np.asarray(galvo_sequences), np.asarray(piezo_sequences), np.asarray(digital_sequences), sum(
-            self.piezo_scan_pos)
+        self.logg.info("Trigger Sequences Generated")
+        scan_pos = 1
+        for num in self.piezo_scan_pos:
+            scan_pos *= num
+        return np.asarray(galvo_sequences), np.asarray(piezo_sequences), np.asarray(digital_sequences), scan_pos
 
     def generate_galvo_resolft_2d(self, camera=0):
         interval_samples = 16
@@ -543,9 +545,11 @@ class TriggerSequence:
             digital_sequences[i] = np.concatenate((digital_sequences[i], np.zeros(standby_samples)))
             digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[0])
             digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[1])
-        self.logg.info("Trigger Generated")
-        return np.asarray(galvo_sequences), np.asarray(piezo_sequences), np.asarray(digital_sequences), sum(
-            self.piezo_scan_pos)
+        self.logg.info("Trigger Sequences Generated")
+        scan_pos = 1
+        for num in self.piezo_scan_pos:
+            scan_pos *= num
+        return np.asarray(galvo_sequences), np.asarray(piezo_sequences), np.asarray(digital_sequences), scan_pos
 
     def generate_bead_scan_2d(self, camera=0):
         cam_ind = camera + 4
