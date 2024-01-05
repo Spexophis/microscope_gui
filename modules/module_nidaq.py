@@ -1,6 +1,7 @@
 import warnings
 
 import nidaqmx
+import numpy as np
 from nidaqmx.constants import Edge, AcquisitionType, LineGrouping, FrequencyUnits, Level, WAIT_INFINITELY
 from nidaqmx.error_codes import DAQmxWarnings
 from nidaqmx.system import System
@@ -10,11 +11,13 @@ warnings.filterwarnings("error", category=nidaqmx.DaqWarning)
 
 class NIDAQ:
     class NIDAQSettings:
+
         def __init__(self):
             self.sample_rate = 100000
             self.duty_cycle = 0.5
             self.piezo_channels = "Dev1/ao0:1"
             self.galvo_channels = "Dev1/ao2:3"
+            self.anolog_channels = "Dev1/ao0:3"
             self.digital_channels = "Dev1/port0/line0:5"
             self.clock_channel = "Dev1/ctr0"
             self.clock = None
@@ -28,6 +31,7 @@ class NIDAQ:
         self._active = {}
         self._running = {}
         self.tasks, self._active, self._running, = self._configure()
+        self.write_clock_channel()
 
     def __del__(self):
         pass
@@ -58,7 +62,7 @@ class NIDAQ:
 
     def _configure(self):
         try:
-            tasks = {"piezo": None, "galvo": None, "piezo_pos": None, "digital": None, "clock": None}
+            tasks = {"piezo": None, "galvo": None, "piezo_pos": None, "anolog": None, "digital": None, "clock": None}
             _active = {key: False for key in self.tasks.keys()}
             _running = {key: False for key in self.tasks.keys()}
             return tasks, _active, _running
@@ -72,16 +76,27 @@ class NIDAQ:
 
     def set_piezo_position(self, pos_x, pos_y):
         try:
-            self.tasks["piezo"] = nidaqmx.Task("piezo")
-            self.tasks["piezo"].ao_channels.add_ao_voltage_chan(self.piezo_channels, min_val=0., max_val=10.)
-            self.tasks["piezo"].timing.cfg_samp_clk_timing(self.sample_rate, source="100kHzTimebase",
-                                                           active_edge=Edge.RISING,
-                                                           sample_mode=AcquisitionType.FINITE,
-                                                           samps_per_chan=1)
-            self.tasks["piezo"].write([pos_x, pos_y], auto_start=True)
-            self.tasks["piezo"].wait_until_done(WAIT_INFINITELY)
-            self.tasks["piezo"].stop()
-            self.tasks["piezo"].close()
+            with nidaqmx.Task() as task:
+                task.ao_channels.add_ao_voltage_chan(self.piezo_channels, min_val=0., max_val=10.)
+                task.timing.cfg_samp_clk_timing(self.sample_rate, source="100kHzTimebase",
+                                                active_edge=Edge.RISING,
+                                                sample_mode=AcquisitionType.FINITE,
+                                                samps_per_chan=1)
+
+                task.write([pos_x, pos_y], auto_start=True)
+                task.wait_until_done(WAIT_INFINITELY)
+                self.logg.info("Channels " + self.piezo_channels + " Write Successfully")
+                task.stop()
+            # self.tasks["piezo"] = nidaqmx.Task("piezo")
+            # self.tasks["piezo"].ao_channels.add_ao_voltage_chan(self.piezo_channels, min_val=0., max_val=10.)
+            # self.tasks["piezo"].timing.cfg_samp_clk_timing(self.sample_rate, source="100kHzTimebase",
+            #                                                active_edge=Edge.RISING,
+            #                                                sample_mode=AcquisitionType.FINITE,
+            #                                                samps_per_chan=1)
+            # self.tasks["piezo"].write([pos_x, pos_y], auto_start=True)
+            # self.tasks["piezo"].wait_until_done(WAIT_INFINITELY)
+            # self.tasks["piezo"].stop()
+            # self.tasks["piezo"].close()
         except nidaqmx.DaqWarning as e:
             self.logg.warning("DaqWarning caught as exception: %s", e)
             try:
@@ -91,10 +106,13 @@ class NIDAQ:
                 self.logg.error("Assertion Error: %s", ae)
 
     def get_piezo_position(self):
-        if not self.tasks["piezo_pos"].is_task_done():
-            self.tasks["piezo_pos"].stop()
+        # if not self.tasks["piezo_pos"].is_task_done():
+        #     self.tasks["piezo_pos"].stop()
         try:
-            pos = self.tasks["piezo_pos"].read(number_of_samples_per_channel=1)
+            with nidaqmx.Task() as task:
+                task.ai_channels.add_ai_voltage_chan("Dev1/ai0:1")
+                pos = task.read()
+            # pos = self.tasks["piezo_pos"].read(number_of_samples_per_channel=1)
             return pos
         except nidaqmx.DaqWarning as e:
             self.logg.warning("DaqWarning caught as exception: %s", e)
@@ -106,16 +124,26 @@ class NIDAQ:
 
     def set_galvo_position(self, pos_x, pos_y):
         try:
-            self.tasks["galvo"] = nidaqmx.Task("galvo")
-            self.tasks["galvo"].ao_channels.add_ao_voltage_chan(self.galvo_channels, min_val=-10., max_val=10.)
-            self.tasks["galvo"].timing.cfg_samp_clk_timing(self.sample_rate, source="100kHzTimebase",
-                                                           active_edge=Edge.RISING,
-                                                           sample_mode=AcquisitionType.FINITE,
-                                                           samps_per_chan=1)
-            self.tasks["galvo"].write([[pos_x], [pos_y]], auto_start=True)
-            self.tasks["galvo"].wait_until_done(WAIT_INFINITELY)
-            self.tasks["galvo"].stop()
-            self.tasks["galvo"].close()
+            with nidaqmx.Task() as task:
+                task.ao_channels.add_ao_voltage_chan(self.galvo_channels, min_val=-10., max_val=10.)
+                task.timing.cfg_samp_clk_timing(self.sample_rate, source="100kHzTimebase",
+                                                active_edge=Edge.RISING,
+                                                sample_mode=AcquisitionType.FINITE,
+                                                samps_per_chan=1)
+                task.write([[pos_x], [pos_y]], auto_start=True)
+                task.wait_until_done(WAIT_INFINITELY)
+                self.logg.info("Channels " + self.galvo_channels + " Write Successfully")
+                task.stop()
+            # self.tasks["galvo"] = nidaqmx.Task("galvo")
+            # self.tasks["galvo"].ao_channels.add_ao_voltage_chan(self.galvo_channels, min_val=-10., max_val=10.)
+            # self.tasks["galvo"].timing.cfg_samp_clk_timing(self.sample_rate, source="100kHzTimebase",
+            #                                                active_edge=Edge.RISING,
+            #                                                sample_mode=AcquisitionType.FINITE,
+            #                                                samps_per_chan=1)
+            # self.tasks["galvo"].write([[pos_x], [pos_y]], auto_start=True)
+            # self.tasks["galvo"].wait_until_done(WAIT_INFINITELY)
+            # self.tasks["galvo"].stop()
+            # self.tasks["galvo"].close()
         except nidaqmx.DaqWarning as e:
             self.logg.warning("DaqWarning caught as exception: %s", e)
             try:
@@ -124,33 +152,46 @@ class NIDAQ:
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
 
-    def write_digital_sequences(self, digital_sequences, clock_source="100kHzTimebase", mode="finite"):
-        self.clock = clock_source
-        if mode == "continuous":
-            self.mode = AcquisitionType.CONTINUOUS
+    def write_clock_channel(self):
+        try:
+            self.tasks["clock"] = nidaqmx.Task("clock")
+            self.tasks["clock"].co_channels.add_co_pulse_chan_freq(self.clock_channel, units=FrequencyUnits.HZ,
+                                                                   idle_state=Level.LOW, initial_delay=0.0,
+                                                                   freq=self.sample_rate, duty_cycle=self.duty_cycle)
+            self.tasks["clock"].timing.cfg_implicit_timing(sample_mode=AcquisitionType.CONTINUOUS)
+            self._active["clock"] = True
+            self.logg.info("Channel " + self.clock_channel + " Writes Successfully")
+        except nidaqmx.DaqWarning as e:
+            self.logg.warning("DaqWarning caught as exception: %s", e)
+            try:
+                assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE, "Unexpected error code: {}".format(
+                    e.error_code)
+            except AssertionError as ae:
+                self.logg.error("Assertion Error: %s", ae)
+
+    def write_digital_sequences(self, digital_sequences, clock_source="base", mode="finite"):
+        if clock_source == "base":
+            self.clock = "100kHzTimebase"
         else:
+            self.clock = "Ctr0InternalOutput"
+        if mode == "finite":
             self.mode = AcquisitionType.FINITE
+        else:
+            self.mode = AcquisitionType.CONTINUOUS
         try:
             self.tasks["digital"] = nidaqmx.Task("digital")
             self.tasks["digital"].do_channels.add_do_chan(self.digital_channels,
                                                           line_grouping=LineGrouping.CHAN_PER_LINE)
             _channels, _samples = digital_sequences.shape
             self.tasks["digital"].timing.cfg_samp_clk_timing(self.sample_rate, source=self.clock,
-                                                             active_edge=Edge.RISING,
-                                                             sample_mode=self.mode,
+                                                             active_edge=Edge.RISING, sample_mode=self.mode,
                                                              samps_per_chan=_samples)
             self.tasks["digital"].write(digital_sequences == 1.0, auto_start=False)
             self._active["digital"] = True
-            self.logg.info("Successfully Write Digital Channels")
             if self.clock == "Ctr0InternalOutput":
-                self.tasks["clock"] = nidaqmx.Task("clock")
-                self.tasks["clock"].co_channels.add_co_pulse_chan_freq(self.clock_channel, units=FrequencyUnits.HZ,
-                                                                       idle_state=Level.LOW, initial_delay=0.0,
-                                                                       freq=self.sample_rate,
-                                                                       duty_cycle=self.duty_cycle)
-                self.tasks["clock"].timing.cfg_implicit_timing(sample_mode=AcquisitionType.CONTINUOUS)
-                self._active["clock"] = True
-                self.logg.info("Successfully Write Clock Channel")
+                self.tasks["digital"].start()
+                self._running["digital"] = True
+            self.logg.info("Channels " + self.digital_channels + " Write Successfully")
         except nidaqmx.DaqWarning as e:
             self.logg.warning("DaqWarning caught as exception: %s", e)
             try:
@@ -164,33 +205,32 @@ class NIDAQ:
             if self.clock == "100kHzTimebase":
                 self._running["digital"] = True
                 self.tasks["digital"].start()
-            if self.clock == "Ctr0InternalOutput":
-                self._running["digital"] = True
+            elif self.clock == "Ctr0InternalOutput":
                 self._running["clock"] = True
-                self.tasks["digital"].start()
                 self.tasks["clock"].start()
             if self.mode == AcquisitionType.FINITE:
                 self.tasks["digital"].wait_until_done(WAIT_INFINITELY)
         except nidaqmx.DaqWarning as e:
-            self.logg.warning("DaqWarning caught as exception: %s", e)
+            self.logg.warning(f"DaqWarning caught as exception: {e}")
             try:
                 assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE, "Unexpected error code: {}".format(
                     e.error_code)
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
 
-    def write_piezo_scan(self, piezo_sequence):
+    def write_piezo_scan(self, piezo_sequences):
         try:
             self.tasks["piezo"] = nidaqmx.Task("piezo")
             self.tasks["piezo"].ao_channels.add_ao_voltage_chan(self.piezo_channels, min_val=0., max_val=10.)
-            _channels, _samples = piezo_sequence.shape
+            _channels, _samples = piezo_sequences.shape
             self.tasks["piezo"].timing.cfg_samp_clk_timing(self.sample_rate, source="Ctr0InternalOutput",
                                                            active_edge=Edge.RISING,
-                                                           sample_mode=AcquisitionType.FINITE,
-                                                           samps_per_chan=_samples)
-            self.tasks["piezo"].write(piezo_sequence, auto_start=False)
+                                                           sample_mode=AcquisitionType.FINITE, samps_per_chan=_samples)
+            self.tasks["piezo"].write(piezo_sequences, auto_start=False)
             self._active["piezo"] = True
-            self.logg.info("Successfully Write Piezo Scanning Channels")
+            self.tasks["piezo"].start()
+            self._running["piezo"] = True
+            self.logg.info("Channels " + self.piezo_channels + " Write Successfully")
         except nidaqmx.DaqWarning as e:
             self.logg.warning("DaqWarning caught as exception: %s", e)
             try:
@@ -199,18 +239,19 @@ class NIDAQ:
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
 
-    def write_galvo_scan(self, galvo_sequence):
+    def write_galvo_scan(self, galvo_sequences):
         try:
             self.tasks["galvo"] = nidaqmx.Task("galvo")
             self.tasks["galvo"].ao_channels.add_ao_voltage_chan(self.galvo_channels, min_val=-10., max_val=10.)
-            _channels, _samples = galvo_sequence.shape
+            _channels, _samples = galvo_sequences.shape
             self.tasks["galvo"].timing.cfg_samp_clk_timing(self.sample_rate, source="Ctr0InternalOutput",
                                                            active_edge=Edge.RISING,
-                                                           sample_mode=AcquisitionType.FINITE,
-                                                           samps_per_chan=_samples)
-            self.tasks["galvo"].write(galvo_sequence, auto_start=False)
+                                                           sample_mode=AcquisitionType.FINITE, samps_per_chan=_samples)
+            self.tasks["galvo"].write(galvo_sequences, auto_start=False)
             self._active["galvo"] = True
-            self.logg.info("Successfully Write Galvo Scanning Channels")
+            self.tasks["galvo"].start()
+            self._running["galvo"] = True
+            self.logg.info("Channels " + self.galvo_channels + " Write Successfully")
         except nidaqmx.DaqWarning as e:
             self.logg.warning("DaqWarning caught as exception: %s", e)
             try:
@@ -219,22 +260,38 @@ class NIDAQ:
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
 
-    def write_triggers(self, piezo_sequence=None, galvo_sequence=None, digital_sequences=None):
+    def write_anolog_sequences(self, anolog_sequences=None):
         try:
-            if piezo_sequence is not None:
-                self.write_piezo_scan(piezo_sequence)
-                self.tasks["piezo"].start()
-                self._running["piezo"] = True
-            if galvo_sequence is not None:
-                self.write_galvo_scan(galvo_sequence)
-                self.tasks["galvo"].start()
-                self._running["galvo"] = True
+            self.tasks["anolog"] = nidaqmx.Task("anolog")
+            self.tasks["anolog"].ao_channels.add_ao_voltage_chan(self.anolog_channels, min_val=-10., max_val=10.)
+            _channels, _samples = anolog_sequences.shape
+            self.tasks["anolog"].timing.cfg_samp_clk_timing(self.sample_rate, source="Ctr0InternalOutput",
+                                                            active_edge=Edge.RISING,
+                                                            sample_mode=AcquisitionType.FINITE, samps_per_chan=_samples)
+            self.tasks["anolog"].write(anolog_sequences, auto_start=False)
+            self._active["anolog"] = True
+            self.tasks["anolog"].start()
+            self._running["anolog"] = True
+            self.logg.info("Channels " + self.anolog_channels + " Write Successfully")
+        except nidaqmx.DaqWarning as e:
+            self.logg.warning("DaqWarning caught as exception: %s", e)
+            try:
+                assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE, "Unexpected error code: {}".format(
+                    e.error_code)
+            except AssertionError as ae:
+                self.logg.error("Assertion Error: %s", ae)
+
+    def write_triggers(self, piezo_sequences=None, galvo_sequences=None, digital_sequences=None):
+        try:
+            if piezo_sequences is not None and galvo_sequences is not None:
+                self.write_anolog_sequences(np.concatenate((piezo_sequences, galvo_sequences)))
+            else:
+                if piezo_sequences is not None:
+                    self.write_piezo_scan(piezo_sequences)
+                elif galvo_sequences is not None:
+                    self.write_galvo_scan(galvo_sequences)
             if digital_sequences is not None:
-                self.write_digital_sequences(digital_sequences, "Ctr0InternalOutput", "finite")
-                self.tasks["digital"].start()
-                self._running["digital"] = True
-                self._running["clock"] = True
-            self.logg.info("Successfully Write All Trigger Channels")
+                self.write_digital_sequences(digital_sequences, "internal", "finite")
         except nidaqmx.DaqWarning as e:
             self.logg.warning("DaqWarning caught as exception: %s", e)
             try:
@@ -245,6 +302,7 @@ class NIDAQ:
 
     def run_triggers(self):
         try:
+            self._running["clock"] = True
             self.tasks["clock"].start()
             self.tasks["digital"].wait_until_done(WAIT_INFINITELY)
         except nidaqmx.DaqWarning as e:
@@ -267,4 +325,5 @@ class NIDAQ:
         for key, _task in self.tasks.items():
             if self._active.get(key, False):
                 _task.close()
+                _task = None
         self._active = {key: False for key in self._active}
