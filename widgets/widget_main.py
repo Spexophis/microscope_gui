@@ -40,7 +40,7 @@ class MainWidget(QtWidgets.QMainWindow):
 
         self.logg.error_log.info("Finish setting up widgets")
 
-    def closeEvent(self, event):
+    def closeEvent(self, event, **kwargs):
         self.Signal_quit.emit()
         super().closeEvent(event)
 

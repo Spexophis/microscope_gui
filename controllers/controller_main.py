@@ -335,6 +335,7 @@ class MainController:
             self.p.trigger.update_camera_parameters([self.main_cam.t_clean, self.wfs_cam.t_clean],
                                                     [self.main_cam.t_readout, self.wfs_cam.t_readout],
                                                     [self.main_cam.t_kinetic, self.wfs_cam.t_kinetic])
+            self.logg.error_log.info(f"Trigger Updated")
             return lasers, camera
         except Exception as e:
             self.logg.error_log.error(f"Trigger Error: {e}")

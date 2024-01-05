@@ -9,6 +9,6 @@ class MainProcess:
         self.data_folder = path
         self.imgprocess = process_image.ImageProcessing()
         self.shwfsr = process_shwfs.WavefrontSensing()
-        self.trigger = process_trigger.TriggerSequence()
+        self.trigger = process_trigger.TriggerSequence(self.logg.error_log)
         self.bsrecon = beads_scan_reconstruction.BeadScanReconstruction()
         self.logg.error_log.info("All processing set up")

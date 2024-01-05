@@ -30,13 +30,13 @@ class TriggerSequence:
             # galvo scanner
             self.v_max = 4e2  # V/s
             self.a_max = 2.4e7  # V/s^2
-            self.galvo_start = -1.6  # V
-            self.galvo_stop = 1.6  # V
+            self.galvo_start = -1.2  # V
+            self.galvo_stop = 1.2  # V
             self.galvo_laser_start = 8
             self.galvo_laser_interval = 16
             # dot array
-            self.dot_start = -1.0  # V
-            self.dot_range = 2.0  # V
+            self.dot_start = -0.8  # V
+            self.dot_range = 1.6  # V
             self.dot_step = 0.04  # V
             self.dot_pos = np.arange(self.dot_start, self.dot_start + self.dot_range + self.dot_step, self.dot_step)
             # sawtooth wave
@@ -456,6 +456,7 @@ class TriggerSequence:
             digital_sequences[i] = np.concatenate((digital_sequences[i], np.zeros(standby_samples)))
             digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[0])
             digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[1])
+        self.logg.info("Trigger Generated")
         return np.asarray(galvo_sequences), np.asarray(piezo_sequences), np.asarray(digital_sequences), sum(
             self.piezo_scan_pos)
 
@@ -542,6 +543,7 @@ class TriggerSequence:
             digital_sequences[i] = np.concatenate((digital_sequences[i], np.zeros(standby_samples)))
             digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[0])
             digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[1])
+        self.logg.info("Trigger Generated")
         return np.asarray(galvo_sequences), np.asarray(piezo_sequences), np.asarray(digital_sequences), sum(
             self.piezo_scan_pos)
 
