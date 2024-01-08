@@ -456,10 +456,17 @@ class TriggerSequence:
             digital_sequences[i] = np.concatenate((digital_sequences[i], np.zeros(standby_samples)))
             digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[0])
             digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[1])
-        self.logg.info("Trigger Sequences Generated")
         scan_pos = 1
         for num in self.piezo_scan_pos:
             scan_pos *= num
+        self.logg.info("\nGalvo start, and stop: {}\n"
+                       "Dot start, step, range, and numbers: {}\n"
+                       "Piezo starts: {}\n"
+                       "Piezo steps: {}\n"
+                       "Piezo ranges: {}\n"
+                       "Piezo positions: {}".format([self.galvo_start, self.galvo_stop],
+                                                    [self.dot_start, self.dot_step, self.dot_range, self.dot_pos.size],
+                                                    self.piezo_starts, self.piezo_steps, self.piezo_ranges, scan_pos))
         return np.asarray(galvo_sequences), np.asarray(piezo_sequences), np.asarray(digital_sequences), scan_pos
 
     def generate_galvo_resolft_2d(self, camera=0):
@@ -545,10 +552,17 @@ class TriggerSequence:
             digital_sequences[i] = np.concatenate((digital_sequences[i], np.zeros(standby_samples)))
             digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[0])
             digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[1])
-        self.logg.info("Trigger Sequences Generated")
         scan_pos = 1
         for num in self.piezo_scan_pos:
             scan_pos *= num
+        self.logg.info("\nGalvo start, and stop: {} \n"
+                       "Dot start, step, range, and numbers: {} \n"
+                       "Piezo starts: {} \n"
+                       "Piezo steps: {} \n"
+                       "Piezo ranges: {} \n"
+                       "Piezo positions: {}".format([self.galvo_start, self.galvo_stop],
+                                                    [self.dot_start, self.dot_step, self.dot_range, self.dot_pos.size],
+                                                    self.piezo_starts, self.piezo_steps, self.piezo_ranges, scan_pos))
         return np.asarray(galvo_sequences), np.asarray(piezo_sequences), np.asarray(digital_sequences), scan_pos
 
     def generate_bead_scan_2d(self, camera=0):
