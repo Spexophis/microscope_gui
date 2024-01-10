@@ -318,27 +318,65 @@ class EMCCDCamera:
         else:
             return None
 
-    def prepare_data_acquisition(self, num):
+    def prepare_data_acquisition(self):
         self.set_readout_mode(4)
-        self.set_acquisition_mode(3)
-        self.set_kinetics_num(num)
+        self.set_acquisition_mode(5)
         self.set_trigger_mode(7)
-        # self.set_exposure_time()
-        self.set_roi()
+        self.set_kinetic_cycle_time(0)
         self.get_acquisition_timings()
         self.get_buffer_size()
-        ret = self.sdk.PrepareAcquisition()
-        if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
-            self.logg.info('Ready to acquire data')
+        if self.buffer_size < self.acq_num:
+            self.data = DataList(self.acq_num)
         else:
-            self.logg.error(atmcd_errors.Error_Codes(ret))
+            self.data = DataList(self.buffer_size)
+        self.acq_thread = AcquisitionThread(self)
 
     def start_data_acquisition(self):
         ret = self.sdk.StartAcquisition()
         if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
-            self.logg.info('Kinetic acquisition start')
+            self.acq_thread.start()
+            self.logg.info('Acquisition started')
         else:
             self.logg.error(atmcd_errors.Error_Codes(ret))
+
+    def stop_data_acquisition(self):
+        self.acq_thread.stop()
+        self.acq_thread = None
+        ret = self.sdk.AbortAcquisition()
+        if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
+            self.logg.info('Acquisition stopped')
+            self.data = None
+            self.free_memory()
+        else:
+            self.logg.error(atmcd_errors.Error_Codes(ret))
+
+    def get_data(self):
+        if self.data is not None:
+            return self.data.get_elements()
+        else:
+            return None
+
+    # def prepare_data_acquisition(self, num):
+    #     self.set_readout_mode(4)
+    #     self.set_acquisition_mode(3)
+    #     self.set_kinetics_num(num)
+    #     self.set_trigger_mode(7)
+    #     # self.set_exposure_time()
+    #     self.set_roi()
+    #     self.get_acquisition_timings()
+    #     self.get_buffer_size()
+    #     ret = self.sdk.PrepareAcquisition()
+    #     if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
+    #         self.logg.info('Ready to acquire data')
+    #     else:
+    #         self.logg.error(atmcd_errors.Error_Codes(ret))
+    #
+    # def start_data_acquisition(self):
+    #     ret = self.sdk.StartAcquisition()
+    #     if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
+    #         self.logg.info('Kinetic acquisition start')
+    #     else:
+    #         self.logg.error(atmcd_errors.Error_Codes(ret))
 
     def get_acq_num(self):
         ret, first, last = self.sdk.GetNumberAvailableImages()
@@ -356,20 +394,20 @@ class EMCCDCamera:
                 "number of accumulations completed = {} \n"
                 "kinetic scans completed = {}".format(ret, self.numAccumulate, self.numKinetics))
 
-    def stop_data_acquisition(self):
-        ret = self.sdk.AbortAcquisition()
-        if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
-            self.logg.info('Kinetic acquisition stopped')
-        else:
-            self.logg.error(atmcd_errors.Error_Codes(ret))
+    # def stop_data_acquisition(self):
+    #     ret = self.sdk.AbortAcquisition()
+    #     if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
+    #         self.logg.info('Kinetic acquisition stopped')
+    #     else:
+    #         self.logg.error(atmcd_errors.Error_Codes(ret))
 
-    def get_data(self, num):
-        ret, data_array = self.sdk.GetAcquiredData16(num * self.img_size)
-        if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
-            self.logg.info('Data Retrieved')
-            return data_array.reshape(num, self.pixels_x, self.pixels_y)
-        else:
-            self.logg.error(atmcd_errors.Error_Codes(ret))
+    # def get_data(self, num):
+    #     ret, data_array = self.sdk.GetAcquiredData16(num * self.img_size)
+    #     if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
+    #         self.logg.info('Data Retrieved')
+    #         return data_array.reshape(num, self.pixels_x, self.pixels_y)
+    #     else:
+    #         self.logg.error(atmcd_errors.Error_Codes(ret))
 
     def wait_for_acquisition(self):
         ret = self.sdk.WaitForAcquisition()
@@ -416,7 +454,7 @@ class DataList:
         self.ind_list.extend(list(range(start_ind, end_ind + 1)))
 
     def get_elements(self):
-        return list(self.data_list)
+        return np.array(self.data_list) if self.data_list else None
 
     def get_last_element(self):
         return self.data_list[-1] if self.data_list else None

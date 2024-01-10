@@ -108,7 +108,7 @@ class MainController:
         self.main_cam = self.m.cam_set[self._camset[0]]
         self.wfs_cam = self.m.cam_set[self._camset[1]]
 
-        self.pixel_size_main = self.main_cam.ps / 210
+        self.pixel_size_main = self.main_cam.ps / 157.5
         # self.pixel_size_wfs = self.main_cam.ps / 210
 
         self.logg.error_log.info("Finish setting up controllers")
@@ -504,36 +504,38 @@ class MainController:
         self.run_task(task=self.widefield_zstack)
 
     def prepare_galvo_scanning(self):
-        try:
-            self.set_lasers()
-            self.set_main_camera_roi()
-            lasers, camera = self.update_trigger_parameters()
-            gtr, ptr, dtr, pos = self.p.trigger.generate_galvo_resolft_2d()
-            self.main_cam.acq_num = pos
-            self.main_cam.prepare_data_acquisition(pos)
-            self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=gtr, digital_sequences=dtr)
-        except Exception as e:
-            self.logg.error_log.error(f"Error preparing galvo scanning: {e}")
+        self.set_lasers()
+        self.set_main_camera_roi()
+        lasers, camera = self.update_trigger_parameters()
+        gtr, ptr, dtr, pos = self.p.trigger.generate_galvo_presolft_2d()
+        self.main_cam.acq_num = pos
+        self.main_cam.prepare_data_acquisition()
+        self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=gtr, digital_sequences=dtr)
 
     def galvo_scanning(self):
-        self.prepare_galvo_scanning()
+        try:
+            self.prepare_galvo_scanning()
+        except Exception as e:
+            self.logg.error_log.error(f"Error preparing galvo scanning: {e}")
+            return
         try:
             self.main_cam.start_data_acquisition()
             time.sleep(0.02)
             self.m.daq.run_triggers()
-            self.main_cam.wait_for_acquisition()
-            data = self.main_cam.get_data(self.main_cam.acq_num)
+            time.sleep(1.)
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_galvo_scanning.tif')
-            tf.imwrite(fd, data, imagej=True, resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
-                       metadata={'unit': 'um'})
+            tf.imwrite(fd, self.main_cam.get_data(), imagej=True,
+                       resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
+                       metadata={'unit': 'um', 'indices': list(self.main_cam.data.ind_list)})
         except Exception as e:
             self.logg.error_log.error(f"Error running galvo scanning: {e}")
+            return
         self.finish_galvo_scanning()
 
     def finish_galvo_scanning(self):
         try:
+            self.main_cam.stop_data_acquisition()
             self.m.daq.stop_triggers()
-            # self.main_cam.stop_data_acquisition()
             self.lasers_off()
             self.logg.error_log.info("Galvo scanning image acquired")
         except Exception as e:
@@ -543,37 +545,38 @@ class MainController:
         self.run_task(task=self.galvo_scanning)
 
     def prepare_confocal_scanning(self):
-        try:
-            self.set_lasers()
-            self.set_main_camera_roi()
-            lasers, camera = self.update_trigger_parameters()
-            gtr, ptr, dtr, pos = self.p.trigger.generate_confocal_resolft_2d()
-            self.main_cam.acq_num = pos
-            self.main_cam.prepare_data_acquisition(pos)
-            self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=gtr, digital_sequences=dtr)
-        except Exception as e:
-            self.logg.error_log.error(f"Error starting confocal scanning: {e}")
+        self.set_lasers()
+        self.set_main_camera_roi()
+        lasers, camera = self.update_trigger_parameters()
+        gtr, ptr, dtr, pos = self.p.trigger.generate_confocal_presolft_2d()
+        self.main_cam.acq_num = pos
+        self.main_cam.prepare_data_acquisition()
+        self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=gtr, digital_sequences=dtr)
 
     def confocal_scanning(self):
-        self.prepare_confocal_scanning()
+        try:
+            self.prepare_confocal_scanning()
+        except Exception as e:
+            self.logg.error_log.error(f"Error preparing confocal scanning: {e}")
+            return
         try:
             self.main_cam.start_data_acquisition()
             time.sleep(0.02)
             self.m.daq.run_triggers()
-            self.main_cam.wait_for_acquisition()
-            data = self.main_cam.get_data(self.main_cam.acq_num)
+            time.sleep(1)
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_confocal_scanning.tif')
-            tf.imwrite(fd, data, imagej=True, resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
-                       metadata={'unit': 'um'})
-            # self.view_controller.plot_main(data)
+            tf.imwrite(fd, self.main_cam.get_data(), imagej=True,
+                       resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
+                       metadata={'unit': 'um', 'indices': list(self.main_cam.data.ind_list)})
         except Exception as e:
             self.logg.error_log.error(f"Error running confocal scanning: {e}")
+            return
         self.finish_confocal_scanning()
 
     def finish_confocal_scanning(self):
         try:
+            self.main_cam.stop_data_acquisition()
             self.m.daq.stop_triggers()
-            # self.main_cam.stop_data_acquisition()
             self.lasers_off()
             self.logg.error_log.info("Confocal scanning image acquired")
         except Exception as e:
@@ -583,30 +586,32 @@ class MainController:
         self.run_task(task=self.confocal_scanning)
 
     def prepare_bead_scan(self):
-        try:
-            self.set_lasers()
-            self.set_main_camera_roi()
-        except Exception as e:
-            self.logg.error_log.error(f"Error starting beads scanning: {e}")
+        self.set_lasers()
+        self.set_main_camera_roi()
+        lasers, camera = self.update_trigger_parameters()
+        atr, dtr, pos = self.p.trigger.generate_bead_scan_2d(4)
+        self.main_cam.acq_num = pos
+        self.main_cam.prepare_data_acquisition()
+        self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=atr, digital_sequences=dtr)
 
     def bead_scan_2d(self):
-        self.prepare_bead_scan()
         try:
-            lasers, camera = self.update_trigger_parameters()
-            atr, dtr, pos = self.p.trigger.generate_bead_scan_2d(4)
-            self.main_cam.prepare_data_acquisition(pos)
+            self.prepare_bead_scan()
+        except Exception as e:
+            self.logg.error_log.error(f"Error preparing beads scanning: {e}")
+            return
+        try:
             self.main_cam.start_data_acquisition()
             time.sleep(0.02)
-            self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=atr, digital_sequences=dtr)
             self.m.daq.run_triggers()
-            time.sleep(0.1)
-            data = self.main_cam.get_data(pos)
+            time.sleep(1)
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_bead_scanning.tif')
-            tf.imwrite(fd, data, imagej=True, resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
-                       metadata={'unit': 'um'})
-            # self.view_controller.plot_main(data)
+            tf.imwrite(fd, self.main_cam.get_data(), imagej=True,
+                       resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
+                       metadata={'unit': 'um', 'indices': list(self.main_cam.data.ind_list)})
         except Exception as e:
             self.logg.error_log.error(f"Error running beads scanning: {e}")
+            return
         self.finish_bead_scan()
 
     def finish_bead_scan(self):
