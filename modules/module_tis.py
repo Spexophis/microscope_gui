@@ -16,8 +16,20 @@ class CallbackData(ctypes.Structure):
     def __init__(self, max_length):
         super().__init__()
         self.image_data = deque(maxlen=max_length)
-        self.frame_number = deque(maxlen=max_length)
+        # self.frame_number = deque(maxlen=max_length)
         self.image_counter = 0
+
+    def add_element(self, element):
+        self.image_data.extend(element)
+
+    def get_elements(self):
+        return np.array(self.image_data) if self.image_data else None
+
+    def get_last_element(self):
+        return self.image_data[-1] if self.image_data else None
+
+    def is_empty(self):
+        return len(self.image_data) == 0
 
 
 def get_buffer(hGrabber):
@@ -44,7 +56,7 @@ def frame_ready_callback(hGrabber, image_pointer, frame_number, qdata):
     buffer_size, img_width, img_height, img_depth = get_buffer(hGrabber)
     if buffer_size is not None and buffer_size > 0:
         image = get_data(image_pointer, buffer_size, img_width, img_height)
-        qdata.image_data.extend([image])
+        qdata.add_element([image])
         qdata.image_counter += 1
 
 
@@ -131,6 +143,7 @@ class TISCamera:
             self.logg.info("SUCCESS: Set Frame Ready Callback")
         else:
             self.logg.error("FAIL: Set Frame Ready Callback")
+        self.set_trigger_mode()
 
     def prepare_live(self):
         if ic.IC_PrepareLive(self.hGrabber, 0):
@@ -236,6 +249,18 @@ class TISCamera:
         else:
             self.logg.error("FAIL: Image Capture")
             return False
+
+    def get_last_image(self):
+        if self.data is not None:
+            return self.data.get_last_element()
+        else:
+            return None
+
+    def get_data(self):
+        if self.data is not None:
+            return self.data.get_elements()
+        else:
+            return None
 
     def show_property(self):
         ic.IC_ShowPropertyDialog(self.hGrabber)
