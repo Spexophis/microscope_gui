@@ -3,9 +3,6 @@ class ConController:
     def __init__(self, view):
         self.v = view
 
-    def get_cameras(self):
-        return self.v.QComboBox_emccd.currentIndex(), self.v.QComboBox_scmos.currentIndex()
-
     def get_emccd_roi(self):
         return [self.v.QSpinBox_emccd_coordinate_x.value(), self.v.QSpinBox_emccd_coordinate_y.value(),
                 self.v.QSpinBox_emccd_coordinate_n.value(), self.v.QSpinBox_emccd_coordinate_bin.value()]
@@ -64,8 +61,12 @@ class ConController:
             return [self.v.QDoubleSpinBox_laserpower_405.value(), self.v.QDoubleSpinBox_laserpower_488_0.value(),
                     self.v.QDoubleSpinBox_laserpower_488_1.value(), self.v.QDoubleSpinBox_laserpower_488_2.value()]
 
-    def get_camera(self):
-        detection_device = self.v.QComboBox_camera_selection.currentIndex()
+    def get_imaging_camera(self):
+        detection_device = self.v.QComboBox_imaging_camera_selection.currentIndex()
+        return detection_device
+
+    def get_wfs_camera(self):
+        detection_device = self.v.QComboBox_wfs_camera_selection.currentIndex()
         return detection_device
 
     def get_digital_parameters(self):
@@ -74,13 +75,15 @@ class ConController:
                           self.v.QDoubleSpinBox_ttl_start_off_488_1.value(),
                           self.v.QDoubleSpinBox_ttl_start_read_488_2.value(),
                           self.v.QDoubleSpinBox_ttl_start_emccd.value(),
-                          self.v.QDoubleSpinBox_ttl_start_scmos.value()]
+                          self.v.QDoubleSpinBox_ttl_start_scmos.value(),
+                          self.v.QDoubleSpinBox_ttl_start_tis.value()]
         digital_ends = [self.v.QDoubleSpinBox_ttl_stop_on_405.value(),
                         self.v.QDoubleSpinBox_ttl_stop_off_488_0.value(),
                         self.v.QDoubleSpinBox_ttl_stop_off_488_1.value(),
                         self.v.QDoubleSpinBox_ttl_stop_read_488_2.value(),
                         self.v.QDoubleSpinBox_ttl_stop_emccd.value(),
-                        self.v.QDoubleSpinBox_ttl_stop_scmos.value()]
+                        self.v.QDoubleSpinBox_ttl_stop_scmos.value(),
+                        self.v.QDoubleSpinBox_ttl_stop_tis.value()]
         return digital_starts, digital_ends
 
     def get_piezo_scan_parameters(self):

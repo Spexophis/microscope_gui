@@ -251,11 +251,11 @@ class HamamatsuCamera(object):
     """
     class CameraSettings:
         def __init__(self):
-            self.t_clean = None
-            self.t_readout = None
-            self.t_exposure = None
-            self.t_accumulate = None
-            self.t_kinetic = None
+            self.t_clean = 0
+            self.t_readout = 0
+            self.t_exposure = 0
+            self.t_accumulate = 0
+            self.t_kinetic = 0
             self.bin_h = 1
             self.bin_v = 1
             self.start_h = 1
@@ -850,7 +850,7 @@ class HamamatsuCameraMR(HamamatsuCamera):
             print(n)
             data.append(self.hcam_data[n].getData().reshape(self.frame_y, self.frame_x))
 
-    def finish_data_acquisition(self):
+    def stop_data_acquisition(self):
         self.stop_acquisition()
 
 

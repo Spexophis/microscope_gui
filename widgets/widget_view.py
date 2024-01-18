@@ -50,39 +50,22 @@ class ViewWidget(QtWidgets.QWidget):
         layout_plot.addWidget(self.canvas)
         group_plot.setLayout(layout_plot)
 
-        self.imgLayers = {}
+        self.napari_layers = {}
+        self.img_layers = {0: "Andor EMCCD", 1: "Hamamatsu sCMOS", 2: "DMK 33UX250", 3: "FFT", 4: "ShackHartmann(Base)",
+                           5: "Wavefront"}
+        for name in reversed(list(self.img_layers.values())):
+            self.napari_layers[name] = self.add_napari_layer(name)
 
-        self.name_wf = 'Wavefront'
-        self.imgLayers[self.name_wf] = self.napariViewer.add_image(
-            np.zeros((1024, 1024)), rgb=False, name=self.name_wf, blending='additive',
-            colormap=None, protected=True)
-
-        self.name_sh = 'ShackHartmann'
-        self.imgLayers[self.name_sh] = self.napariViewer.add_image(
-            np.zeros((1024, 1024)), rgb=False, name=self.name_sh, blending='additive',
-            colormap=None, protected=True)
-
-        self.name_sh = 'ShackHartmann(Base)'
-        self.imgLayers[self.name_sh] = self.napariViewer.add_image(
-            np.zeros((1024, 1024)), rgb=False, name=self.name_sh, blending='additive',
-            colormap=None, protected=True)
-
-        self.name_fft = 'FFT'
-        self.imgLayers[self.name_fft] = self.napariViewer.add_image(
-            np.zeros((1024, 1024)), rgb=False, name=self.name_fft, blending='additive',
-            colormap=None, protected=True)
-
-        self.name_m = 'Main Camera'
-        self.imgLayers[self.name_m] = self.napariViewer.add_image(
-            np.zeros((1024, 1024)), rgb=False, name=self.name_m, blending='additive',
-            colormap=None, protected=True)
+    def add_napari_layer(self, name):
+        return self.napariViewer.add_image(np.zeros((1024, 1024)), rgb=False, name=name, blending='additive',
+                                           colormap=None, protected=True)
 
     def show_image(self, name, im):
         if isinstance(im, np.ndarray):
-            self.imgLayers[name].data = im
+            self.napari_layers[name].data = im
 
     def get_image(self, name):
-        return self.imgLayers[name].data
+        return self.napari_layers[name].data
 
     def plot(self, data):
         self.canvas.axes.plot(data)
@@ -92,6 +75,7 @@ class ViewWidget(QtWidgets.QWidget):
         self.canvas.axes.cla()
         self.canvas.axes.plot(data)
         self.canvas.draw()
+
 
 import sys
 

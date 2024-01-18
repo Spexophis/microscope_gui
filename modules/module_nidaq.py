@@ -18,7 +18,7 @@ class NIDAQ:
             self.piezo_channels = "Dev1/ao0:1"
             self.galvo_channels = "Dev1/ao2:3"
             self.anolog_channels = "Dev1/ao0:3"
-            self.digital_channels = "Dev1/port0/line0:5"
+            self.digital_channels = "Dev1/port0/line0:6"
             self.clock_channel = "Dev1/ctr0"
             self.clock = None
             self.mode = None

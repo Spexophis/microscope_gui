@@ -44,15 +44,6 @@ class MainWidget(QtWidgets.QMainWindow):
         self.Signal_quit.emit()
         super().closeEvent(event)
 
-    def get_control_widget(self):
-        return self.con_view
-
-    def get_view_widget(self):
-        return self.view_view
-
-    def get_ao_widget(self):
-        return self.ao_view
-
     def get_dialog(self):
         self.dialog.exec_()
 

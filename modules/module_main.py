@@ -5,6 +5,7 @@ from modules import module_laser
 from modules import module_mcldeck
 from modules import module_mclpiezo
 from modules import module_nidaq
+from modules import module_tis
 
 
 class MainModule:
@@ -22,6 +23,11 @@ class MainModule:
         try:
             self.scmoscam = module_hamamatsu.HamamatsuCameraMR(self.logg.error_log)
             self.cam_set[1] = self.scmoscam
+        except Exception as e:
+            self.logg.error_log.error(f"{e}")
+        try:
+            self.tiscam = module_tis.TISCamera(self.logg.error_log)
+            self.cam_set[2] = self.tiscam
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
@@ -53,6 +59,10 @@ class MainModule:
             self.logg.error_log.error(f"{e}")
         try:
             self.scmoscam.close()
+        except Exception as e:
+            self.logg.error_log.error(f"{e}")
+        try:
+            self.tiscam.close()
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:

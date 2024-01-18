@@ -61,9 +61,32 @@ def frame_ready_callback(hGrabber, image_pointer, frame_number, qdata):
 
 
 class TISCamera:
+    class CameraSettings:
+        def __init__(self):
+            self.t_clean = None
+            self.t_readout = None
+            self.t_exposure = None
+            self.t_accumulate = None
+            self.t_kinetic = None
+            self.bin_h = 1
+            self.bin_v = 1
+            self.start_h = 1
+            self.end_h = 1024
+            self.start_v = 1
+            self.end_v = 1024
+            self.pixels_x = 1024
+            self.pixels_y = 1024
+            self.img_size = self.pixels_x * self.pixels_y
+            self.ps = 13  # micron
+            self.buffer_size = None
+            self.acq_num = 0
+            self.acq_first = 0
+            self.acq_last = 0
+            self.valid_index = 0
 
     def __init__(self, logg=None):
         self.logg = logg or self.setup_logging()
+        self._settings = self.CameraSettings()
         self.data = CallbackData(16)
         self.frame_ready = ic.FRAMEREADYCALLBACK(frame_ready_callback)
         self.hGrabber = self._initialize_grabber()
@@ -72,6 +95,11 @@ class TISCamera:
 
     def __del__(self):
         pass
+
+    def __getattr__(self, item):
+        if hasattr(self._settings, item):
+            return getattr(self._settings, item)
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{item}'")
 
     @staticmethod
     def setup_logging():

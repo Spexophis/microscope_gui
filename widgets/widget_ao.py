@@ -43,7 +43,6 @@ class AOWidget(QtWidgets.QWidget):
         self.setLayout(layout)
 
         layout_image = QtWidgets.QHBoxLayout()
-        self.QLabel_image_shwfs = cw.label_widget(str('Image SHWFS'))
         self.QLabel_wfmax_img = cw.label_widget(str('Wavefront MAX'))
         self.lcdNumber_wfmax_img = cw.lcdnumber_widget()
         self.QLabel_wfmin_img = cw.label_widget(str('Wavefront MIN'))
@@ -51,7 +50,6 @@ class AOWidget(QtWidgets.QWidget):
         self.QLabel_wfrms_img = cw.label_widget(str('Wavefront RMS'))
         self.lcdNumber_wfrms_img = cw.lcdnumber_widget()
         self.image_shwfs_scroll_area, image_shwfs_scroll_layout = cw.create_scroll_area()
-        image_shwfs_scroll_layout.addRow(self.QLabel_image_shwfs)
         image_shwfs_scroll_layout.addRow(self.QLabel_wfmax_img, self.lcdNumber_wfmax_img)
         image_shwfs_scroll_layout.addRow(self.QLabel_wfmin_img, self.lcdNumber_wfmin_img)
         image_shwfs_scroll_layout.addRow(self.QLabel_wfrms_img, self.lcdNumber_wfrms_img)
@@ -59,7 +57,6 @@ class AOWidget(QtWidgets.QWidget):
         group_image.setLayout(layout_image)
 
         layout_parameters = QtWidgets.QHBoxLayout()
-        self.QLabel_image_shwfs_parameters = cw.label_widget(str('Image SHWFS Parameters'))
         self.QLabel_wfrmd_img = cw.label_widget(str('Method'))
         self.QComboBox_wfrmd_img = cw.combobox_widget(list_items=['correlation', 'centerofmass'])
         self.QLabel_base_xcenter_img = cw.label_widget(str('X_center (Base)'))
@@ -79,7 +76,6 @@ class AOWidget(QtWidgets.QWidget):
         self.QLabel_radius_img = cw.label_widget(str('Radius'))
         self.QSpinBox_radius_img = cw.spinbox_widget(0, 64, 1, 12)
         self.image_shwfs_parameters_scroll_area, image_shwfs_parameters_scroll_layout = cw.create_scroll_area()
-        image_shwfs_parameters_scroll_layout.addRow(self.QLabel_image_shwfs_parameters)
         image_shwfs_parameters_scroll_layout.addRow(self.QLabel_wfrmd_img, self.QComboBox_wfrmd_img)
         image_shwfs_parameters_scroll_layout.addRow(self.QLabel_base_xcenter_img, self.QSpinBox_base_xcenter_img)
         image_shwfs_parameters_scroll_layout.addRow(self.QLabel_base_ycenter_img, self.QSpinBox_base_ycenter_img)
@@ -93,7 +89,8 @@ class AOWidget(QtWidgets.QWidget):
         group_parameters.setLayout(layout_parameters)
 
         layout_shwfs = QtWidgets.QHBoxLayout()
-        self.QLabel_image_shwfs = cw.label_widget(str('Image SHWFS'))
+        self.QLabel_image_shwfs = cw.label_widget(str('Camera'))
+        self.QComboBox_wfs_camera_selection = cw.combobox_widget(list_items=["EMCCD", "SCMOS", "TIS"])
         self.QPushButton_img_shwfs_base = cw.pushbutton_widget('SetBase', enable=True)
         self.QPushButton_run_img_wfs = cw.pushbutton_widget('RunWFS', checkable=True)
         self.QPushButton_run_img_wfr = cw.pushbutton_widget('RunWFR', enable=True)
@@ -101,7 +98,7 @@ class AOWidget(QtWidgets.QWidget):
         self.QPushButton_img_shwfs_compute_wf = cw.pushbutton_widget('ComputeWF', enable=True)
         self.QPushButton_img_shwfs_save_wf = cw.pushbutton_widget('SaveWF', enable=True)
         self.image_shwfs_scroll_area, image_shwfs_scroll_layout = cw.create_scroll_area()
-        image_shwfs_scroll_layout.addRow(self.QLabel_image_shwfs)
+        image_shwfs_scroll_layout.addRow(self.QLabel_image_shwfs, self.QComboBox_wfs_camera_selection)
         image_shwfs_scroll_layout.addRow(self.QPushButton_run_img_wfs, self.QPushButton_img_shwfs_base)
         image_shwfs_scroll_layout.addRow(self.QPushButton_run_img_wfr)
         image_shwfs_scroll_layout.addRow(self.QPushButton_img_shwfs_compute_wf, self.QPushButton_img_shwfs_save_wf)
@@ -212,6 +209,7 @@ class AOWidget(QtWidgets.QWidget):
         self.QPushButton_sensorless_run.clicked.connect(self.Signal_sensorlessAO_run.emit)
         self.QPushButton_sensorless_save.clicked.connect(self.Signal_sensorlessAO_save.emit)
 
+        self.QComboBox_wfs_camera_selection.setCurrentIndex(1)
         self.QSpinBox_base_xcenter_img.setValue(983)
         self.QSpinBox_base_ycenter_img.setValue(1081)
         self.QSpinBox_offset_xcenter_img.setValue(983)

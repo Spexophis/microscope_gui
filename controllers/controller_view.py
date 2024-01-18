@@ -3,20 +3,20 @@ class ViewController:
     def __init__(self, view):
         self.v = view
 
-    def plot_main(self, data):
-        self.v.show_image('Main Camera', data)
+    def plot_main(self, data, layer=0):
+        self.v.show_image(self.v.img_layers[layer], data)
 
-    def plot_fft(self, data):
-        self.v.show_image('FFT', data)
+    def plot_sh(self, data, layer=1):
+        self.v.show_image(self.v.img_layers[layer], data)
 
-    def plot_sh(self, data):
-        self.v.show_image('ShackHartmann', data)
+    def plot_fft(self, data, layer="FFT"):
+        self.v.show_image(layer, data)
 
-    def plot_shb(self, data):
-        self.v.show_image('ShackHartmann(Base)', data)
+    def plot_shb(self, data, layer="ShackHartmann(Base)"):
+        self.v.show_image(layer, data)
 
-    def plot_wf(self, data):
-        self.v.show_image('Wavefront', data)
+    def plot_wf(self, data, layer="Wavefront"):
+        self.v.show_image(layer, data)
 
     def get_image_data(self, layer):
         return self.v.get_image(layer)
