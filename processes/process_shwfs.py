@@ -47,10 +47,10 @@ class WavefrontSensing:
         self.az = None
         self.zernike = self.get_zernike_polynomials(nz=self.n_zernikes, size=[self.n_lenslets_y, self.n_lenslets_x])
         self.zslopes = self.get_zernike_slopes(nz=self.n_zernikes, size=[self.n_lenslets_y, self.n_lenslets_x])
-        self._correction = []
-        self._temp_cmd = []
-        self._dm_cmd = [[0.] * 97]
-        self._dm_cmd.append(self.read_cmd(initial_flat))
+        self.correction = []
+        self.temp_cmd = []
+        self.dm_cmd = [[0.] * 97]
+        self.dm_cmd.append(self.read_cmd(initial_flat))
         self.current_cmd = 1
 
     def update_parameters(self, parameters):
@@ -344,20 +344,20 @@ class WavefrontSensing:
     def get_correction(self, method='phase'):
         if method == 'phase':
             mwf = self.wavefront_reconstruction(rt=True)
-            self._correction.append(
+            self.correction.append(
                 list(self.amp * np.dot(control_matrix_phase, -mwf.reshape(self.n_lenslets))))
         else:
             gradx, grady = self._get_gradient_xy(self.base, self.offset)
             _measurement = np.concatenate((gradx.reshape(self.n_lenslets), grady.reshape(self.n_lenslets)))
             if method == 'zonal':
-                self._correction.append(list(np.dot(control_matrix_zonal, -_measurement)))
+                self.correction.append(list(np.dot(control_matrix_zonal, -_measurement)))
             elif method == 'modal':
                 a = self.get_zernike_coefficients(-_measurement, self.zslopes)
-                self._correction.append(list(np.dot(control_matrix_modal, a)))
+                self.correction.append(list(np.dot(control_matrix_modal, a)))
             else:
                 raise ValueError("Invalid method")
-        _c = self.cmd_add(self._dm_cmd[self.current_cmd], self._correction[-1])
-        self._dm_cmd.append(_c)
+        _c = self.cmd_add(self.dm_cmd[self.current_cmd], self.correction[-1])
+        self.dm_cmd.append(_c)
 
     def get_zernike_coefficients(self, gradxy, gradz):
         zplus = self._pseudo_inverse(gradz, n=32)
@@ -377,11 +377,11 @@ class WavefrontSensing:
     def write_cmd(self, path, t, flatfile=False):
         if flatfile:
             filename = t + '_flat_file.xlsx'
-            df = pd.DataFrame(self._dm_cmd[-1], index=np.arange(97), columns=['Push'])
+            df = pd.DataFrame(self.dm_cmd[-1], index=np.arange(97), columns=['Push'])
             df.to_excel(os.path.join(path, filename), index_label='Actuator')
         else:
             filename = t + '_cmd_file.xlsx'
-            data = {f'cmd{i}': cmd for i, cmd in enumerate(self._dm_cmd)}
+            data = {f'cmd{i}': cmd for i, cmd in enumerate(self.dm_cmd)}
             with pd.ExcelWriter(os.path.join(path, filename), engine='xlsxwriter') as writer:
                 for sheet_name, list_data in data.items():
                     df = pd.DataFrame(list_data, index=np.arange(97), columns=['Push'])

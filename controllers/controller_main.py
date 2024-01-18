@@ -106,7 +106,7 @@ class MainController:
             self.m.daq.set_piezo_position(pos_x / 10., pos_y / 10.)
             self.set_piezo_position_z()
 
-            self.m.dm.set_dm(self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd])
+            self.m.dm.set_dm(self.p.shwfsr.dm_cmd[self.p.shwfsr.current_cmd])
 
             self.magnifications = [157.5, 1, 1]
             self.pixel_sizes = []
@@ -650,7 +650,7 @@ class MainController:
             n, a = self.ao_controller.get_actuator()
             values = [0.] * self.m.dm.nbAct
             values[n] = a
-            self.m.dm.set_dm(self.p.shwfsr.cmd_add(values, self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
+            self.m.dm.set_dm(self.p.shwfsr.cmd_add(values, self.p.shwfsr.dm_cmd[self.p.shwfsr.current_cmd]))
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
@@ -658,32 +658,32 @@ class MainController:
         try:
             indz, amp = self.ao_controller.get_zernike_mode()
             self.m.dm.set_dm(self.p.shwfsr.cmd_add(self.p.shwfsr.get_zernike_cmd(indz, amp),
-                                                   self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
+                                                   self.p.shwfsr.dm_cmd[self.p.shwfsr.current_cmd]))
             # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[indz]],
-            #                                         self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
+            #                                         self.p.shwfsr.dm_cmd[self.p.shwfsr.current_cmd]))
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
     def set_dm(self):
         try:
             i = int(self.ao_controller.get_cmd_index())
-            self.m.dm.set_dm(self.p.shwfsr._dm_cmd[i])
+            self.m.dm.set_dm(self.p.shwfsr.dm_cmd[i])
             self.p.shwfsr.current_cmd = i
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
     def update_dm(self):
         try:
-            self.p.shwfsr._dm_cmd.append(self.p.shwfsr._temp_cmd[-1])
+            self.p.shwfsr.dm_cmd.append(self.p.shwfsr.temp_cmd[-1])
             self.ao_controller.update_cmd_index()
-            self.m.dm.set_dm(self.p.shwfsr._dm_cmd[-1])
+            self.m.dm.set_dm(self.p.shwfsr.dm_cmd[-1])
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
     def load_dm(self, filename):
         try:
-            self.p.shwfsr._dm_cmd.append(self.p.shwfsr.read_cmd(filename))
-            self.m.dm.set_dm(self.p.shwfsr._dm_cmd[-1])
+            self.p.shwfsr.dm_cmd.append(self.p.shwfsr.read_cmd(filename))
+            self.m.dm.set_dm(self.p.shwfsr.dm_cmd[-1])
             print('New DM cmd loaded')
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
@@ -906,7 +906,7 @@ class MainController:
             self.p.shwfsr.offset = self.m.cam_set[self.cameras["wfs"]].get_last_image()
             self.m.daq.stop_triggers(_close=False)
             self.p.shwfsr.get_correction(self.ao_controller.get_img_wfs_method())
-            self.m.dm.set_dm(self.p.shwfsr._dm_cmd[-1])
+            self.m.dm.set_dm(self.p.shwfsr.dm_cmd[-1])
             self.ao_controller.update_cmd_index()
             i = int(self.ao_controller.get_cmd_index())
             self.p.shwfsr.current_cmd = i
@@ -936,7 +936,7 @@ class MainController:
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
-        self.m.daq.write_digital_sequences(self.generate_live_triggers(), mode="finite")
+        self.m.daq.write_digital_sequences(self.generate_live_triggers("imaging"), mode="finite")
 
     def sensorless_iteration(self):
         try:
@@ -958,7 +958,7 @@ class MainController:
             za = []
             mv = []
             zp = [0] * self.p.shwfsr.n_zernikes
-            cmd = self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]
+            cmd = self.p.shwfsr.dm_cmd[self.p.shwfsr.current_cmd]
             self.m.cam_set[self.cameras["imaging"]].start_live()
             self.logg.info("Sensorless AO iteration starts")
             self.m.dm.set_dm(cmd)
@@ -1006,7 +1006,7 @@ class MainController:
             time.sleep(0.05)
             fn = os.path.join(new_folder, 'final.tif')
             tf.imwrite(fn, self.m.cam_set[self.cameras["imaging"]].get_last_image())
-            self.p.shwfsr._dm_cmd.append(cmd)
+            self.p.shwfsr.dm_cmd.append(cmd)
             self.ao_controller.update_cmd_index()
             i = int(self.ao_controller.get_cmd_index())
             self.p.shwfsr.current_cmd = i
