@@ -3,6 +3,10 @@ class AOController:
     def __init__(self, view):
         self.v = view
 
+    def get_wfs_camera(self):
+        detection_device = self.v.QComboBox_wfs_camera_selection.currentIndex()
+        return detection_device
+
     def display_img_wf_properties(self, properties):
         self.v.lcdNumber_wfmin_img.display(properties[0])
         self.v.lcdNumber_wfmax_img.display(properties[1])

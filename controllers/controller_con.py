@@ -65,10 +65,6 @@ class ConController:
         detection_device = self.v.QComboBox_imaging_camera_selection.currentIndex()
         return detection_device
 
-    def get_wfs_camera(self):
-        detection_device = self.v.QComboBox_wfs_camera_selection.currentIndex()
-        return detection_device
-
     def get_digital_parameters(self):
         digital_starts = [self.v.QDoubleSpinBox_ttl_start_on_405.value(),
                           self.v.QDoubleSpinBox_ttl_start_off_488_0.value(),

@@ -18,8 +18,8 @@ class ViewController:
     def plot_wf(self, data, layer="Wavefront"):
         self.v.show_image(layer, data)
 
-    def get_image_data(self, layer):
-        return self.v.get_image(layer)
+    def get_image_data(self, layer=1):
+        return self.v.get_image(self.v.img_layers[layer])
 
     def plot(self, data):
         self.v.plot(data)

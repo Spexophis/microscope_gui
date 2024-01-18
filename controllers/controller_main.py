@@ -17,7 +17,7 @@ class MainController:
         self.m = module
         self.p = process
         self.config = config
-        self.logg = logg
+        self.logg = logg.error_log
         self.data_folder = path
         self.view_controller = controller_view.ViewController(self.v.view_view)
         self.con_controller = controller_con.ConController(self.v.con_view)
@@ -112,9 +112,9 @@ class MainController:
             self.pixel_sizes = []
             self.pixel_sizes = [self.m.cam_set[i].ps / mag for i, mag in enumerate(self.magnifications)]
 
-            self.logg.error_log.info("Finish setting up controllers")
+            self.logg.info("Finish setting up controllers")
         except Exception as e:
-            self.logg.error_log.error(f"Initial setup Error: {e}")
+            self.logg.error(f"Initial setup Error: {e}")
 
     def run_task(self, task, iteration=1, callback=None, parent=None):
         if self.task_worker is not None:
@@ -149,7 +149,7 @@ class MainController:
                 p = self.m.md.get_position_steps_taken(3)
                 self.con_controller.display_deck_position(p)
         except Exception as e:
-            self.logg.error_log.error(f"MadDeck Error: {e}")
+            self.logg.error(f"MadDeck Error: {e}")
 
     def move_deck_down(self):
         try:
@@ -162,7 +162,7 @@ class MainController:
                 p = self.m.md.get_position_steps_taken(3)
                 self.con_controller.display_deck_position(p)
         except Exception as e:
-            self.logg.error_log.error(f"MadDeck Error: {e}")
+            self.logg.error(f"MadDeck Error: {e}")
 
     def move_deck_continuous(self, moving):
         if moving:
@@ -183,7 +183,7 @@ class MainController:
                 distance, velocity = self.con_controller.get_deck_movement()
                 self.m.md.move_relative(3, distance, velocity=velocity)
         except Exception as e:
-            self.logg.error_log.error(f"MadDeck Error: {e}")
+            self.logg.error(f"MadDeck Error: {e}")
 
     def stop_deck(self):
         try:
@@ -192,11 +192,11 @@ class MainController:
                 self.m.md.stop_moving()
                 p = self.m.md.get_position_steps_taken(3)
                 self.con_controller.display_deck_position(p)
-                self.logg.error_log.info("MadDeck is Stopped")
+                self.logg.info("MadDeck is Stopped")
             else:
-                self.logg.error_log.info("MadDeck is Stopped")
+                self.logg.info("MadDeck is Stopped")
         except Exception as e:
-            self.logg.error_log.error(f"MadDeck Error: {e}")
+            self.logg.error(f"MadDeck Error: {e}")
 
     def set_piezo(self, axis):
         if axis == "x":
@@ -212,7 +212,7 @@ class MainController:
             self.m.daq.set_piezo_position(pos_x / 10., pos_y / 10.)
             self.con_controller.display_piezo_position_x(self.m.pz.read_position(0))
         except Exception as e:
-            self.logg.error_log.error(f"MCL Piezo Error: {e}")
+            self.logg.error(f"MCL Piezo Error: {e}")
 
     def set_piezo_position_y(self):
         try:
@@ -220,7 +220,7 @@ class MainController:
             self.m.daq.set_piezo_position(pos_x / 10., pos_y / 10.)
             self.con_controller.display_piezo_position_y(self.m.pz.read_position(1))
         except Exception as e:
-            self.logg.error_log.error(f"MCL Piezo Error: {e}")
+            self.logg.error(f"MCL Piezo Error: {e}")
 
     def set_piezo_position_z(self):
         try:
@@ -228,14 +228,14 @@ class MainController:
             z = self.m.pz.move_position(2, pos_z)
             self.con_controller.display_piezo_position_z(z)
         except Exception as e:
-            self.logg.error_log.error(f"MCL Piezo Error: {e}")
+            self.logg.error(f"MCL Piezo Error: {e}")
 
     def set_galvo(self):
         try:
             voltx, volty = self.con_controller.get_galvo_scan()
             self.m.daq.set_galvo_position(voltx, volty)
         except Exception as e:
-            self.logg.error_log.error(f"Galvo Error: {e}")
+            self.logg.error(f"Galvo Error: {e}")
 
     def set_laser(self, laser, switch):
         if switch:
@@ -243,12 +243,12 @@ class MainController:
                 self.m.laser.set_constant_power(laser, self.con_controller.get_cobolt_laser_power(laser[0]))
                 self.m.laser.laser_on(laser)
             except Exception as e:
-                self.logg.error_log.error(f"Cobolt Laser Error: {e}")
+                self.logg.error(f"Cobolt Laser Error: {e}")
         else:
             try:
                 self.m.laser.laser_off(laser)
             except Exception as e:
-                self.logg.error_log.error(f"Cobolt Laser Error: {e}")
+                self.logg.error(f"Cobolt Laser Error: {e}")
 
     def set_lasers(self):
         try:
@@ -257,19 +257,19 @@ class MainController:
             self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"],
                                              self.con_controller.get_cobolt_laser_power("all"))
         except Exception as e:
-            self.logg.error_log.error(f"Cobolt Laser Error: {e}")
+            self.logg.error(f"Cobolt Laser Error: {e}")
 
     def lasers_off(self):
         try:
             self.m.laser.laser_off("all")
         except Exception as e:
-            self.logg.error_log.error(f"Cobolt Laser Error: {e}")
+            self.logg.error(f"Cobolt Laser Error: {e}")
 
     def check_emdccd_temperature(self):
         try:
             self.con_controller.display_camera_temperature(self.m.ccdcam.get_ccd_temperature())
         except Exception as e:
-            self.logg.error_log.error(f"CCD Camera Error: {e}")
+            self.logg.error(f"CCD Camera Error: {e}")
 
     def switch_emdccd_cooler(self, sw):
         if sw:
@@ -281,13 +281,13 @@ class MainController:
         try:
             self.m.ccdcam.cooler_on()
         except Exception as e:
-            self.logg.error_log.error(f"CCD Camera Error: {e}")
+            self.logg.error(f"CCD Camera Error: {e}")
 
     def switch_emdccd_cooler_off(self):
         try:
             self.m.ccdcam.cooler_off()
         except Exception as e:
-            self.logg.error_log.error(f"CCD Camera Error: {e}")
+            self.logg.error(f"CCD Camera Error: {e}")
 
     def set_camera_roi(self, key="imaging"):
         try:
@@ -305,7 +305,7 @@ class MainController:
             if self.cameras[key] == 2:
                 pass
         except Exception as e:
-            self.logg.error_log.error(f"Camera Error: {e}")
+            self.logg.error(f"Camera Error: {e}")
 
     def update_trigger_parameters(self, cam_key):
         try:
@@ -322,9 +322,9 @@ class MainController:
             self.p.trigger.update_camera_parameters(self.m.cam_set[self.cameras[cam_key]].t_clean,
                                                     self.m.cam_set[self.cameras[cam_key]].t_readout,
                                                     self.m.cam_set[self.cameras[cam_key]].t_kinetic)
-            self.logg.error_log.info(f"Trigger Updated")
+            self.logg.info(f"Trigger Updated")
         except Exception as e:
-            self.logg.error_log.error(f"Trigger Error: {e}")
+            self.logg.error(f"Trigger Error: {e}")
 
     def generate_live_triggers(self, cam_key):
         self.update_trigger_parameters(cam_key)
@@ -342,14 +342,14 @@ class MainController:
         try:
             self.prepare_video()
         except Exception as e:
-            self.logg.error_log.error(f"Error starting imaging video: {e}")
+            self.logg.error(f"Error starting imaging video: {e}")
             return
         try:
             self.m.cam_set[self.cameras["imaging"]].start_live()
             self.m.daq.run_digital_trigger()
             self.thread_video.start()
         except Exception as e:
-            self.logg.error_log.error(f"Error starting imaging video: {e}")
+            self.logg.error(f"Error starting imaging video: {e}")
 
     def stop_video(self):
         try:
@@ -359,7 +359,7 @@ class MainController:
             self.m.cam_set[self.cameras["imaging"]].stop_live()
             self.lasers_off()
         except Exception as e:
-            self.logg.error_log.error(f"Error stopping imaging video: {e}")
+            self.logg.error(f"Error stopping imaging video: {e}")
 
     def video(self, sw):
         if sw:
@@ -372,7 +372,7 @@ class MainController:
             self.view_controller.plot_main(self.m.cam_set[self.cameras["imaging"]].get_last_image(),
                                            layer=self.cameras["imaging"])
         except Exception as e:
-            self.logg.error_log.error(f"Error showing imaging video: {e}")
+            self.logg.error(f"Error showing imaging video: {e}")
 
     def fft(self, sw):
         if sw:
@@ -384,21 +384,21 @@ class MainController:
         try:
             self.thread_fft.start()
         except Exception as e:
-            self.logg.error_log.error(f"Error starting fft: {e}")
+            self.logg.error(f"Error starting fft: {e}")
 
     def stop_fft(self):
         try:
             self.thread_fft.quit()
             self.thread_fft.wait()
         except Exception as e:
-            self.logg.error_log.error(f"Error stopping fft: {e}")
+            self.logg.error(f"Error stopping fft: {e}")
 
     def imshow_fft(self):
         try:
             self.view_controller.plot_fft(
-                self.p.imgprocess.fourier_transform(self.m.cam_set[self.cameras["imaging"]].get_last_image()))
+                self.p.imgprocess.fourier_transform(self.view_controller.get_image_data(layer=self.cameras["imaging"])))
         except Exception as e:
-            self.logg.error_log.error(f"Error showing fft: {e}")
+            self.logg.error(f"Error showing fft: {e}")
 
     def plot_live(self, sw):
         if sw:
@@ -410,31 +410,31 @@ class MainController:
         try:
             self.thread_plot.start()
         except Exception as e:
-            self.logg.error_log.error(f"Error starting plot: {e}")
+            self.logg.error(f"Error starting plot: {e}")
 
     def stop_plot_live(self):
         try:
             self.thread_plot.quit()
             self.thread_plot.wait()
         except Exception as e:
-            self.logg.error_log.error(f"Error stopping plot: {e}")
+            self.logg.error(f"Error stopping plot: {e}")
 
     def profile_plot(self):
         try:
             ax = self.con_controller.get_profile_axis()
             self.view_controller.plot_update(
-                self.p.imgprocess.get_profile(self.m.cam_set[self.cameras["imaging"]].get_last_image(), ax))
+                self.p.imgprocess.get_profile(self.view_controller.get_image_data(layer=self.cameras["imaging"]), ax))
         except Exception as e:
-            self.logg.error_log.error(f"Error plotting profile: {e}")
+            self.logg.error(f"Error plotting profile: {e}")
 
     def plot_trigger(self):
         try:
-            dtr = self.generate_live_triggers()
+            dtr = self.generate_live_triggers("imaging")
             self.view_controller.plot_update(dtr[0])
             for i in range(dtr.shape[0] - 1):
                 self.view_controller.plot(dtr[i + 1] + i + 1)
         except Exception as e:
-            self.logg.error_log.error(f"Error plotting digital triggers: {e}")
+            self.logg.error(f"Error plotting digital triggers: {e}")
 
     def data_acquisition(self):
         acq_mod = self.con_controller.get_acquisition_mode()
@@ -459,13 +459,13 @@ class MainController:
         try:
             self.prepare_widefield_zstack()
         except Exception as e:
-            self.logg.error_log.error(f"Error starting widefield zstack: {e}")
+            self.logg.error(f"Error starting widefield zstack: {e}")
             return
         try:
             positions = self.con_controller.get_piezo_positions()
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             if axis_lengths[2] == 0 or step_sizes[2] == 0:
-                self.logg.error_log.error(f"Error running widefield zstack: range or step is zero")
+                self.logg.error(f"Error running widefield zstack: range or step is zero")
                 return
             else:
                 num_steps = int(axis_lengths[2] / (2 * step_sizes[2]))
@@ -482,13 +482,14 @@ class MainController:
                     time.sleep(0.05)
                     data.append(self.m.cam_set[self.cameras["imaging"]].get_last_image())
                     self.m.daq.stop_triggers(_close=False)
-                self.logg.error_log.info(pzs)
+                self.logg.info(pzs)
                 fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_widefield_zstack.tif')
                 tf.imwrite(fd, np.asarray(data), imagej=True, resolution=(
                     1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
-                           metadata={'unit': 'um', 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
+                           metadata={'unit': 'um',
+                                     'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
         except Exception as e:
-            self.logg.error_log.error(f"Error running widefield zstack: {e}")
+            self.logg.error(f"Error running widefield zstack: {e}")
             return
         self.finish_widefield_zstack()
 
@@ -498,9 +499,9 @@ class MainController:
             self.m.cam_set[self.cameras["imaging"]].stop_live()
             self.lasers_off()
             self.m.daq.stop_triggers()
-            self.logg.error_log.info("Widefield image stack acquired")
+            self.logg.info("Widefield image stack acquired")
         except Exception as e:
-            self.logg.error_log.error(f"Error stopping widefield zstack: {e}")
+            self.logg.error(f"Error stopping widefield zstack: {e}")
 
     def run_widefield_zstack(self):
         self.run_task(task=self.widefield_zstack)
@@ -520,7 +521,7 @@ class MainController:
         try:
             self.prepare_galvo_scanning()
         except Exception as e:
-            self.logg.error_log.error(f"Error preparing galvo scanning: {e}")
+            self.logg.error(f"Error preparing galvo scanning: {e}")
             return
         try:
             self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
@@ -532,7 +533,7 @@ class MainController:
                 1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
                        metadata={'unit': 'um', 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
         except Exception as e:
-            self.logg.error_log.error(f"Error running galvo scanning: {e}")
+            self.logg.error(f"Error running galvo scanning: {e}")
             return
         self.finish_galvo_scanning()
 
@@ -541,9 +542,9 @@ class MainController:
             self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
             self.m.daq.stop_triggers()
             self.lasers_off()
-            self.logg.error_log.info("Galvo scanning image acquired")
+            self.logg.info("Galvo scanning image acquired")
         except Exception as e:
-            self.logg.error_log.error(f"Error stopping galvo scanning: {e}")
+            self.logg.error(f"Error stopping galvo scanning: {e}")
 
     def run_galvo_scanning(self):
         self.run_task(task=self.galvo_scanning)
@@ -563,7 +564,7 @@ class MainController:
         try:
             self.prepare_confocal_scanning()
         except Exception as e:
-            self.logg.error_log.error(f"Error preparing confocal scanning: {e}")
+            self.logg.error(f"Error preparing confocal scanning: {e}")
             return
         try:
             self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
@@ -575,7 +576,7 @@ class MainController:
                 1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
                        metadata={'unit': 'um', 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
         except Exception as e:
-            self.logg.error_log.error(f"Error running confocal scanning: {e}")
+            self.logg.error(f"Error running confocal scanning: {e}")
             return
         self.finish_confocal_scanning()
 
@@ -584,9 +585,9 @@ class MainController:
             self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
             self.m.daq.stop_triggers()
             self.lasers_off()
-            self.logg.error_log.info("Confocal scanning image acquired")
+            self.logg.info("Confocal scanning image acquired")
         except Exception as e:
-            self.logg.error_log.error(f"Error stopping confocal scanning: {e}")
+            self.logg.error(f"Error stopping confocal scanning: {e}")
 
     def run_confocal_scanning(self):
         self.run_task(task=self.confocal_scanning)
@@ -606,7 +607,7 @@ class MainController:
         try:
             self.prepare_bead_scan()
         except Exception as e:
-            self.logg.error_log.error(f"Error preparing beads scanning: {e}")
+            self.logg.error(f"Error preparing beads scanning: {e}")
             return
         try:
             self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
@@ -618,7 +619,7 @@ class MainController:
                 1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
                        metadata={'unit': 'um', 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
         except Exception as e:
-            self.logg.error_log.error(f"Error running beads scanning: {e}")
+            self.logg.error(f"Error running beads scanning: {e}")
             return
         self.finish_bead_scan()
 
@@ -627,9 +628,9 @@ class MainController:
             self.m.daq.stop_triggers()
             self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
             self.lasers_off()
-            self.logg.error_log.info("Beads scanning image acquired")
+            self.logg.info("Beads scanning image acquired")
         except Exception as e:
-            self.logg.error_log.error(f"Error stopping confocal scanning: {e}")
+            self.logg.error(f"Error stopping confocal scanning: {e}")
 
     def run_bead_scan(self):
         self.run_task(task=self.bead_scan_2d)
@@ -642,7 +643,7 @@ class MainController:
                            1 / self.pixel_sizes[self.cameras["imaging"]]),
                        metadata={'unit': 'um', 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
         except Exception as e:
-            self.logg.error_log.error(f"Error saving data: {e}")
+            self.logg.error(f"Error saving data: {e}")
 
     def push_actuator(self):
         try:
@@ -651,7 +652,7 @@ class MainController:
             values[n] = a
             self.m.dm.set_dm(self.p.shwfsr._cmd_add(values, self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
         except Exception as e:
-            self.logg.error_log.error(f"DM Error: {e}")
+            self.logg.error(f"DM Error: {e}")
 
     def set_zernike(self):
         try:
@@ -661,7 +662,7 @@ class MainController:
             # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[indz]],
             #                                         self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
         except Exception as e:
-            self.logg.error_log.error(f"DM Error: {e}")
+            self.logg.error(f"DM Error: {e}")
 
     def set_dm(self):
         try:
@@ -669,7 +670,7 @@ class MainController:
             self.m.dm.set_dm(self.p.shwfsr._dm_cmd[i])
             self.p.shwfsr.current_cmd = i
         except Exception as e:
-            self.logg.error_log.error(f"DM Error: {e}")
+            self.logg.error(f"DM Error: {e}")
 
     def update_dm(self):
         try:
@@ -677,7 +678,7 @@ class MainController:
             self.ao_controller.update_cmd_index()
             self.m.dm.set_dm(self.p.shwfsr._dm_cmd[-1])
         except Exception as e:
-            self.logg.error_log.error(f"DM Error: {e}")
+            self.logg.error(f"DM Error: {e}")
 
     def load_dm(self, filename):
         try:
@@ -685,7 +686,7 @@ class MainController:
             self.m.dm.set_dm(self.p.shwfsr._dm_cmd[-1])
             print('New DM cmd loaded')
         except Exception as e:
-            self.logg.error_log.error(f"DM Error: {e}")
+            self.logg.error(f"DM Error: {e}")
 
     def save_dm(self):
         try:
@@ -693,50 +694,51 @@ class MainController:
             self.p.shwfsr._write_cmd(self.data_folder, t, flatfile=False)
             print('DM cmd saved')
         except Exception as e:
-            self.logg.error_log.error(f"DM Error: {e}")
+            self.logg.error(f"DM Error: {e}")
 
-    def update_wfs_trigger_parameters(self):
+    def update_wfs_trigger_parameters(self, cam_key):
         try:
-            lasers = self.con_controller.get_lasers()
-            self.cameras["wfs"]  = self.con_controller.get_wfs_camera()
             digital_starts, digital_ends = self.con_controller.get_digital_parameters()
             self.p.trigger.update_digital_parameters(digital_starts, digital_ends)
-            # self.p.trigger.update_camera_parameters(self.m.cam_set[self.cameras["wfs"]].t_clean, self.m.cam_set[self.cameras["wfs"]].t_readout,
-            #                                         self.m.cam_set[self.cameras["wfs"]].t_kinetic)
-            return lasers, camera
+            self.p.trigger.update_camera_parameters(self.m.cam_set[self.cameras[cam_key]].t_clean,
+                                                    self.m.cam_set[self.cameras[cam_key]].t_readout,
+                                                    self.m.cam_set[self.cameras[cam_key]].t_kinetic)
+            self.logg.info(f"Trigger Updated")
         except Exception as e:
-            self.logg.error_log.error(f"Trigger Error: {e}")
+            self.logg.error(f"Trigger Error: {e}")
 
-    def generate_wfs_trigger(self):
-        lasers, camera = self.update_wfs_trigger_parameters()
-        return self.p.trigger.generate_digital_triggers(lasers, camera)
+    def generate_wfs_trigger(self, cam_key):
+        self.update_wfs_trigger_parameters(cam_key)
+        return self.p.trigger.generate_digital_triggers(self.lasers, self.cameras[cam_key])
 
     def set_img_wfs(self):
         try:
             parameters = self.ao_controller.get_parameters_img()
             self.p.shwfsr.update_parameters(parameters)
-            print('SHWFS parameter updated')
+            self.logg.info('SHWFS parameter updated')
         except Exception as e:
-            self.logg.error_log.error(f"SHWFS Error: {e}")
+            self.logg.error(f"SHWFS Error: {e}")
 
     def prepare_img_wfs(self):
-        try:
-            self.set_lasers()
-            self.set_img_wfs()
-            self.set_wfs_camera_roi()
-            self.m.cam_set[self.cameras["wfs"]].prepare_live()
-            self.m.daq.write_digital_sequences(self.generate_wfs_trigger(), mode="continuous")
-        except Exception as e:
-            self.logg.error_log.error(f"Error starting wfs: {e}")
+        self.lasers = self.con_controller.get_lasers()
+        self.set_lasers()
+        self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
+        self.set_camera_roi("wfs")
+        self.set_img_wfs()
+        self.m.cam_set[self.cameras["wfs"]].prepare_live()
+        self.m.daq.write_digital_sequences(self.generate_wfs_trigger("wfs"), mode="continuous")
 
     def start_img_wfs(self):
         try:
             self.prepare_img_wfs()
+        except Exception as e:
+            self.logg.error(f"Error starting wfs: {e}")
+        try:
             self.m.cam_set[self.cameras["wfs"]].start_live()
             self.m.daq.run_digital_trigger()
             self.thread_wfs.start()
         except Exception as e:
-            self.logg.error_log.error(f"Error starting wfs: {e}")
+            self.logg.error(f"Error starting wfs: {e}")
 
     def stop_img_wfs(self):
         try:
@@ -746,7 +748,7 @@ class MainController:
             self.m.cam_set[self.cameras["wfs"]].stop_live()
             self.lasers_off()
         except Exception as e:
-            self.logg.error_log.error(f"Error stopping wfs: {e}")
+            self.logg.error(f"Error stopping wfs: {e}")
 
     def img_wfs(self, sw):
         if sw:
@@ -756,19 +758,20 @@ class MainController:
 
     def imshow_img_wfs(self):
         try:
-            self.p.shwfsr.offset = self.m.cam_set[self.cameras["wfs"]].get_last_image()
-            self.view_controller.plot_sh(self.p.shwfsr.offset, layer=self.sh_cam_index)
+            # self.p.shwfsr.offset = self.m.cam_set[self.cameras["wfs"]].get_last_image()
+            self.view_controller.plot_sh(self.m.cam_set[self.cameras["wfs"]].get_last_image(),
+                                         layer=self.cameras["wfs"])
         except Exception as e:
-            self.logg.error_log.error(f"Error showing shwfs: {e}")
+            self.logg.error(f"Error showing shwfs: {e}")
 
     def set_img_wfs_base(self):
         try:
             # self.p.shwfsr.base = self.m.cam_set[self.cameras["wfs"]].get_last_image()
-            self.p.shwfsr.base = self.view_controller.get_image_data(r'ShackHartmann')
+            self.p.shwfsr.base = self.view_controller.get_image_data(layer=self.cameras["wfs"])
             self.view_controller.plot_shb(self.p.shwfsr.base)
-            print('wfs base set')
+            self.logg.info('wfs base set')
         except Exception as e:
-            self.logg.error_log.error(f"SHWFS Error: {e}")
+            self.logg.error(f"SHWFS Error: {e}")
 
     def run_img_wfr(self):
         self.run_task(task=self.img_wfr)
@@ -777,17 +780,19 @@ class MainController:
         try:
             self.p.shwfsr.method = self.ao_controller.get_gradient_method_img()
             # self.p.shwfsr.offset = self.m.cam_set[self.cameras["wfs"]].get_last_image()
-            self.p.shwfsr.base = self.view_controller.get_image_data(r'ShackHartmann(Base)')
-            self.p.shwfsr.offset = self.view_controller.get_image_data(r'ShackHartmann')
+            self.p.shwfsr.base = self.view_controller.get_image_data(4)
+            self.p.shwfsr.offset = self.view_controller.get_image_data(layer=self.cameras["wfs"])
             self.p.shwfsr.wavefront_reconstruction()
+            self.imshow_img_wfr()
         except Exception as e:
-            self.logg.error_log.error(f"SHWFS Reconstruction Error: {e}")
+            self.logg.error(f"SHWFS Reconstruction Error: {e}")
 
     def imshow_img_wfr(self):
-        if isinstance(self.p.shwfsr.wf, np.ndarray):
-            if self.p.shwfsr.wf.size > 0:
-                self.view_controller.plot_wf(self.p.shwfsr.wf)
-                self.ao_controller.display_img_wf_properties(self.p.imgprocess.img_properties(self.p.shwfsr.wf))
+        try:
+            self.view_controller.plot_wf(self.p.shwfsr.wf)
+            self.ao_controller.display_img_wf_properties(self.p.imgprocess.img_properties(self.p.shwfsr.wf))
+        except Exception as e:
+            self.logg.error(f"SHWFS Wavefront Show Error: {e}")
 
     def compute_img_wf(self):
         self.p.shwfsr.run_wf_modal_recon()
@@ -795,23 +800,22 @@ class MainController:
         self.imshow_img_wfr()
 
     def save_img_wf(self, file_name):
-        if isinstance(self.p.shwfsr.base, np.ndarray) and self.p.shwfsr.base.size > 0:
-            tf.imwrite(file_name + '_shimg_base_raw.tif', self.p.shwfsr.base, imagej=True,
-                       resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
-                       metadata={'unit': 'um'})
-        if isinstance(self.p.shwfsr.offset, np.ndarray) and self.p.shwfsr.offset.size > 0:
-            tf.imwrite(file_name + '_shimg_offset_raw.tif', self.p.shwfsr.offset, imagej=True,
-                       resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
-                       metadata={'unit': 'um'})
-        if isinstance(self.p.shwfsr.im, np.ndarray) and self.p.shwfsr.im.size > 0:
-            tf.imwrite(file_name + '_shimg_processed.tif', self.p.shwfsr.im, imagej=True,
-                       resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
-                       metadata={'unit': 'um'})
-        if isinstance(self.p.shwfsr.wf, np.ndarray) and self.p.shwfsr.wf.size > 0:
-            tf.imwrite(file_name + '_reconstructed_wf.tif', self.p.shwfsr.wf, imagej=True,
-                       resolution=(1 / self.pixel_size_main, 1 / self.pixel_size_main),
-                       metadata={'unit': 'um'})
-        print('WF Data saved')
+        try:
+            tf.imwrite(file_name + '_shimg_base_raw.tif', self.p.shwfsr.base)
+        except Exception as e:
+            self.logg.error(f"Error saving shwfs base: {e}")
+        try:
+            tf.imwrite(file_name + '_shimg_offset_raw.tif', self.p.shwfsr.offset)
+        except Exception as e:
+            self.logg.error(f"Error saving shwfs offset: {e}")
+        try:
+            tf.imwrite(file_name + '_shimg_processed.tif', self.p.shwfsr.im)
+        except Exception as e:
+            self.logg.error(f"Error saving shwfs imgstack: {e}")
+        try:
+            tf.imwrite(file_name + '_reconstructed_wf.tif', self.p.shwfsr.wf)
+        except Exception as e:
+            self.logg.error(f"Error saving shwfs wavefront: {e}")
 
     def run_influence_function(self):
         self.run_task(self.influence_function)
@@ -868,18 +872,18 @@ class MainController:
         self.run_task(task=self.close_loop_correction)
 
     def prepare_close_loop_correction(self):
-        try:
-            self.set_img_wfs()
-            self.set_lasers()
-            self.set_wfs_camera_roi()
-            self.m.cam_set[self.cameras["wfs"]].prepare_live()
-            self.m.daq.write_digital_sequences(self.generate_wfs_trigger(), mode="finite")
-            self.m.cam_set[self.cameras["wfs"]].start_live()
-        except Exception as e:
-            self.logg.error_log.error(f"CloseLoop Correction Error: {e}")
+        self.set_img_wfs()
+        self.set_lasers()
+        self.set_wfs_camera_roi()
+        self.m.cam_set[self.cameras["wfs"]].prepare_live()
+        self.m.daq.write_digital_sequences(self.generate_wfs_trigger(), mode="finite")
+        self.m.cam_set[self.cameras["wfs"]].start_live()
 
     def close_loop_correction(self):
-        self.prepare_close_loop_correction()
+        try:
+            self.prepare_close_loop_correction()
+        except Exception as e:
+            self.logg.error(f"CloseLoop Correction Error: {e}")
         try:
             self.p.shwfsr.base = self.view_controller.get_image_data(r'ShackHartmann(Base)')
             self.m.daq.run_digital_trigger()
@@ -891,12 +895,12 @@ class MainController:
             i = int(self.ao_controller.get_cmd_index())
             self.p.shwfsr.current_cmd = i
         except Exception as e:
-            self.logg.error_log.error(f"CloseLoop Correction Error: {e}")
+            self.logg.error(f"CloseLoop Correction Error: {e}")
         self.stop_close_loop_correction()
 
     def stop_close_loop_correction(self):
         try:
-            self.p.shwfsr.base = self.view_controller.get_image_data(r'ShackHartmann(Base)')
+            self.p.shwfsr.base = self.view_controller.get_image_data(4)
             self.m.daq.run_digital_trigger()
             self.p.shwfsr.offset = self.m.cam_set[self.cameras["wfs"]].get_last_image()
             self.m.cam_set[self.cameras["wfs"]].stop_live()
@@ -905,7 +909,7 @@ class MainController:
             self.run_img_wfr()
             self.view_controller.plot_wf(self.p.shwfsr.wf)
         except Exception as e:
-            self.logg.error_log.error(f"CloseLoop Correction Error: {e}")
+            self.logg.error(f"CloseLoop Correction Error: {e}")
 
     def run_ao_optimize(self):
         self.run_task(task=self.ao_optimize)
@@ -991,7 +995,7 @@ class MainController:
             self.m.cam_set[self.cameras["imaging"]].stop_live()
             print("sensorless AO finished")
         except Exception as e:
-            self.logg.error_log.error(f"Sensorless AO Error: {e}")
+            self.logg.error(f"Sensorless AO Error: {e}")
 
 
 class TaskWorkerSignals(QtCore.QObject):
