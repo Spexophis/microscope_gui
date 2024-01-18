@@ -650,15 +650,15 @@ class MainController:
             n, a = self.ao_controller.get_actuator()
             values = [0.] * self.m.dm.nbAct
             values[n] = a
-            self.m.dm.set_dm(self.p.shwfsr._cmd_add(values, self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
+            self.m.dm.set_dm(self.p.shwfsr.cmd_add(values, self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
     def set_zernike(self):
         try:
             indz, amp = self.ao_controller.get_zernike_mode()
-            self.m.dm.set_dm(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(indz, amp),
-                                                    self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
+            self.m.dm.set_dm(self.p.shwfsr.cmd_add(self.p.shwfsr.get_zernike_cmd(indz, amp),
+                                                   self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
             # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[indz]],
             #                                         self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]))
         except Exception as e:
@@ -682,7 +682,7 @@ class MainController:
 
     def load_dm(self, filename):
         try:
-            self.p.shwfsr._dm_cmd.append(self.p.shwfsr._read_cmd(filename))
+            self.p.shwfsr._dm_cmd.append(self.p.shwfsr.read_cmd(filename))
             self.m.dm.set_dm(self.p.shwfsr._dm_cmd[-1])
             print('New DM cmd loaded')
         except Exception as e:
@@ -691,7 +691,7 @@ class MainController:
     def save_dm(self):
         try:
             t = time.strftime("%Y%m%d_%H%M%S_")
-            self.p.shwfsr._write_cmd(self.data_folder, t, flatfile=False)
+            self.p.shwfsr.write_cmd(self.data_folder, t, flatfile=False)
             print('DM cmd saved')
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
@@ -796,7 +796,7 @@ class MainController:
 
     def compute_img_wf(self):
         self.p.shwfsr.run_wf_modal_recon()
-        self.view_controller.plot_update(self.p.shwfsr._az)
+        self.view_controller.plot_update(self.p.shwfsr.az)
         self.imshow_img_wfr()
 
     def save_img_wf(self, file_name):
@@ -957,7 +957,7 @@ class MainController:
             results = [('Mode', 'Amp', 'Metric')]
             za = []
             mv = []
-            zp = [0] * self.p.shwfsr._n_zernikes
+            zp = [0] * self.p.shwfsr.n_zernikes
             cmd = self.p.shwfsr._dm_cmd[self.p.shwfsr.current_cmd]
             self.m.cam_set[self.cameras["imaging"]].start_live()
             self.logg.info("Sensorless AO iteration starts")
@@ -973,7 +973,7 @@ class MainController:
                 for stnm in range(amp_step_number):
                     amp = amp_start + stnm * amp_step
                     amprange.append(amp)
-                    self.m.dm.set_dm(self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
+                    self.m.dm.set_dm(self.p.shwfsr.cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
                     # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[mode]], cmd))
                     time.sleep(0.05)
                     self.m.daq.run_digital_trigger()
@@ -996,7 +996,7 @@ class MainController:
                 if pmax != 0.0:
                     zp[mode] = pmax
                     self.logg.info("setting mode %d at value of %.4f" % (mode, pmax))
-                    cmd = self.p.shwfsr._cmd_add(self.p.shwfsr.get_zernike_cmd(mode, pmax), cmd)
+                    cmd = self.p.shwfsr.cmd_add(self.p.shwfsr.get_zernike_cmd(mode, pmax), cmd)
                     self.m.dm.set_dm(cmd)
                 else:
                     self.logg.info("mode %d value equals %.4f" % (mode, pmax))
@@ -1010,8 +1010,8 @@ class MainController:
             self.ao_controller.update_cmd_index()
             i = int(self.ao_controller.get_cmd_index())
             self.p.shwfsr.current_cmd = i
-            self.p.shwfsr._write_cmd(new_folder, '_')
-            self.p.shwfsr._save_sensorless_results(os.path.join(new_folder, 'results.xlsx'), za, mv, zp)
+            self.p.shwfsr.write_cmd(new_folder, '_')
+            self.p.shwfsr.save_sensorless_results(os.path.join(new_folder, 'results.xlsx'), za, mv, zp)
         except Exception as e:
             self.logg.error(f"Sensorless AO Error: {e}")
         self.finish_sensorless_iteration()
