@@ -4,7 +4,7 @@ from utilities import customized_widgets as cw
 
 
 class AOWidget(QtWidgets.QWidget):
-    Signal_img_shwfs_initiate = QtCore.pyqtSignal()
+    Signal_img_shwfs_base = QtCore.pyqtSignal()
     Signal_img_wfs = QtCore.pyqtSignal(bool)
     Signal_img_shwfr_run = QtCore.pyqtSignal()
     Signal_img_shwfs_compute_wf = QtCore.pyqtSignal()
@@ -220,7 +220,7 @@ class AOWidget(QtWidgets.QWidget):
         self.QSpinBox_radius_img.setValue(24)
 
     def set_img_wfs_base(self):
-        self.Signal_img_shwfs_initiate.emit()
+        self.Signal_img_shwfs_base.emit()
 
     def run_img_wfs(self):
         if self.QPushButton_run_img_wfs.isChecked():

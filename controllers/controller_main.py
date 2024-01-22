@@ -84,7 +84,7 @@ class MainController:
         self.v.ao_view.Signal_save_dm.connect(self.save_dm)
         self.v.ao_view.Signal_influence_function.connect(self.run_influence_function)
         # WFS
-        self.v.ao_view.Signal_img_shwfs_initiate.connect(self.set_img_wfs_base)
+        self.v.ao_view.Signal_img_shwfs_base.connect(self.set_img_wfs_base)
         self.v.ao_view.Signal_img_wfs.connect(self.img_wfs)
         self.v.ao_view.Signal_img_shwfr_run.connect(self.run_img_wfr)
         self.v.ao_view.Signal_img_shwfs_compute_wf.connect(self.compute_img_wf)
@@ -759,7 +759,6 @@ class MainController:
 
     def imshow_img_wfs(self):
         try:
-            # self.p.shwfsr.offset = self.m.cam_set[self.cameras["wfs"]].get_last_image()
             self.view_controller.plot_sh(self.m.cam_set[self.cameras["wfs"]].get_last_image(),
                                          layer=self.cameras["wfs"])
         except Exception as e:
@@ -767,8 +766,7 @@ class MainController:
 
     def set_img_wfs_base(self):
         try:
-            # self.p.shwfsr.base = self.m.cam_set[self.cameras["wfs"]].get_last_image()
-            self.p.shwfsr.base = self.view_controller.get_image_data(layer=self.cameras["wfs"])
+            self.p.shwfsr.base = self.m.cam_set[self.cameras["wfs"]].get_last_image()
             self.view_controller.plot_shb(self.p.shwfsr.base)
             self.logg.info('wfs _base set')
         except Exception as e:
@@ -780,9 +778,8 @@ class MainController:
     def img_wfr(self):
         try:
             self.p.shwfsr.method = self.ao_controller.get_gradient_method_img()
-            # self.p.shwfsr.offset = self.m.cam_set[self.cameras["wfs"]].get_last_image()
             # self.p.shwfsr.base = self.view_controller.get_image_data(4)
-            self.p.shwfsr.offset = self.view_controller.get_image_data(layer=self.cameras["wfs"])
+            self.p.shwfsr.offset = self.m.cam_set[self.cameras["wfs"]].get_last_image()
             self.p.shwfsr.wavefront_reconstruction()
         except Exception as e:
             self.logg.error(f"SHWFS Reconstruction Error: {e}")
