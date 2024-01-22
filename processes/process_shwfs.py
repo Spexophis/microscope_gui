@@ -21,25 +21,26 @@ initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\flatfile_20230728.x
 
 class WavefrontSensing:
 
-    def __init__(self):
+    def __init__(self, logg=None):
+        self.logg = logg or self.setup_logging()
         self.n_actuators = 97
-        self.n_lenslets_x = 34
-        self.n_lenslets_y = 35
+        self.n_lenslets_x = 18
+        self.n_lenslets_y = 19
         self.n_lenslets = self.n_lenslets_x * self.n_lenslets_y
-        self.x_center_base = 1060
-        self.y_center_base = 1085
-        self.x_center_offset = 1060
-        self.y_center_offset = 1085
-        self.lenslet_spacing = 24  # spacing between each lenslet
-        self.hsp = 12  # size of subimage is 2 * hsp
+        self.x_center_base = 1321
+        self.y_center_base = 1369
+        self.x_center_offset = 1321
+        self.y_center_offset = 1369
+        self.lenslet_spacing = 40  # spacing between each lenslet
+        self.hsp = 16  # size of subimage is 2 * hsp
         self.calfactor = (.0065 / 5.2) * 150  # pixel size * focalLength * pitch
         self.method = 'correlation'
-        self.mag = 2
+        self.mag = 1
         section = np.ones((2 * self.hsp, 2 * self.hsp))
         sectioncorr = corr(1.0 * section, 1.0 * section[::-1, ::-1], mode='full')
         self.CorrCenter = np.unravel_index(sectioncorr.argmax(), sectioncorr.shape)
-        self.base = np.array([])
-        self.offset = np.array([])
+        self._base = np.array([])
+        self._offset = np.array([])
         self.wf = np.array([])
         self.recon_thread = None
         self.amp = 0.1
@@ -52,6 +53,30 @@ class WavefrontSensing:
         self.dm_cmd = [[0.] * 97]
         self.dm_cmd.append(self.read_cmd(initial_flat))
         self.current_cmd = 1
+
+    @staticmethod
+    def setup_logging():
+        import logging
+        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+        return logging
+
+    @property
+    def base(self):
+        return self._base
+
+    @base.setter
+    def base(self, new_base):
+        self.logg.info(f"Changing shwfs base")
+        self._base = new_base
+
+    @property
+    def offset(self):
+        return self._offset
+
+    @offset.setter
+    def offset(self, new_offset):
+        self.logg.info(f"Changing shwfs offset")
+        self._offset = new_offset
 
     def update_parameters(self, parameters):
         self.x_center_base = parameters[0]
@@ -347,12 +372,12 @@ class WavefrontSensing:
             self.correction.append(
                 list(self.amp * np.dot(control_matrix_phase, -mwf.reshape(self.n_lenslets))))
         else:
-            gradx, grady = self._get_gradient_xy(self.base, self.offset)
-            _measurement = np.concatenate((gradx.reshape(self.n_lenslets), grady.reshape(self.n_lenslets)))
+            gradx, grady = self._get_gradient_xy(self._base, self._offset)
+            measurement = np.concatenate((gradx.reshape(self.n_lenslets), grady.reshape(self.n_lenslets)))
             if method == 'zonal':
-                self.correction.append(list(np.dot(control_matrix_zonal, -_measurement)))
+                self.correction.append(list(np.dot(control_matrix_zonal, -measurement)))
             elif method == 'modal':
-                a = self.get_zernike_coefficients(-_measurement, self.zslopes)
+                a = self.get_zernike_coefficients(-measurement, self.zslopes)
                 self.correction.append(list(np.dot(control_matrix_modal, a)))
             else:
                 raise ValueError("Invalid method")

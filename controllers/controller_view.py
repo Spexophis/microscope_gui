@@ -10,10 +10,10 @@ class ViewController:
         self.v.show_image(self.v.img_layers[layer], data)
 
     def plot_fft(self, data, layer="FFT"):
-        self.v.show_image(layer, data)
+        self.v.show_image(self.v.img_layers[3], data)
 
     def plot_shb(self, data, layer="ShackHartmann(Base)"):
-        self.v.show_image(layer, data)
+        self.v.show_image(self.v.img_layers[4], data)
 
     def plot_wf(self, data, layer="Wavefront"):
         self.v.show_image(layer, data)

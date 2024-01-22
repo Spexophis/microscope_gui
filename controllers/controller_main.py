@@ -116,14 +116,15 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Initial setup Error: {e}")
 
-    def run_task(self, task, iteration=1, callback=None, parent=None):
+    def run_task(self, task, iteration=1, parent=None, callback=None):
         if self.task_worker is not None:
             self.task_worker = None
         self.task_thread = QtCore.QThread()
-        self.task_worker = TaskWorker(task=task, n=iteration, callback=callback, parent=parent)
+        self.task_worker = TaskWorker(task=task, n=iteration, parent=parent)
         self.task_worker.moveToThread(self.task_thread)
         self.task_thread.started.connect(self.task_worker.run)
         self.task_worker.signals.finished.connect(self.task_finish)
+        self.task_worker.signals.finished.connect(callback)
         self.task_thread.start()
         self.v.get_dialog()
 
@@ -769,23 +770,22 @@ class MainController:
             # self.p.shwfsr.base = self.m.cam_set[self.cameras["wfs"]].get_last_image()
             self.p.shwfsr.base = self.view_controller.get_image_data(layer=self.cameras["wfs"])
             self.view_controller.plot_shb(self.p.shwfsr.base)
-            self.logg.info('wfs base set')
+            self.logg.info('wfs _base set')
         except Exception as e:
             self.logg.error(f"SHWFS Error: {e}")
 
     def run_img_wfr(self):
-        self.run_task(task=self.img_wfr)
+        self.run_task(task=self.img_wfr, callback=self.imshow_img_wfr)
 
     def img_wfr(self):
         try:
             self.p.shwfsr.method = self.ao_controller.get_gradient_method_img()
             # self.p.shwfsr.offset = self.m.cam_set[self.cameras["wfs"]].get_last_image()
-            self.p.shwfsr.base = self.view_controller.get_image_data(4)
+            # self.p.shwfsr.base = self.view_controller.get_image_data(4)
             self.p.shwfsr.offset = self.view_controller.get_image_data(layer=self.cameras["wfs"])
             self.p.shwfsr.wavefront_reconstruction()
         except Exception as e:
             self.logg.error(f"SHWFS Reconstruction Error: {e}")
-        self.imshow_img_wfr()
 
     def imshow_img_wfr(self):
         try:
@@ -803,7 +803,7 @@ class MainController:
         try:
             tf.imwrite(file_name + '_shimg_base_raw.tif', self.p.shwfsr.base)
         except Exception as e:
-            self.logg.error(f"Error saving shwfs base: {e}")
+            self.logg.error(f"Error saving shwfs _base: {e}")
         try:
             tf.imwrite(file_name + '_shimg_offset_raw.tif', self.p.shwfsr.offset)
         except Exception as e:
@@ -1032,10 +1032,9 @@ class TaskWorkerSignals(QtCore.QObject):
 
 
 class TaskWorker(QtCore.QObject):
-    def __init__(self, task=None, n=1, callback=None, parent=None):
+    def __init__(self, task=None, n=1, parent=None):
         super().__init__(parent)
         self.task = task if task is not None else self._do_nothing
-        self.callback = callback
         self.n = n
         self.signals = TaskWorkerSignals()
 
@@ -1051,8 +1050,6 @@ class TaskWorker(QtCore.QObject):
     @QtCore.pyqtSlot()
     def _do(self):
         self.task()
-        if self.callback is not None:
-            self.callback()
 
     @staticmethod
     def _do_nothing():
