@@ -14,7 +14,7 @@ fftshift = np.fft.fftshift
 pi = np.pi
 
 control_matrix_phase = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_phase_20240124.tif')
-control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230726.tif')
+control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20240124.tif')
 control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230613.tif')
 initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\flatfile_20230728.xlsx'
 
@@ -27,9 +27,9 @@ class WavefrontSensing:
         self.n_lenslets_x = 18
         self.n_lenslets_y = 19
         self.n_lenslets = self.n_lenslets_x * self.n_lenslets_y
-        self.x_center_base = 1321
-        self.y_center_base = 1369
-        self.x_center_offset = 1321
+        self.x_center_base = 1316
+        self.y_center_base = 1370
+        self.x_center_offset = 1316
         self.y_center_offset = 1369
         self.lenslet_spacing = 40  # spacing between each lenslet
         self.hsp = 16  # size of subimage is 2 * hsp
@@ -313,7 +313,7 @@ class WavefrontSensing:
         binary = img > thresh
         return (img - thresh) * binary
 
-    def generate_influence_matrix(self, data_folder, method='phase', sv=False):
+    def generate_influence_matrix(self, data_folder, method='phase', sv=False, verbose=False):
         if method == 'phase':
             _influence_matrix = np.zeros((self.n_lenslets, self.n_actuators))
             wfs = np.zeros((self.n_actuators, self.n_lenslets_y, self.n_lenslets_x))
@@ -328,7 +328,8 @@ class WavefrontSensing:
         for filename in os.listdir(data_folder):
             if filename.endswith(".tif") & filename.startswith("actuator"):
                 ind = int(filename.split("_")[1])
-                print(filename.split("_")[1])
+                if verbose:
+                    print(filename.split("_")[1])
                 data_stack = tf.imread(os.path.join(data_folder, filename))
                 n, x, y = data_stack.shape
                 if n != 4:
@@ -360,8 +361,8 @@ class WavefrontSensing:
                         _influence_matrix[:, ind] = ((a1 - a2) / (2 * self.amp)).flatten()
         _control_matrix = self._pseudo_inverse(_influence_matrix, n=32)
         if sv:
-            tf.imwrite(os.path.join(data_folder, "influence_function.tif"), _influence_matrix)
-            tf.imwrite(os.path.join(data_folder, "control_matrix.tif"), _control_matrix)
+            tf.imwrite(os.path.join(data_folder, method + "_influence_function.tif"), _influence_matrix)
+            tf.imwrite(os.path.join(data_folder, method + "_control_matrix.tif"), _control_matrix)
             if 'wfs' in locals():
                 if isinstance(wfs, np.ndarray):
                     tf.imwrite(os.path.join(data_folder, "influence_function_images.tif"), wfs)
