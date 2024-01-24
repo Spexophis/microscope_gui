@@ -26,7 +26,7 @@ class CallbackData(ctypes.Structure):
         return np.array(self.image_data) if self.image_data else None
 
     def get_last_element(self):
-        return self.image_data[-1] if self.image_data else None
+        return self.image_data[-1].copy() if self.image_data else None
 
     def is_empty(self):
         return len(self.image_data) == 0

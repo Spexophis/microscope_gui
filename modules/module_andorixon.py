@@ -457,7 +457,7 @@ class DataList:
         return np.array(self.data_list) if self.data_list else None
 
     def get_last_element(self):
-        return self.data_list[-1] if self.data_list else None
+        return self.data_list[-1].copy() if self.data_list else None
 
     def is_empty(self):
         return len(self.data_list) == 0

@@ -193,7 +193,7 @@ class AOWidget(QtWidgets.QWidget):
         layout_sensorless.addWidget(self.QPushButton_sensorless_save, 3, 5, 1, 1)
         group_sensorlessao.setLayout(layout_sensorless)
 
-        self.QPushButton_img_shwfs_base.clicked.connect(self.set_img_wfs_base)
+        self.QPushButton_img_shwfs_base.clicked.connect(self.img_wfs_base)
         self.QPushButton_run_img_wfs.clicked.connect(self.run_img_wfs)
         self.QPushButton_run_img_wfr.clicked.connect(self.run_img_wfr)
         self.QPushButton_img_shwfs_compute_wf.clicked.connect(self.Signal_img_shwfs_compute_wf.emit)
@@ -219,7 +219,7 @@ class AOWidget(QtWidgets.QWidget):
         self.QSpinBox_spacing_img.setValue(61)
         self.QSpinBox_radius_img.setValue(24)
 
-    def set_img_wfs_base(self):
+    def img_wfs_base(self):
         self.Signal_img_shwfs_base.emit()
 
     def run_img_wfs(self):

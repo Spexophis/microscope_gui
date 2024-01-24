@@ -29,7 +29,7 @@ class MainWidget(QtWidgets.QMainWindow):
         title_bar_widget_ao.setFixedHeight(0)
         self.dock_ao.setTitleBarWidget(title_bar_widget_ao)
 
-        self.dialog = cw.dialog()
+        self.dialog, self.dialog_text = cw.dialog(labtex=True)
 
         self.setCentralWidget(self.view_view)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock_con)
@@ -46,6 +46,7 @@ class MainWidget(QtWidgets.QMainWindow):
 
     def get_dialog(self):
         self.dialog.exec_()
+        self.dialog_text.setText(f"Task is running, please wait...")
 
 
 import sys

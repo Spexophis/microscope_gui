@@ -13,7 +13,7 @@ ifft2 = np.fft.ifft2
 fftshift = np.fft.fftshift
 pi = np.pi
 
-control_matrix_phase = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_phase_20230726.tif')
+control_matrix_phase = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_phase_20240124.tif')
 control_matrix_zonal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_zonal_20230726.tif')
 control_matrix_modal = tf.imread(r'C:\Users\ruizhe.lin\Documents\data\dm_files\control_matrix_modal_20230613.tif')
 initial_flat = r'C:\Users\ruizhe.lin\Documents\data\dm_files\flatfile_20230728.xlsx'
@@ -39,8 +39,8 @@ class WavefrontSensing:
         section = np.ones((2 * self.hsp, 2 * self.hsp))
         sectioncorr = corr(1.0 * section, 1.0 * section[::-1, ::-1], mode='full')
         self.CorrCenter = np.unravel_index(sectioncorr.argmax(), sectioncorr.shape)
-        self._base = np.array([])
-        self._offset = np.array([])
+        self._ref = None
+        self._meas = None
         self.wf = np.array([])
         self.recon_thread = None
         self.amp = 0.1
@@ -61,22 +61,22 @@ class WavefrontSensing:
         return logging
 
     @property
-    def base(self):
-        return self._base
+    def ref(self):
+        return self._ref
 
-    @base.setter
-    def base(self, new_base):
+    @ref.setter
+    def ref(self, new_ref):
         self.logg.info(f"Changing shwfs base")
-        self._base = new_base
+        self._ref = new_ref
 
     @property
-    def offset(self):
-        return self._offset
+    def meas(self):
+        return self._meas
 
-    @offset.setter
-    def offset(self, new_offset):
-        self.logg.info(f"Changing shwfs offset")
-        self._offset = new_offset
+    @meas.setter
+    def meas(self, new_meas):
+        # self.logg.info(f"Changing shwfs offset")
+        self._meas = new_meas
 
     def update_parameters(self, parameters):
         self.x_center_base = parameters[0]
@@ -148,7 +148,7 @@ class WavefrontSensing:
         self.recon_thread.start()
 
     def wavefront_reconstruction(self, rt=False):
-        gradx, grady = self._get_gradient_xy(self.base, self.offset)
+        gradx, grady = self._get_gradient_xy(self.ref, self.meas)
         gradx = np.pad(gradx, ((1, 1), (1, 1)), 'constant')
         grady = np.pad(grady, ((1, 1), (1, 1)), 'constant')
         extx, exty = self._hudgins_extend_mask(gradx, grady)
@@ -334,8 +334,8 @@ class WavefrontSensing:
                 if n != 4:
                     raise "The image number has to be 4"
                 if method == 'phase':
-                    self.base = data_stack[0]
-                    self.offset = data_stack[1]
+                    self.ref = data_stack[0]
+                    self.meas = data_stack[1]
                     wfp = self.wavefront_reconstruction(rt=True)
                     wfs[ind] = wfp
                     # wfn = self.wavefront_reconstruction(data_stack[2], data_stack[3], rt=True)
@@ -372,7 +372,7 @@ class WavefrontSensing:
             self.correction.append(
                 list(self.amp * np.dot(control_matrix_phase, -mwf.reshape(self.n_lenslets))))
         else:
-            gradx, grady = self._get_gradient_xy(self._base, self._offset)
+            gradx, grady = self._get_gradient_xy(self._ref, self._meas)
             measurement = np.concatenate((gradx.reshape(self.n_lenslets), grady.reshape(self.n_lenslets)))
             if method == 'zonal':
                 self.correction.append(list(np.dot(control_matrix_zonal, -measurement)))

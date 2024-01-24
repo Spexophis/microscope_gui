@@ -84,7 +84,7 @@ class MainController:
         self.v.ao_view.Signal_save_dm.connect(self.save_dm)
         self.v.ao_view.Signal_influence_function.connect(self.run_influence_function)
         # WFS
-        self.v.ao_view.Signal_img_shwfs_base.connect(self.set_img_wfs_base)
+        self.v.ao_view.Signal_img_shwfs_base.connect(self.set_reference_wf)
         self.v.ao_view.Signal_img_wfs.connect(self.img_wfs)
         self.v.ao_view.Signal_img_shwfr_run.connect(self.run_img_wfr)
         self.v.ao_view.Signal_img_shwfs_compute_wf.connect(self.compute_img_wf)
@@ -124,7 +124,8 @@ class MainController:
         self.task_worker.moveToThread(self.task_thread)
         self.task_thread.started.connect(self.task_worker.run)
         self.task_worker.signals.finished.connect(self.task_finish)
-        self.task_worker.signals.finished.connect(callback)
+        if callback is not None:
+            self.task_worker.signals.finished.connect(callback)
         self.task_thread.start()
         self.v.get_dialog()
 
@@ -720,7 +721,7 @@ class MainController:
         except Exception as e:
             self.logg.error(f"SHWFS Error: {e}")
 
-    def prepare_img_wfs(self):
+    def _prepare_img_wfs(self):
         self.lasers = self.con_controller.get_lasers()
         self.set_lasers()
         self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
@@ -729,9 +730,9 @@ class MainController:
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
         self.m.daq.write_digital_sequences(self.generate_wfs_trigger("wfs"), mode="continuous")
 
-    def start_img_wfs(self):
+    def _start_img_wfs(self):
         try:
-            self.prepare_img_wfs()
+            self._prepare_img_wfs()
         except Exception as e:
             self.logg.error(f"Error starting wfs: {e}")
         try:
@@ -741,36 +742,36 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Error starting wfs: {e}")
 
-    def stop_img_wfs(self):
+    def _stop_img_wfs(self):
         try:
             self.thread_wfs.quit()
             self.thread_wfs.wait()
-            self.m.daq.stop_triggers()
             self.m.cam_set[self.cameras["wfs"]].stop_live()
+            self.m.daq.stop_triggers()
             self.lasers_off()
         except Exception as e:
             self.logg.error(f"Error stopping wfs: {e}")
 
     def img_wfs(self, sw):
         if sw:
-            self.start_img_wfs()
+            self._start_img_wfs()
         else:
-            self.stop_img_wfs()
+            self._stop_img_wfs()
 
     def imshow_img_wfs(self):
         try:
-            self.view_controller.plot_sh(self.m.cam_set[self.cameras["wfs"]].get_last_image(),
-                                         layer=self.cameras["wfs"])
+            self.p.shwfsr.meas = self.m.cam_set[self.cameras["wfs"]].get_last_image()
+            self.view_controller.plot_sh(self.p.shwfsr.meas, layer=self.cameras["wfs"])
         except Exception as e:
             self.logg.error(f"Error showing shwfs: {e}")
 
-    def set_img_wfs_base(self):
+    def set_reference_wf(self):
         try:
-            self.p.shwfsr.base = self.m.cam_set[self.cameras["wfs"]].get_last_image()
-            self.view_controller.plot_shb(self.p.shwfsr.base)
-            self.logg.info('wfs _base set')
+            self.p.shwfsr.ref = self.m.cam_set[self.cameras["wfs"]].get_last_image()
+            self.view_controller.plot_shb(self.p.shwfsr.ref)
+            self.logg.info('shwfs base set')
         except Exception as e:
-            self.logg.error(f"SHWFS Error: {e}")
+            self.logg.error(f"Error setting shwfs base: {e}")
 
     def run_img_wfr(self):
         self.run_task(task=self.img_wfr, callback=self.imshow_img_wfr)
@@ -778,8 +779,8 @@ class MainController:
     def img_wfr(self):
         try:
             self.p.shwfsr.method = self.ao_controller.get_gradient_method_img()
-            # self.p.shwfsr.base = self.view_controller.get_image_data(4)
-            self.p.shwfsr.offset = self.m.cam_set[self.cameras["wfs"]].get_last_image()
+            # self.p.shwfsr.ref = self.view_controller.get_image_data(4)
+            # self.p.shwfsr.meas = self.view_controller.get_image_data(self.cameras["wfs"])
             self.p.shwfsr.wavefront_reconstruction()
         except Exception as e:
             self.logg.error(f"SHWFS Reconstruction Error: {e}")
@@ -798,11 +799,11 @@ class MainController:
 
     def save_img_wf(self, file_name):
         try:
-            tf.imwrite(file_name + '_shimg_base_raw.tif', self.p.shwfsr.base)
+            tf.imwrite(file_name + '_shimg_base_raw.tif', self.p.shwfsr.ref)
         except Exception as e:
             self.logg.error(f"Error saving shwfs _base: {e}")
         try:
-            tf.imwrite(file_name + '_shimg_offset_raw.tif', self.p.shwfsr.offset)
+            tf.imwrite(file_name + '_shimg_offset_raw.tif', self.p.shwfsr.meas)
         except Exception as e:
             self.logg.error(f"Error saving shwfs offset: {e}")
         try:
@@ -817,17 +818,17 @@ class MainController:
     def run_influence_function(self):
         self.run_task(self.influence_function)
 
-    def prepare_influence_function(self):
+    def _prepare_influence_function(self):
         self.lasers = self.con_controller.get_lasers()
         self.set_lasers()
-        self.cameras["wfs"] = self.con_controller.get_imaging_camera()
+        self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
         self.set_camera_roi("wfs")
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
         self.m.daq.write_digital_sequences(self.generate_wfs_trigger("wfs"), mode="finite")
 
     def influence_function(self):
         try:
-            self.prepare_influence_function()
+            self._prepare_influence_function()
         except Exception as e:
             self.logg.error(f"Error prepare influence function: {e}")
             return
@@ -837,11 +838,13 @@ class MainController:
             self.logg.info(f'Directory {fd} has been created successfully.')
         except Exception as er:
             self.logg.error(f'Error creating directory {fd}: {er}')
+            self.finish_influence_function()
+            return
         n, amp = self.ao_controller.get_actuator()
         self.m.cam_set[self.cameras["wfs"]].start_live()
         for i in range(self.m.dm.nbAct):
             shimg = []
-            self.logg.info(f"actuator {i}")
+            self.v.dialog_text.setText(f"actuator {i}")
             values = [0.] * self.m.dm.nbAct
             self.m.dm.set_dm(values)
             time.sleep(0.04)
@@ -869,7 +872,20 @@ class MainController:
             tf.imwrite(fd + r'/' + 'actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
         md = self.ao_controller.get_img_wfs_method()
         self.p.shwfsr.generate_influence_matrix(fd, md, True)
+        self.v.dialog_text.setText(f"computing influence function")
         self.finish_influence_function()
+
+    def single_actuator(self, act_ind, p_amp):
+        self.logg.info(f"actuator # {act_ind}")
+        self.m.dm.set_dm(self.p.shwfsr.dm_cmd[-1])
+        values = [0.] * self.m.dm.nbAct
+        values[act_ind] = p_amp
+        self.m.dm.set_dm(values)
+        time.sleep(0.02)
+        self.m.daq.run_digital_trigger()
+        time.sleep(0.02)
+        self.m.daq.stop_triggers(_close=False)
+        return self.m.cam_set[self.cameras["wfs"]].get_last_image()
 
     def finish_influence_function(self):
         try:
@@ -898,9 +914,9 @@ class MainController:
             return
         try:
             self.m.cam_set[self.cameras["wfs"]].start_live()
-            self.p.shwfsr.base = self.view_controller.get_image_data(4)
+            self.p.shwfsr.ref = self.view_controller.get_image_data(4)
             self.m.daq.run_digital_trigger()
-            self.p.shwfsr.offset = self.m.cam_set[self.cameras["wfs"]].get_last_image()
+            self.p.shwfsr.meas = self.m.cam_set[self.cameras["wfs"]].get_last_image()
             self.m.daq.stop_triggers(_close=False)
             self.p.shwfsr.get_correction(self.ao_controller.get_img_wfs_method())
             self.m.dm.set_dm(self.p.shwfsr.dm_cmd[-1])
@@ -913,9 +929,9 @@ class MainController:
 
     def stop_close_loop_correction(self):
         try:
-            self.p.shwfsr.base = self.view_controller.get_image_data(4)
+            self.p.shwfsr.ref = self.view_controller.get_image_data(4)
             self.m.daq.run_digital_trigger()
-            self.p.shwfsr.offset = self.m.cam_set[self.cameras["wfs"]].get_last_image()
+            self.p.shwfsr.meas = self.m.cam_set[self.cameras["wfs"]].get_last_image()
             self.m.cam_set[self.cameras["wfs"]].stop_live()
             self.m.daq.stop_triggers()
             self.lasers_off()
