@@ -7,7 +7,7 @@ class MainProcess:
         self.config = config
         self.logg = logg
         self.data_folder = path
-        self.imgprocess = process_image.ImageProcessing()
+        self.imgprocess = process_image.ImageProcessing(self.logg.error_log)
         self.shwfsr = process_shwfs.WavefrontSensing(self.logg.error_log)
         self.trigger = process_trigger.TriggerSequence(self.logg.error_log)
         self.bsrecon = beads_scan_reconstruction.BeadScanReconstruction()

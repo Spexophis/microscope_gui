@@ -3,7 +3,8 @@ import numpy as np
 
 class ImageProcessing:
 
-    def __init__(self):
+    def __init__(self, logg=None):
+        self.logg = logg or self.setup_logging()
         self.wl = 0.5  # wavelength in microns
         self.na = 1.4  # numerical aperture
         self.dx = 13 / (2 * 5 * 63 / 3)  # pixel size in microns
@@ -11,6 +12,12 @@ class ImageProcessing:
         self.fs = 1 / self.dx  # Spatial sampling frequency, inverse microns
         self.df = self.fs / self.nx  # Spacing between discrete frequency coordinates, inverse microns
         self.radius = (self.na / self.wl) / self.df
+
+    @staticmethod
+    def setup_logging():
+        import logging
+        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+        return logging
 
     def img_properties(self, img):
         return img.min(), img.max(), self.rms(img)
@@ -68,17 +75,16 @@ class ImageProcessing:
                                       (nx, ny))
         return g
 
-    @staticmethod
-    def peak(x, y):
+    def peak(self, x, y):
         x = np.asarray(x)
         y = np.asarray(y)
         a, b, c = np.polyfit(x, y, 2)
         p = -1 * b / a / 2.0
         if a > 0:
-            print('no maximum')
+            self.logg.error('no maximum')
             return 0.
         elif (p >= x.max()) or (p <= x.min()):
-            print('maximum exceeding range')
+            self.logg.error('maximum exceeding range')
             return 0.
         else:
             return p

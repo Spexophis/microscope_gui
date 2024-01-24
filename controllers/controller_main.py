@@ -898,7 +898,7 @@ class MainController:
     def run_close_loop_correction(self, n):
         self.run_task(task=self.close_loop_correction)
 
-    def prepare_close_loop_correction(self):
+    def _prepare_close_loop_correction(self):
         self.lasers = self.con_controller.get_lasers()
         self.set_lasers()
         self.cameras["wfs"] = self.con_controller.get_imaging_camera()
@@ -908,7 +908,7 @@ class MainController:
 
     def close_loop_correction(self):
         try:
-            self.prepare_close_loop_correction()
+            self._prepare_close_loop_correction()
         except Exception as e:
             self.logg.error(f"Prepare CloseLoop Correction Error: {e}")
             return
@@ -925,9 +925,9 @@ class MainController:
             self.p.shwfsr.current_cmd = i
         except Exception as e:
             self.logg.error(f"CloseLoop Correction Error: {e}")
-        self.stop_close_loop_correction()
+        self._stop_close_loop_correction()
 
-    def stop_close_loop_correction(self):
+    def _stop_close_loop_correction(self):
         try:
             self.p.shwfsr.ref = self.view_controller.get_image_data(4)
             self.m.daq.run_digital_trigger()
@@ -943,7 +943,7 @@ class MainController:
     def run_sensorless_iteration(self):
         self.run_task(task=self.sensorless_iteration)
 
-    def prepare_sensorless_iteration(self):
+    def _prepare_sensorless_iteration(self):
         self.lasers = self.con_controller.get_lasers()
         self.set_lasers()
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
@@ -953,20 +953,22 @@ class MainController:
 
     def sensorless_iteration(self):
         try:
-            self.prepare_close_loop_correction()
-        except Exception as e:
-            self.logg.error(f"Prepare sensorless iteration Error: {e}")
-            return
-        try:
-            mode_start, mode_stop, amp_start, amp_step, amp_step_number = self.ao_controller.get_ao_iteration()
             lpr, mindex, metric = self.ao_controller.get_ao_parameters()
             name = time.strftime("%Y%m%d_%H%M%S_") + '_ao_iteration_' + metric
             new_folder = self.data_folder / name
-            try:
-                os.makedirs(new_folder, exist_ok=True)
-                self.logg.info(f'Directory {new_folder} has been created successfully.')
-            except Exception as e:
-                self.logg.error(f'Error creating directory {new_folder}: {e}')
+            os.makedirs(new_folder, exist_ok=True)
+            self.logg.info(f'Directory {new_folder} has been created successfully.')
+        except Exception as e:
+            self.logg.error(f'Error creating directory for sensorless iteration: {e}')
+            return
+        try:
+            self._prepare_sensorless_iteration()
+        except Exception as e:
+            self.logg.error(f"Prepare sensorless iteration Error: {e}")
+            self._finish_sensorless_iteration()
+            return
+        try:
+            mode_start, mode_stop, amp_start, amp_step, amp_step_number = self.ao_controller.get_ao_iteration()
             results = [('Mode', 'Amp', 'Metric')]
             za = []
             mv = []
@@ -975,12 +977,14 @@ class MainController:
             self.m.cam_set[self.cameras["imaging"]].start_live()
             self.logg.info("Sensorless AO iteration starts")
             self.m.dm.set_dm(cmd)
-            time.sleep(0.05)
+            time.sleep(0.02)
             self.m.daq.run_digital_trigger()
-            time.sleep(0.05)
+            time.sleep(0.04)
+            self.m.daq.stop_triggers(_close=False)
             fn = os.path.join(new_folder, 'original.tif')
             tf.imwrite(fn, self.m.cam_set[self.cameras["imaging"]].get_last_image())
             for mode in range(mode_start, mode_stop + 1):
+                self.v.dialog_text.setText(f"Zernike mode #{mode}")
                 amprange = []
                 dt = []
                 for stnm in range(amp_step_number):
@@ -988,9 +992,9 @@ class MainController:
                     amprange.append(amp)
                     self.m.dm.set_dm(self.p.shwfsr.cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
                     # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[mode]], cmd))
-                    time.sleep(0.05)
+                    time.sleep(0.02)
                     self.m.daq.run_digital_trigger()
-                    time.sleep(0.05)
+                    time.sleep(0.04)
                     self.m.daq.stop_triggers(_close=False)
                     fn = "zm%0.2d_amp%.4f" % (mode, amp)
                     fn1 = os.path.join(new_folder, fn + '.tif')
@@ -998,13 +1002,13 @@ class MainController:
                     if mindex == 0:
                         dt.append(self.p.imgprocess.snr(self.m.cam_set[self.cameras["imaging"]].get_last_image(), lpr))
                     if mindex == 1:
-                        dt.append(self.p.imgprocess.peakv(self.m.cam_set[self.cameras["imaging"]].get_last_image()))
+                        dt.append(np.maximum(self.m.cam_set[self.cameras["imaging"]].get_last_image()))
                     if mindex == 2:
                         dt.append(self.p.imgprocess.hpf(self.m.cam_set[self.cameras["imaging"]].get_last_image(), lpr))
                     results.append((mode, amp, dt[stnm]))
-                    self.logg.info('--', stnm, amp, dt[stnm])
                 za.extend(amprange)
                 mv.extend(dt)
+                self.logg.info(f"zernike mode #{mode}, ({amprange}), ({dt})")
                 pmax = self.p.imgprocess.peak(amprange, dt)
                 if pmax != 0.0:
                     zp[mode] = pmax
@@ -1014,9 +1018,10 @@ class MainController:
                 else:
                     self.logg.info("mode %d value equals %.4f" % (mode, pmax))
             self.m.dm.set_dm(cmd)
-            time.sleep(0.05)
+            time.sleep(0.02)
             self.m.daq.run_digital_trigger()
-            time.sleep(0.05)
+            time.sleep(0.04)
+            self.m.daq.stop_triggers(_close=False)
             fn = os.path.join(new_folder, 'final.tif')
             tf.imwrite(fn, self.m.cam_set[self.cameras["imaging"]].get_last_image())
             self.p.shwfsr.dm_cmd.append(cmd)
@@ -1027,9 +1032,9 @@ class MainController:
             self.p.shwfsr.save_sensorless_results(os.path.join(new_folder, 'results.xlsx'), za, mv, zp)
         except Exception as e:
             self.logg.error(f"Sensorless AO Error: {e}")
-        self.finish_sensorless_iteration()
+        self._finish_sensorless_iteration()
 
-    def finish_sensorless_iteration(self):
+    def _finish_sensorless_iteration(self):
         try:
             self.lasers_off()
             self.m.daq.stop_triggers()
