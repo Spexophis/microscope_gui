@@ -64,7 +64,7 @@ class ThorCam:
         is_pixel_clock(self.handle, 6, ct.byref(pixel_clock), ct.sizeof(pixel_clock))  # 6 for setting pixel clock
         self.uc480.is_SetColorMode(self.handle, 6)  # 6 is for monochrome 8 bit. See uc480.h for definitions
         self.frame_rate = self.set_frame_rate(4)
-        self.exposure = self.set_exposure(3.2)
+        self.exposure = self.set_exposure(12)
 
     def close(self):
         if self.handle is not None:
