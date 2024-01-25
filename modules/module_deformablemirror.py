@@ -44,7 +44,7 @@ class DeformableMirror:
         self.control_matrix_phase = tf.imread(os.path.join(path, "control_matrix_phase_20240124.tif"))
         self.control_matrix_zonal = tf.imread(os.path.join(path, "control_matrix_zonal_20240124.tif"))
         self.control_matrix_modal = tf.imread(os.path.join(path, "control_matrix_modal_20230706.tif"))
-        initial_flat = os.path.join(path, "flatfile_20230728.xlsx")
+        initial_flat = os.path.join(path, "flat_file_20240125.xlsx")
         if self.control_matrix_phase.shape[0] != self.n_actuator:
             self.logg.error(f"Wrong size of DM control matrix")
         self.dm_cmd = [[0.] * self.n_actuator]
