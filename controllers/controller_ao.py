@@ -47,4 +47,5 @@ class AOController:
             self.v.QSpinBox_zernike_mode_amps_stepnum.value()
 
     def get_ao_parameters(self):
-        return self.v.QDoubleSpinBox_lpf.value(), self.v.QComboBox_metric.currentIndex(), self.v.QComboBox_metric.currentText()
+        return self.v.QDoubleSpinBox_lpf.value(), self.v.QDoubleSpinBox_hpf.value(), \
+            self.v.QComboBox_metric.currentIndex(), self.v.QComboBox_metric.currentText()

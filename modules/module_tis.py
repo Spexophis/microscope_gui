@@ -202,7 +202,7 @@ class TISCamera:
                 self.logg.info("SUCCESS: Set Trigger Enable")
             else:
                 self.logg.error("FAIL: Set Trigger Enable")
-            if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Trigger"), tis.T("Polarity"), 1) == tis.IC_SUCCESS:
+            if ic.IC_SetPropertySwitch(self.hGrabber, tis.T("Trigger"), tis.T("Polarity"), 0) == tis.IC_SUCCESS:
                 self.logg.info("SUCCESS: Set Trigger Polarity")
             else:
                 self.logg.error("FAIL: Set Trigger Polarity")

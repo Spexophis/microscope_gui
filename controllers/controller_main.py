@@ -7,6 +7,7 @@ import tifffile as tf
 from PyQt5 import QtCore
 
 from controllers import controller_ao, controller_con, controller_view
+from tools import tool_improc as ipr
 
 
 class MainController:
@@ -105,8 +106,6 @@ class MainController:
             pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
             self.m.daq.set_piezo_position(pos_x / 10., pos_y / 10.)
             self.set_piezo_position_z()
-
-            self.m.dm.set_dm(self.p.shwfsr.dm_cmd[self.p.shwfsr.current_cmd])
 
             self.magnifications = [157.5, 1, 1]
             self.pixel_sizes = []
@@ -398,7 +397,7 @@ class MainController:
     def imshow_fft(self):
         try:
             self.view_controller.plot_fft(
-                self.p.imgprocess.fourier_transform(self.view_controller.get_image_data(layer=self.cameras["imaging"])))
+                ipr.fourier_transform(self.view_controller.get_image_data(layer=self.cameras["imaging"])))
         except Exception as e:
             self.logg.error(f"Error showing fft: {e}")
 
@@ -425,7 +424,7 @@ class MainController:
         try:
             ax = self.con_controller.get_profile_axis()
             self.view_controller.plot_update(
-                self.p.imgprocess.get_profile(self.view_controller.get_image_data(layer=self.cameras["imaging"]), ax))
+                ipr.get_profile(self.view_controller.get_image_data(layer=self.cameras["imaging"]), ax))
         except Exception as e:
             self.logg.error(f"Error plotting profile: {e}")
 
@@ -650,42 +649,44 @@ class MainController:
     def push_actuator(self):
         try:
             n, a = self.ao_controller.get_actuator()
-            values = [0.] * self.m.dm.nbAct
+            values = [0.] * self.m.dm.n_actuator
             values[n] = a
-            self.m.dm.set_dm(self.p.shwfsr.cmd_add(values, self.p.shwfsr.dm_cmd[self.p.shwfsr.current_cmd]))
+            self.m.dm.set_dm(self.m.dm.cmd_add(values, self.m.dm.dm_cmd[self.m.dm.current_cmd]))
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
-    def set_zernike(self):
+    def set_zernike(self, factory=False):
         try:
             indz, amp = self.ao_controller.get_zernike_mode()
-            self.m.dm.set_dm(self.p.shwfsr.cmd_add(self.p.shwfsr.get_zernike_cmd(indz, amp),
-                                                   self.p.shwfsr.dm_cmd[self.p.shwfsr.current_cmd]))
-            # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[indz]],
-            #                                         self.p.shwfsr.dm_cmd[self.p.shwfsr.current_cmd]))
+            if factory:
+                self.m.dm.set_dm(
+                    self.m.dm.cmd_add([i * amp for i in self.m.dm.z2c[indz]], self.m.dm.dm_cmd[self.m.dm.current_cmd]))
+            else:
+                self.m.dm.set_dm(
+                    self.m.dm.cmd_add(self.m.dm.get_zernike_cmd(indz, amp), self.m.dm.dm_cmd[self.m.dm.current_cmd]))
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
     def set_dm(self):
         try:
             i = int(self.ao_controller.get_cmd_index())
-            self.m.dm.set_dm(self.p.shwfsr.dm_cmd[i])
-            self.p.shwfsr.current_cmd = i
+            self.m.dm.set_dm(self.m.dm.dm_cmd[i])
+            self.m.dm.current_cmd = i
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
     def update_dm(self):
         try:
-            self.p.shwfsr.dm_cmd.append(self.p.shwfsr.temp_cmd[-1])
+            self.m.dm.dm_cmd.append(self.m.dm.temp_cmd[-1])
             self.ao_controller.update_cmd_index()
-            self.m.dm.set_dm(self.p.shwfsr.dm_cmd[-1])
+            self.m.dm.set_dm(self.m.dm.dm_cmd[-1])
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
     def load_dm(self, filename):
         try:
-            self.p.shwfsr.dm_cmd.append(self.p.shwfsr.read_cmd(filename))
-            self.m.dm.set_dm(self.p.shwfsr.dm_cmd[-1])
+            self.m.dm.dm_cmd.append(self.m.dm.read_cmd(filename))
+            self.m.dm.set_dm(self.m.dm.dm_cmd[-1])
             print('New DM cmd loaded')
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
@@ -693,7 +694,7 @@ class MainController:
     def save_dm(self):
         try:
             t = time.strftime("%Y%m%d_%H%M%S_")
-            self.p.shwfsr.write_cmd(self.data_folder, t, flatfile=False)
+            self.m.dm.write_cmd(self.data_folder, t, flatfile=False)
             print('DM cmd saved')
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
@@ -788,13 +789,13 @@ class MainController:
     def imshow_img_wfr(self):
         try:
             self.view_controller.plot_wf(self.p.shwfsr.wf)
-            self.ao_controller.display_img_wf_properties(self.p.imgprocess.img_properties(self.p.shwfsr.wf))
+            self.ao_controller.display_img_wf_properties(ipr.img_properties(self.p.shwfsr.wf))
         except Exception as e:
             self.logg.error(f"SHWFS Wavefront Show Error: {e}")
 
     def compute_img_wf(self):
-        self.p.shwfsr.run_wf_modal_recon()
-        self.view_controller.plot_update(self.p.shwfsr.az)
+        # self.m.dm.run_wf_modal_recon()
+        # self.view_controller.plot_update(self.m.dm.az)
         self.imshow_img_wfr()
 
     def save_img_wf(self, file_name):
@@ -816,7 +817,12 @@ class MainController:
             self.logg.error(f"Error saving shwfs wavefront: {e}")
 
     def run_influence_function(self):
-        self.run_task(self.influence_function)
+        try:
+            self._prepare_influence_function()
+        except Exception as e:
+            self.logg.error(f"Error prepare influence function: {e}")
+            return
+        self.run_task(self.influence_function, callback=self._finish_influence_function)
 
     def _prepare_influence_function(self):
         self.lasers = self.con_controller.get_lasers()
@@ -828,24 +834,18 @@ class MainController:
 
     def influence_function(self):
         try:
-            self._prepare_influence_function()
-        except Exception as e:
-            self.logg.error(f"Error prepare influence function: {e}")
-            return
-        fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M") + '_influence_function')
-        try:
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M") + '_influence_function')
             os.makedirs(fd, exist_ok=True)
             self.logg.info(f'Directory {fd} has been created successfully.')
         except Exception as er:
             self.logg.error(f'Error creating directory {fd}: {er}')
-            self.finish_influence_function()
             return
         n, amp = self.ao_controller.get_actuator()
         self.m.cam_set[self.cameras["wfs"]].start_live()
-        for i in range(self.m.dm.nbAct):
+        for i in range(self.m.dm.n_actuator):
             shimg = []
             self.v.dialog_text.setText(f"actuator {i}")
-            values = [0.] * self.m.dm.nbAct
+            values = [0.] * self.m.dm.n_actuator
             self.m.dm.set_dm(values)
             time.sleep(0.04)
             self.m.daq.run_digital_trigger()
@@ -857,7 +857,7 @@ class MainController:
             self.m.daq.run_digital_trigger()
             shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
             self.m.daq.stop_triggers(_close=False)
-            values = [0.] * self.m.dm.nbAct
+            values = [0.] * self.m.dm.n_actuator
             self.m.dm.set_dm(values)
             time.sleep(0.04)
             self.m.daq.run_digital_trigger()
@@ -871,14 +871,14 @@ class MainController:
             self.m.daq.stop_triggers(_close=False)
             tf.imwrite(fd + r'/' + 'actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
         md = self.ao_controller.get_img_wfs_method()
-        self.p.shwfsr.generate_influence_matrix(fd, md, True)
+        self.p.shwfsr.generate_influence_matrix(data_folder=fd, dm_info=(
+            self.m.dm.n_actuator, self.m.dm.amp, self.m.dm.n_zernike, self.m.dm.zslopes), method=md, sv=True)
         self.v.dialog_text.setText(f"computing influence function")
-        self.finish_influence_function()
 
     def single_actuator(self, act_ind, p_amp):
         self.logg.info(f"actuator # {act_ind}")
-        self.m.dm.set_dm(self.p.shwfsr.dm_cmd[-1])
-        values = [0.] * self.m.dm.nbAct
+        self.m.dm.set_dm(self.m.dm.dm_cmd[-1])
+        values = [0.] * self.m.dm.n_actuator
         values[act_ind] = p_amp
         self.m.dm.set_dm(values)
         time.sleep(0.02)
@@ -887,7 +887,7 @@ class MainController:
         self.m.daq.stop_triggers(_close=False)
         return self.m.cam_set[self.cameras["wfs"]].get_last_image()
 
-    def finish_influence_function(self):
+    def _finish_influence_function(self):
         try:
             self.lasers_off()
             self.m.cam_set[self.cameras["wfs"]].stop_live()
@@ -895,53 +895,61 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Error finishing influence function: {e}")
 
-    def run_close_loop_correction(self, n):
-        self.run_task(task=self.close_loop_correction)
-
-    def _prepare_close_loop_correction(self):
-        self.lasers = self.con_controller.get_lasers()
-        self.set_lasers()
-        self.cameras["wfs"] = self.con_controller.get_imaging_camera()
-        self.set_camera_roi("wfs")
-        self.m.cam_set[self.cameras["wfs"]].prepare_live()
-        self.m.daq.write_digital_sequences(self.generate_wfs_trigger("wfs"), mode="finite")
-
-    def close_loop_correction(self):
+    def run_close_loop_correction(self, nlp):
         try:
             self._prepare_close_loop_correction()
         except Exception as e:
             self.logg.error(f"Prepare CloseLoop Correction Error: {e}")
             return
         try:
-            self.m.cam_set[self.cameras["wfs"]].start_live()
-            self.p.shwfsr.ref = self.view_controller.get_image_data(4)
-            self.m.daq.run_digital_trigger()
-            self.p.shwfsr.meas = self.m.cam_set[self.cameras["wfs"]].get_last_image()
-            self.m.daq.stop_triggers(_close=False)
-            self.p.shwfsr.get_correction(self.ao_controller.get_img_wfs_method())
-            self.m.dm.set_dm(self.p.shwfsr.dm_cmd[-1])
-            self.ao_controller.update_cmd_index()
-            i = int(self.ao_controller.get_cmd_index())
-            self.p.shwfsr.current_cmd = i
+            self.run_task(task=self.close_loop_correction, iteration=nlp, callback=self._finish_close_loop_correction)
         except Exception as e:
             self.logg.error(f"CloseLoop Correction Error: {e}")
-        self._stop_close_loop_correction()
 
-    def _stop_close_loop_correction(self):
+    def _prepare_close_loop_correction(self):
+        self.lasers = self.con_controller.get_lasers()
+        self.set_lasers()
+        self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
+        self.set_camera_roi("wfs")
+        self.m.cam_set[self.cameras["wfs"]].prepare_live()
+        self.m.daq.write_digital_sequences(self.generate_wfs_trigger("wfs"), mode="finite")
+
+    def close_loop_correction(self):
+        self.m.cam_set[self.cameras["wfs"]].start_live()
+        self.m.daq.run_digital_trigger()
+        time.sleep(0.04)
+        self.p.shwfsr.meas = self.m.cam_set[self.cameras["wfs"]].get_last_image()
+        self.m.daq.stop_triggers(_close=False)
+        if self.ao_controller.get_img_wfs_method() == "phase":
+            self.m.dm.get_correction(self.p.shwfsr.wavefront_reconstruction(rt=True), method="phase")
+        else:
+            self.m.dm.get_correction(self.p.shwfsr.get_gradient_xy(),
+                                     method=self.ao_controller.get_img_wfs_method())
+        self.m.dm.set_dm(self.m.dm.dm_cmd[-1])
+        self.ao_controller.update_cmd_index()
+        i = int(self.ao_controller.get_cmd_index())
+        self.m.dm.current_cmd = i
+
+    def _finish_close_loop_correction(self):
         try:
-            self.p.shwfsr.ref = self.view_controller.get_image_data(4)
+            # self.p.shwfsr.ref = self.view_controller.get_image_data(4)
             self.m.daq.run_digital_trigger()
             self.p.shwfsr.meas = self.m.cam_set[self.cameras["wfs"]].get_last_image()
             self.m.cam_set[self.cameras["wfs"]].stop_live()
             self.m.daq.stop_triggers()
             self.lasers_off()
-            self.run_img_wfr()
+            self.img_wfr()
             self.view_controller.plot_wf(self.p.shwfsr.wf)
         except Exception as e:
             self.logg.error(f"CloseLoop Correction Error: {e}")
 
     def run_sensorless_iteration(self):
-        self.run_task(task=self.sensorless_iteration)
+        try:
+            self._prepare_sensorless_iteration()
+        except Exception as e:
+            self.logg.error(f"Prepare sensorless iteration Error: {e}")
+            return
+        self.run_task(task=self.sensorless_iteration, callback=self._finish_sensorless_iteration)
 
     def _prepare_sensorless_iteration(self):
         self.lasers = self.con_controller.get_lasers()
@@ -953,7 +961,7 @@ class MainController:
 
     def sensorless_iteration(self):
         try:
-            lpr, mindex, metric = self.ao_controller.get_ao_parameters()
+            lpr, hpr, mindex, metric = self.ao_controller.get_ao_parameters()
             name = time.strftime("%Y%m%d_%H%M%S_") + '_ao_iteration_' + metric
             new_folder = self.data_folder / name
             os.makedirs(new_folder, exist_ok=True)
@@ -962,18 +970,12 @@ class MainController:
             self.logg.error(f'Error creating directory for sensorless iteration: {e}')
             return
         try:
-            self._prepare_sensorless_iteration()
-        except Exception as e:
-            self.logg.error(f"Prepare sensorless iteration Error: {e}")
-            self._finish_sensorless_iteration()
-            return
-        try:
             mode_start, mode_stop, amp_start, amp_step, amp_step_number = self.ao_controller.get_ao_iteration()
             results = [('Mode', 'Amp', 'Metric')]
             za = []
             mv = []
-            zp = [0] * self.p.shwfsr.n_zernikes
-            cmd = self.p.shwfsr.dm_cmd[self.p.shwfsr.current_cmd]
+            zp = [0] * self.m.dm.n_zernike
+            cmd = self.m.dm.dm_cmd[self.m.dm.current_cmd]
             self.m.cam_set[self.cameras["imaging"]].start_live()
             self.logg.info("Sensorless AO iteration starts")
             self.m.dm.set_dm(cmd)
@@ -990,8 +992,8 @@ class MainController:
                 for stnm in range(amp_step_number):
                     amp = amp_start + stnm * amp_step
                     amprange.append(amp)
-                    self.m.dm.set_dm(self.p.shwfsr.cmd_add(self.p.shwfsr.get_zernike_cmd(mode, amp), cmd))
-                    # self.m.dm.set_dm(self.p.shwfsr._cmd_add([i * amp for i in self.m.dm.z2c[mode]], cmd))
+                    self.m.dm.set_dm(self.m.dm.cmd_add(self.m.dm.get_zernike_cmd(mode, amp), cmd))
+                    # self.m.dm.set_dm(self.m.dm.cmd_add([i * amp for i in self.m.dm.z2c[mode]], cmd))
                     time.sleep(0.02)
                     self.m.daq.run_digital_trigger()
                     time.sleep(0.04)
@@ -1000,23 +1002,23 @@ class MainController:
                     fn1 = os.path.join(new_folder, fn + '.tif')
                     tf.imwrite(fn1, self.m.cam_set[self.cameras["imaging"]].get_last_image())
                     if mindex == 0:
-                        dt.append(self.p.imgprocess.snr(self.m.cam_set[self.cameras["imaging"]].get_last_image(), lpr))
+                        dt.append(ipr.snr(self.m.cam_set[self.cameras["imaging"]].get_last_image(), lpr, hpr))
                     if mindex == 1:
                         dt.append(np.maximum(self.m.cam_set[self.cameras["imaging"]].get_last_image()))
                     if mindex == 2:
-                        dt.append(self.p.imgprocess.hpf(self.m.cam_set[self.cameras["imaging"]].get_last_image(), lpr))
+                        dt.append(ipr.hpf(self.m.cam_set[self.cameras["imaging"]].get_last_image(), hpr))
                     results.append((mode, amp, dt[stnm]))
                 za.extend(amprange)
                 mv.extend(dt)
                 self.logg.info(f"zernike mode #{mode}, ({amprange}), ({dt})")
-                pmax = self.p.imgprocess.peak(amprange, dt)
-                if pmax != 0.0:
+                try:
+                    pmax = ipr.peak_find(amprange, dt)
                     zp[mode] = pmax
                     self.logg.info("setting mode %d at value of %.4f" % (mode, pmax))
-                    cmd = self.p.shwfsr.cmd_add(self.p.shwfsr.get_zernike_cmd(mode, pmax), cmd)
+                    cmd = self.m.dm.cmd_add(self.m.dm.get_zernike_cmd(mode, pmax), cmd)
                     self.m.dm.set_dm(cmd)
-                else:
-                    self.logg.info("mode %d value equals %.4f" % (mode, pmax))
+                except ValueError as e:
+                    self.logg.error(f"mode {mode} error {e}")
             self.m.dm.set_dm(cmd)
             time.sleep(0.02)
             self.m.daq.run_digital_trigger()
@@ -1024,15 +1026,14 @@ class MainController:
             self.m.daq.stop_triggers(_close=False)
             fn = os.path.join(new_folder, 'final.tif')
             tf.imwrite(fn, self.m.cam_set[self.cameras["imaging"]].get_last_image())
-            self.p.shwfsr.dm_cmd.append(cmd)
+            self.m.dm.dm_cmd.append(cmd)
             self.ao_controller.update_cmd_index()
             i = int(self.ao_controller.get_cmd_index())
-            self.p.shwfsr.current_cmd = i
-            self.p.shwfsr.write_cmd(new_folder, '_')
-            self.p.shwfsr.save_sensorless_results(os.path.join(new_folder, 'results.xlsx'), za, mv, zp)
+            self.m.dm.current_cmd = i
+            self.m.dm.write_cmd(new_folder, '_')
+            self.m.dm.save_sensorless_results(os.path.join(new_folder, 'results.xlsx'), za, mv, zp)
         except Exception as e:
             self.logg.error(f"Sensorless AO Error: {e}")
-        self._finish_sensorless_iteration()
 
     def _finish_sensorless_iteration(self):
         try:

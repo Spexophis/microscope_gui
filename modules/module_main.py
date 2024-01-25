@@ -16,38 +16,38 @@ class MainModule:
         self.data_folder = path
         self.cam_set = {}
         try:
-            self.ccdcam = module_andorixon.EMCCDCamera(self.logg.error_log)
+            self.ccdcam = module_andorixon.EMCCDCamera(logg=self.logg.error_log)
             self.cam_set[0] = self.ccdcam
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.scmoscam = module_hamamatsu.HamamatsuCameraMR(self.logg.error_log)
+            self.scmoscam = module_hamamatsu.HamamatsuCameraMR(logg=self.logg.error_log)
             self.cam_set[1] = self.scmoscam
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.tiscam = module_tis.TISCamera(self.logg.error_log)
+            self.tiscam = module_tis.TISCamera(logg=self.logg.error_log)
             self.cam_set[2] = self.tiscam
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.dm = module_deformablemirror.DeformableMirror(self.logg.error_log)
+            self.dm = module_deformablemirror.DeformableMirror(logg=self.logg.error_log)
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.laser = module_laser.CoboltLaser(self.logg.error_log)
+            self.laser = module_laser.CoboltLaser(logg=self.logg.error_log)
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.daq = module_nidaq.NIDAQ(self.logg.error_log)
+            self.daq = module_nidaq.NIDAQ(logg=self.logg.error_log)
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.md = module_mcldeck.MCLMicroDrive(self.logg.error_log)
+            self.md = module_mcldeck.MCLMicroDrive(logg=self.logg.error_log)
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.pz = module_mclpiezo.MCLNanoDrive(self.logg.error_log)
+            self.pz = module_mclpiezo.MCLNanoDrive(logg=self.logg.error_log)
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         self.logg.error_log.info("Finish initiating devices")
