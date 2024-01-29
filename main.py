@@ -32,32 +32,33 @@ class MicroscopeGUI(QtWidgets.QMainWindow):
             self.config = configurations.MicroscopeConfiguration(config_file)
         except Exception as e:
             self.info_log.error_log.error(f"Error: {e}")
+            self.error_n_exit(f"Error loading configuration: {e}")
+            return
         try:
-            self.module = module_main.MainModule(self.config, self.info_log, self.data_folder)
+            self.module = module_main.MainModule(self.config.configs, self.info_log, self.data_folder)
         except Exception as e:
             self.info_log.error_log.error(f"Error: {e}")
         try:
-            self.process = process_main.MainProcess(self.config, self.info_log, self.data_folder)
+            self.process = process_main.MainProcess(self.config.configs, self.info_log, self.data_folder)
         except Exception as e:
             self.info_log.error_log.error(f"Error: {e}")
         try:
-            self.view = widget_main.MainWidget(self.config, self.info_log, self.data_folder)
+            self.view = widget_main.MainWidget(self.config.configs, self.info_log, self.data_folder)
         except Exception as e:
             self.info_log.error_log.error(f"Error: {e}")
         try:
             self.controller = controller_main.MainController(self.view, self.module, self.process,
-                                                             self.config, self.info_log, self.data_folder)
+                                                             self.config.configs, self.info_log, self.data_folder)
         except Exception as e:
             self.info_log.error_log.error(f"Error: {e}")
 
-    def init_config(self):
-        self.setWindowTitle('Configuration File Selector')
-        self.setGeometry(100, 100, 200, 100)
-        layout = QtWidgets.QVBoxLayout()
-        self.setLayout(layout)
-        btn_open_dialog = cw.pushbutton_widget(r"Open Config File")
-        btn_open_dialog.clicked.connect(self.open_config)
-        layout.addWidget(btn_open_dialog)
+    def error_n_exit(self, message):
+        msg_box = cw.message_box()
+        msg_box.setIcon(QtWidgets.QMessageBox.Critical)
+        msg_box.setText(message)
+        msg_box.setWindowTitle("Error")
+        msg_box.exec_()
+        self.close()
 
 
 def close():
@@ -78,10 +79,8 @@ class ConfigDialog(QtWidgets.QDialog):
         self.selected_config = None
 
     def init(self):
-        self.setWindowTitle('Select Configuration File')
-        self.setGeometry(100, 100, 300, 100)
         layout = QtWidgets.QVBoxLayout(self)
-        btn_select_file = cw.pushbutton_widget('Select File')
+        btn_select_file = cw.pushbutton_widget('Select Configuration File')
         btn_select_file.clicked.connect(self.open_file_dial)
         layout.addWidget(btn_select_file)
 
@@ -102,9 +101,13 @@ dialog = ConfigDialog()
 if dialog.exec_() == QtWidgets.QDialog.Accepted:
     cfd = dialog.selected_config
     if cfd:
-        gui = MicroscopeGUI(cfd)
-        gui.view.Signal_quit.connect(close)
-        gui.view.show()
+        try:
+            gui = MicroscopeGUI(cfd)
+            gui.view.Signal_quit.connect(close)
+            gui.view.show()
+        except Exception as er:
+            print(f"Fatal error: {er}")
+            sys.exit(1)
     else:
         QtWidgets.QMessageBox.information(None, "Information", "No configuration file selected. Application will exit.")
         sys.exit()

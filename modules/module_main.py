@@ -31,7 +31,7 @@ class MainModule:
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.dm = module_deformablemirror.DeformableMirror(logg=self.logg.error_log)
+            self.dm = module_deformablemirror.DeformableMirror(logg=self.logg.error_log, config=self.config)
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:

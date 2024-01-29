@@ -1,12 +1,14 @@
 import json
-import os
 
 
 class MicroscopeConfiguration:
 
-    def __init__(self, fd):
+    def __init__(self, fd=None):
         self.fd = fd
-        self.configs = self.load_config()
+        if fd:
+            self.configs = self.load_config()
+        else:
+            raise AttributeError(f"Configuration File Failed to Load")
 
     def write_config(self, dataframe):
         with open(self.fd, 'w') as f:

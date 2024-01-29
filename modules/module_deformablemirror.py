@@ -1,12 +1,14 @@
 import csv
+import os
 import struct
-import sys, os
+import sys
 
 import numpy as np
-import tifffile as tf
 import pandas as pd
-from tools import tool_zernike as tz
+import tifffile as tf
+
 from tools import tool_improc as ipr
+from tools import tool_zernike as tz
 
 sys.path.append(r'C:\Program Files\Alpao\SDK\Samples\Python3')
 if (8 * struct.calcsize("P")) == 32:
@@ -17,14 +19,29 @@ else:
 
 class DeformableMirror:
 
-    def __init__(self, serial_name="BAX513", logg=None):
+    def __init__(self, serial_name="BAX513", logg=None, config=None):
         self.logg = logg or self.setup_logging()
+        self.config = config or self.load_configs()
         self.dm, self.n_actuator = self._initialize_dm(serial_name)
         if self.dm is not None:
             self._configure_dm()
 
     def __del__(self):
         pass
+
+    @staticmethod
+    def setup_logging():
+        import logging
+        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+        return logging
+
+    @staticmethod
+    def load_configs():
+        import json
+        config_file = input("Enter configuration file directory: ")
+        with open(config_file, 'r') as f:
+            cfg = json.load(f)
+        return cfg
 
     def _initialize_dm(self, sn):
         try:
@@ -37,14 +54,17 @@ class DeformableMirror:
             return None, None
 
     def _configure_dm(self):
-        path = r"C:\Users\ruizhe.lin\Documents\data\dm_files\bax513"
-        influence_function_images = tf.imread(os.path.join(path, "influence_function_images_20240124.tif"))
+        influence_function_images = tf.imread(
+            self.config["Adaptive Optics"]["Deformable Mirrors"]["ALPAO DM97"]["Influence Function Images"])
         nct, self.nly, self.nlx = influence_function_images.shape
         self.nls = self.nly * self.nlx
-        self.control_matrix_phase = tf.imread(os.path.join(path, "control_matrix_phase_20240124.tif"))
-        self.control_matrix_zonal = tf.imread(os.path.join(path, "control_matrix_zonal_20240124.tif"))
-        self.control_matrix_modal = tf.imread(os.path.join(path, "control_matrix_modal_20230706.tif"))
-        initial_flat = os.path.join(path, "flat_file_20240125.xlsx")
+        self.control_matrix_phase = tf.imread(
+            self.config["Adaptive Optics"]["Deformable Mirrors"]["ALPAO DM97"]["Phase Control Matrix"])
+        self.control_matrix_zonal = tf.imread(
+            self.config["Adaptive Optics"]["Deformable Mirrors"]["ALPAO DM97"]["Zonal Control Matrix"])
+        self.control_matrix_modal = tf.imread(
+            self.config["Adaptive Optics"]["Deformable Mirrors"]["ALPAO DM97"]["Modal Control Matrix"])
+        initial_flat = self.config["Adaptive Optics"]["Deformable Mirrors"]["ALPAO DM97"]["Initial Flat"]
         if self.control_matrix_phase.shape[0] != self.n_actuator:
             self.logg.error(f"Wrong size of DM control matrix")
         self.dm_cmd = [[0.] * self.n_actuator]
@@ -62,12 +82,6 @@ class DeformableMirror:
         self.zernike = tz.get_zernike_polynomials(nz=self.n_zernike, size=[self.nly, self.nlx])
         self.zslopes = tz.get_zernike_slopes(nz=self.n_zernike, size=[self.nly, self.nlx])
         # self.z2c = self.zernike_modes()
-
-    @staticmethod
-    def setup_logging():
-        import logging
-        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
-        return logging
 
     def close(self):
         self.reset_dm()
@@ -144,11 +158,13 @@ class DeformableMirror:
         if flatfile:
             filename = t + "_flat_file.xlsx"
             df = pd.DataFrame(self.dm_cmd[-1], index=np.arange(97), columns=['Push'])
-            df.to_excel(os.path.join(path, filename), index_label='Actuator')
+            fd = os.path.join(path, filename)
+            df.to_excel(str(fd), index_label='Actuator')
         else:
             filename = t + "_cmd_file.xlsx"
+            fd = os.path.join(path, filename)
             data = {f'cmd{i}': cmd for i, cmd in enumerate(self.dm_cmd)}
-            with pd.ExcelWriter(os.path.join(path, filename), engine='xlsxwriter') as writer:
+            with pd.ExcelWriter(str(fd), engine='xlsxwriter') as writer:
                 for sheet_name, list_data in data.items():
                     df = pd.DataFrame(list_data, index=np.arange(97), columns=['Push'])
                     df.to_excel(writer, sheet_name=sheet_name, index_label='Actuator')

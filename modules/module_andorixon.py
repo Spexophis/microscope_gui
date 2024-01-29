@@ -68,7 +68,7 @@ class EMCCDCamera:
             if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
                 return sdk
             else:
-                self.logg.error('AndorEMCCD is not initiated')
+                self.logg.error('Andor EMCCD is not initiated')
                 return None
         except Exception as e:
             self.logg.error(f"Error initializing SDK: {e}")
