@@ -15,8 +15,8 @@ from widgets import widget_main
 
 class MicroscopeGUI(QtWidgets.QMainWindow):
 
-    def __init__(self, config_file):
-        super().__init__()
+    def __init__(self, config_file, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.data_folder = Path.home() / 'Documents' / 'data' / time.strftime("%Y%m%d")
         try:
