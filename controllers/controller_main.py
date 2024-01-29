@@ -1004,7 +1004,7 @@ class MainController:
                     if mindex == 0:
                         dt.append(ipr.snr(self.m.cam_set[self.cameras["imaging"]].get_last_image(), lpr, hpr))
                     if mindex == 1:
-                        dt.append(np.maximum(self.m.cam_set[self.cameras["imaging"]].get_last_image()))
+                        dt.append(self.m.cam_set[self.cameras["imaging"]].get_last_image().max())
                     if mindex == 2:
                         dt.append(ipr.hpf(self.m.cam_set[self.cameras["imaging"]].get_last_image(), hpr))
                     results.append((mode, amp, dt[stnm]))
