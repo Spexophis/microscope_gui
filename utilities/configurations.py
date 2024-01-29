@@ -5,7 +5,7 @@ import os
 class MicroscopeConfiguration:
 
     def __init__(self, pth):
-        file_name = r'microscope_configurations.json'
+        file_name = r"microscope_configurations.json"
         self.fd = os.path.join(pth, file_name)
         self.configs = self.load_config()
 

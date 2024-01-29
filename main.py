@@ -9,13 +9,14 @@ from controllers import controller_main
 from modules import module_main
 from processes import process_main
 from utilities import configurations, error_log
+from utilities import customized_widgets as cw
 from widgets import widget_main
 
 
 class MicroscopeGUI(QtWidgets.QMainWindow):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, config_file):
+        super().__init__()
 
         self.data_folder = Path.home() / 'Documents' / 'data' / time.strftime("%Y%m%d")
         try:
@@ -27,8 +28,11 @@ class MicroscopeGUI(QtWidgets.QMainWindow):
         self.log_file = os.path.join(self.data_folder, time.strftime("%H%M%S") + 'app.log')
         self.info_log = error_log.ErrorLog(self.log_file)
 
-        self.config = configurations.MicroscopeConfiguration(Path.home() / 'Documents' / 'data')
-
+        print(config_file)
+        try:
+            self.config = configurations.MicroscopeConfiguration(Path.home() / 'Documents' / 'data')
+        except Exception as e:
+            self.info_log.error_log.error(f"Error: {e}")
         try:
             self.module = module_main.MainModule(self.config, self.info_log, self.data_folder)
         except Exception as e:
@@ -47,16 +51,38 @@ class MicroscopeGUI(QtWidgets.QMainWindow):
         except Exception as e:
             self.info_log.error_log.error(f"Error: {e}")
 
+    def init_config(self):
+        self.setWindowTitle('Configuration File Selector')
+        self.setGeometry(100, 100, 200, 100)
+        layout = QtWidgets.QVBoxLayout()
+        self.setLayout(layout)
+        btn_open_dialog = cw.pushbutton_widget(r"Open Config File")
+        btn_open_dialog.clicked.connect(self.open_config)
+        layout.addWidget(btn_open_dialog)
+
 
 def close():
     gui.module.close()
     app.exit()
 
 
-app = QtWidgets.QApplication(sys.argv)
-gui = MicroscopeGUI()
-gui.view.show()
+def get_config_file():
+    options = QtWidgets.QFileDialog.Options()
+    options |= QtWidgets.QFileDialog.DontUseNativeDialog
+    title = "Select Configuration File"
+    directory = str(Path.home() / "Documents" / "data" / "config_files")
+    return QtWidgets.QFileDialog.getOpenFileName(None, title, directory, "All Files (*)", options=options)
 
-gui.view.Signal_quit.connect(close)
+
+app = QtWidgets.QApplication(sys.argv)
+
+config_file_path, _ = get_config_file()
+if config_file_path:
+    gui = MicroscopeGUI(config_file_path)
+    gui.view.Signal_quit.connect(close)
+    gui.view.show()
+else:
+    QtWidgets.QMessageBox.information(None, "Information", "No configuration file selected. Application will exit.")
+    sys.exit()
 
 sys.exit(app.exec_())
