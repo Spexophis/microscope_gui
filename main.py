@@ -65,23 +65,49 @@ def close():
     app.exit()
 
 
-def get_config_file():
-    options = QtWidgets.QFileDialog.Options()
-    options |= QtWidgets.QFileDialog.DontUseNativeDialog
-    title = "Select Configuration File"
-    directory = str(Path.home() / "Documents" / "data" / "config_files")
-    return QtWidgets.QFileDialog.getOpenFileName(None, title, directory, "All Files (*)", options=options)
+class ConfigDialog(QtWidgets.QDialog):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setStyleSheet(''' 
+                QDialog {
+                    background-color: #333;
+                    color: #FFF;
+                }
+                ''')
+        self.init()
+        self.selected_config = None
+
+    def init(self):
+        self.setWindowTitle('Select Configuration File')
+        self.setGeometry(100, 100, 300, 100)
+        layout = QtWidgets.QVBoxLayout(self)
+        btn_select_file = cw.pushbutton_widget('Select File')
+        btn_select_file.clicked.connect(self.open_file_dial)
+        layout.addWidget(btn_select_file)
+
+    def open_file_dial(self):
+        options = QtWidgets.QFileDialog.Options()
+        options |= QtWidgets.QFileDialog.DontUseNativeDialog
+        title = "Select Configuration File"
+        directory = str(Path.home() / "Documents" / "data" / "config_files")
+        config_file_path, _ = QtWidgets.QFileDialog.getOpenFileName(None, title, directory, "All Files (*)",
+                                                                    options=options)
+        if config_file_path:
+            self.selected_config = config_file_path
+            self.accept()
 
 
 app = QtWidgets.QApplication(sys.argv)
-
-config_file_path, _ = get_config_file()
-if config_file_path:
-    gui = MicroscopeGUI(config_file_path)
-    gui.view.Signal_quit.connect(close)
-    gui.view.show()
+dialog = ConfigDialog()
+if dialog.exec_() == QtWidgets.QDialog.Accepted:
+    cfd = dialog.selected_config
+    if cfd:
+        gui = MicroscopeGUI(cfd)
+        gui.view.Signal_quit.connect(close)
+        gui.view.show()
+    else:
+        QtWidgets.QMessageBox.information(None, "Information", "No configuration file selected. Application will exit.")
+        sys.exit()
 else:
-    QtWidgets.QMessageBox.information(None, "Information", "No configuration file selected. Application will exit.")
     sys.exit()
-
 sys.exit(app.exec_())
