@@ -1,6 +1,4 @@
 import numpy as np
-import os.path
-import time
 import ctypes as ct
 
 uc480_dll = r"C:\Program Files\Thorlabs\Scientific Imaging\ThorCam\uc480_64.dll"
