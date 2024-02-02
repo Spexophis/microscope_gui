@@ -251,7 +251,7 @@ class WavefrontSensing:
             if filename.endswith(".tif") & filename.startswith("actuator"):
                 ind = int(filename.split("_")[1])
                 if verbose:
-                    print(filename.split("_")[1])
+                    self.logg.info(filename.split("_")[1])
                 data_stack = tf.imread(os.path.join(data_folder, filename))
                 n, x, y = data_stack.shape
                 if n != 4:
