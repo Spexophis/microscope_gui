@@ -14,16 +14,16 @@ class WavefrontSensing:
 
     def __init__(self, logg=None):
         self.logg = logg or self.setup_logging()
-        self.n_lenslets_x = 18
-        self.n_lenslets_y = 19
+        self.n_lenslets_x = 19
+        self.n_lenslets_y = 18
         self.n_lenslets = self.n_lenslets_x * self.n_lenslets_y
-        self.x_center_base = 1316
-        self.y_center_base = 1370
-        self.x_center_offset = 1316
-        self.y_center_offset = 1369
+        self.x_center_base = 1275
+        self.y_center_base = 1154
+        self.x_center_offset = 1275
+        self.y_center_offset = 1154
         self.lenslet_spacing = 40  # spacing between each lenslet
         self.hsp = 16  # size of subimage is 2 * hsp
-        self.calfactor = (.0065 / 5.2) * 150  # pixel size * focalLength * pitch
+        self.calfactor = (.00345 / 5.2) * 150  # pixel size * focalLength * pitch
         self.method = 'correlation'
         self.mag = 1
         section = np.ones((2 * self.hsp, 2 * self.hsp))
@@ -121,7 +121,7 @@ class WavefrontSensing:
                     py, px = self._center_of_mass(sec)
                     gradx[iy, ix] = (px - sx) * self.calfactor
                     grady[iy, ix] = (py - sy) * self.calfactor
-        return (gradx, grady)
+        return gradx, grady
 
     @staticmethod
     def _hudgins_extend_mask(gradx, grady):
