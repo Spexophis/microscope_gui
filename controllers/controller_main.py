@@ -871,9 +871,9 @@ class MainController:
             self.m.daq.stop_triggers(_close=False)
             tf.imwrite(fd + r'/' + 'actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
         md = self.ao_controller.get_img_wfs_method()
+        self.v.dialog_text.setText(f"computing influence function")
         self.p.shwfsr.generate_influence_matrix(data_folder=fd, dm_info=(
             self.m.dm.n_actuator, self.m.dm.amp, self.m.dm.n_zernike, self.m.dm.zslopes), method=md, sv=True)
-        self.v.dialog_text.setText(f"computing influence function")
 
     def single_actuator(self, act_ind, p_amp):
         self.logg.info(f"actuator # {act_ind}")
