@@ -847,33 +847,41 @@ class MainController:
             self.v.dialog_text.setText(f"actuator {i}")
             values = [0.] * self.m.dm.n_actuator
             self.m.dm.set_dm(values)
-            time.sleep(0.04)
+            time.sleep(0.02)
             self.m.daq.run_digital_trigger()
+            time.sleep(0.04)
             shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
             self.m.daq.stop_triggers(_close=False)
             values[i] = amp
             self.m.dm.set_dm(values)
-            time.sleep(0.04)
+            time.sleep(0.02)
             self.m.daq.run_digital_trigger()
+            time.sleep(0.04)
             shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
             self.m.daq.stop_triggers(_close=False)
             values = [0.] * self.m.dm.n_actuator
             self.m.dm.set_dm(values)
-            time.sleep(0.04)
+            time.sleep(0.02)
             self.m.daq.run_digital_trigger()
+            time.sleep(0.04)
             shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
             self.m.daq.stop_triggers(_close=False)
             values[i] = - amp
             self.m.dm.set_dm(values)
-            time.sleep(0.04)
+            time.sleep(0.02)
             self.m.daq.run_digital_trigger()
+            time.sleep(0.04)
             shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
             self.m.daq.stop_triggers(_close=False)
             tf.imwrite(fd + r'/' + 'actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
-        md = self.ao_controller.get_img_wfs_method()
-        self.v.dialog_text.setText(f"computing influence function")
-        self.p.shwfsr.generate_influence_matrix(data_folder=fd, dm_info=(
-            self.m.dm.n_actuator, self.m.dm.amp, self.m.dm.n_zernike, self.m.dm.zslopes), method=md, sv=True)
+        try:
+            md = self.ao_controller.get_img_wfs_method()
+            self.v.dialog_text.setText(f"computing influence function")
+            self.p.shwfsr.generate_influence_matrix(data_folder=fd, dm_info=(
+                self.m.dm.n_actuator, self.m.dm.amp, self.m.dm.n_zernike, self.m.dm.zslopes), method=md, sv=True)
+        except Exception as e:
+            self.logg.error(f"Error computing influence function: {e}")
+            return
 
     def single_actuator(self, act_ind, p_amp):
         self.logg.info(f"actuator # {act_ind}")
