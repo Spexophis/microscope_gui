@@ -19,12 +19,16 @@ else:
 
 class DeformableMirror:
 
-    def __init__(self, serial_name="BAX513", logg=None, config=None):
+    def __init__(self, name="ALPAO DM97", logg=None, config=None):
         self.logg = logg or self.setup_logging()
         self.config = config or self.load_configs()
-        self.dm, self.n_actuator = self._initialize_dm(serial_name)
+        self.dm_name = name
+        self.dm_serial = self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Serial"]
+        self.dm, self.n_actuator = self._initialize_dm(self.dm_serial)
         if self.dm is not None:
             self._configure_dm()
+        else:
+            raise RuntimeError(f"Error configuring DM {self.dm_name}")
 
     def __del__(self):
         pass
@@ -55,16 +59,16 @@ class DeformableMirror:
 
     def _configure_dm(self):
         influence_function_images = tf.imread(
-            self.config["Adaptive Optics"]["Deformable Mirrors"]["ALPAO DM97"]["Influence Function Images"])
+            self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Influence Function Images"])
         nct, self.nly, self.nlx = influence_function_images.shape
         self.nls = self.nly * self.nlx
         self.control_matrix_phase = tf.imread(
-            self.config["Adaptive Optics"]["Deformable Mirrors"]["ALPAO DM97"]["Phase Control Matrix"])
+            self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Phase Control Matrix"])
         self.control_matrix_zonal = tf.imread(
-            self.config["Adaptive Optics"]["Deformable Mirrors"]["ALPAO DM97"]["Zonal Control Matrix"])
+            self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Zonal Control Matrix"])
         self.control_matrix_modal = tf.imread(
-            self.config["Adaptive Optics"]["Deformable Mirrors"]["ALPAO DM97"]["Modal Control Matrix"])
-        initial_flat = self.config["Adaptive Optics"]["Deformable Mirrors"]["ALPAO DM97"]["Initial Flat"]
+            self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Modal Control Matrix"])
+        initial_flat = self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Initial Flat"]
         if self.control_matrix_phase.shape[0] != self.n_actuator:
             self.logg.error(f"Wrong size of DM control matrix")
         self.dm_cmd = [[0.] * self.n_actuator]
