@@ -27,22 +27,40 @@ class AOWidget(QtWidgets.QWidget):
         self.config = config
         self.logg = logg
         self.data_folder = path
+        self._setup_ui()
+        self._set_signal_connections()
+        self._set_initial_values()
 
-        layout = QtWidgets.QVBoxLayout(self)
-        dock_image, group_image = cw.create_dock('SH Image')
-        dock_parameters, group_parameters = cw.create_dock('SH Parameters')
-        dock_commands, group_commands = cw.create_dock('Wavefront Sensor')
-        dock_deformablemirror, group_deformablemirror = cw.create_dock('Deformable Mirror')
-        dock_dwfs, group_dwfs = cw.create_dock('Wavefront Sensing AO')
-        dock_sensorlessao, group_sensorlessao = cw.create_dock('Sensorless AO')
-        layout.addWidget(dock_image)
-        layout.addWidget(dock_parameters)
-        layout.addWidget(dock_commands)
-        layout.addWidget(dock_deformablemirror)
-        layout.addWidget(dock_dwfs)
-        layout.addWidget(dock_sensorlessao)
-        self.setLayout(layout)
+    def _setup_ui(self):
+        self.layout = QtWidgets.QVBoxLayout(self)
+        self._create_docks()
+        self._create_widgets()
+        for name, (dock, group) in self.docks.items():
+            self.layout.addWidget(dock)
+            group.setLayout(self.widgets[name])
+        self.setLayout(self.layout)
 
+    def _create_docks(self):
+        self.docks = {
+            "image": cw.create_dock("SH Image"),
+            "parameters": cw.create_dock("SH Parameters"),
+            "commands": cw.create_dock("Wavefront Sensor"),
+            "deformable mirror": cw.create_dock("Deformable Mirror"),
+            "dwfs": cw.create_dock("Wavefront Sensing AO"),
+            "sensorless ao": cw.create_dock("Sensorless AO")
+        }
+
+    def _create_widgets(self):
+        self.widgets = {
+            "image": self._create_image_widgets(),
+            "parameters": self._create_parameters_widgets(),
+            "commands": self._create_shwfs_widgets(),
+            "deformable mirror": self._create_dm_widgets(),
+            "dwfs": self._create_dwfs_widgets(),
+            "sensorless ao": self._create_sensorless_widgets()
+        }
+
+    def _create_image_widgets(self):
         layout_image = QtWidgets.QHBoxLayout()
         self.QLabel_wfmax_img = cw.label_widget(str('Wavefront MAX'))
         self.lcdNumber_wfmax_img = cw.lcdnumber_widget()
@@ -55,8 +73,9 @@ class AOWidget(QtWidgets.QWidget):
         image_shwfs_scroll_layout.addRow(self.QLabel_wfmin_img, self.lcdNumber_wfmin_img)
         image_shwfs_scroll_layout.addRow(self.QLabel_wfrms_img, self.lcdNumber_wfrms_img)
         layout_image.addWidget(self.image_shwfs_scroll_area)
-        group_image.setLayout(layout_image)
+        return layout_image
 
+    def _create_parameters_widgets(self):
         layout_parameters = QtWidgets.QHBoxLayout()
         self.QLabel_wfrmd_img = cw.label_widget(str('Method'))
         self.QComboBox_wfrmd_img = cw.combobox_widget(list_items=['correlation', 'centerofmass'])
@@ -87,8 +106,9 @@ class AOWidget(QtWidgets.QWidget):
         image_shwfs_parameters_scroll_layout.addRow(self.QLabel_spacing_img, self.QSpinBox_spacing_img)
         image_shwfs_parameters_scroll_layout.addRow(self.QLabel_radius_img, self.QSpinBox_radius_img)
         layout_parameters.addWidget(self.image_shwfs_parameters_scroll_area)
-        group_parameters.setLayout(layout_parameters)
+        return layout_parameters
 
+    def _create_shwfs_widgets(self):
         layout_shwfs = QtWidgets.QHBoxLayout()
         self.QLabel_image_shwfs = cw.label_widget(str('Camera'))
         self.QComboBox_wfs_camera_selection = cw.combobox_widget(list_items=["EMCCD", "SCMOS", "TIS"])
@@ -104,8 +124,9 @@ class AOWidget(QtWidgets.QWidget):
         image_shwfs_scroll_layout.addRow(self.QPushButton_run_img_wfr)
         image_shwfs_scroll_layout.addRow(self.QPushButton_img_shwfs_compute_wf, self.QPushButton_img_shwfs_save_wf)
         layout_shwfs.addWidget(self.image_shwfs_scroll_area)
-        group_commands.setLayout(layout_shwfs)
+        return layout_shwfs
 
+    def _create_dm_widgets(self):
         layout_deformablemirror = QtWidgets.QGridLayout()
         self.QLabel_dms = cw.label_widget(str('DM '))
         self.QComboBox_dms = cw.combobox_widget(list_items=[])
@@ -148,8 +169,9 @@ class AOWidget(QtWidgets.QWidget):
         layout_deformablemirror.addWidget(self.QPushButton_load_dm, 3, 3, 1, 1)
         layout_deformablemirror.addWidget(self.QPushButton_update_cmd, 4, 2, 1, 1)
         layout_deformablemirror.addWidget(self.QPushButton_save_dm, 4, 3, 1, 1)
-        group_deformablemirror.setLayout(layout_deformablemirror)
+        return layout_deformablemirror
 
+    def _create_dwfs_widgets(self):
         layout_dwfs = QtWidgets.QGridLayout()
         self.QLabel_close_loop_number = cw.label_widget(str('Loop #   (0 - infinite)'))
         self.QSpinBox_close_loop_number = cw.spinbox_widget(0, 100, 1, 1)
@@ -157,8 +179,9 @@ class AOWidget(QtWidgets.QWidget):
         layout_dwfs.addWidget(self.QLabel_close_loop_number, 0, 0, 1, 1)
         layout_dwfs.addWidget(self.QSpinBox_close_loop_number, 0, 1, 1, 1)
         layout_dwfs.addWidget(self.QPushButton_dwfs_cl_correction, 0, 2, 1, 1)
-        group_dwfs.setLayout(layout_dwfs)
+        return layout_dwfs
 
+    def _create_sensorless_widgets(self):
         layout_sensorless = QtWidgets.QGridLayout()
         self.QLabel_zernike_modes = cw.label_widget(str('Zernike Modes'))
         self.QLabel_zernike_mode_start = cw.label_widget(str('From'))
@@ -200,25 +223,27 @@ class AOWidget(QtWidgets.QWidget):
         layout_sensorless.addWidget(self.QComboBox_metric, 1, 5, 1, 1)
         layout_sensorless.addWidget(self.QPushButton_sensorless_run, 2, 5, 1, 1)
         layout_sensorless.addWidget(self.QPushButton_sensorless_save, 3, 5, 1, 1)
-        group_sensorlessao.setLayout(layout_sensorless)
+        return layout_sensorless
 
+    def _set_signal_connections(self):
         self.QPushButton_img_shwfs_base.clicked.connect(self.img_wfs_base)
         self.QPushButton_run_img_wfs.clicked.connect(self.run_img_wfs)
         self.QPushButton_run_img_wfr.clicked.connect(self.run_img_wfr)
-        self.QPushButton_img_shwfs_compute_wf.clicked.connect(self.Signal_img_shwfs_compute_wf.emit)
+        self.QPushButton_img_shwfs_compute_wf.clicked.connect(self.compute_img_wf)
         self.QPushButton_img_shwfs_save_wf.clicked.connect(self.save_img_wf)
         self.QComboBox_dms.currentIndexChanged.connect(self.select_dm)
-        self.QPushButton_push_actuator.clicked.connect(self.Signal_push_actuator.emit)
-        self.QPushButton_influence_fuction_laser.clicked.connect(self.Signal_influence_function.emit)
-        self.QPushButton_set_zernike_mode.clicked.connect(self.Signal_set_zernike.emit)
-        self.QPushButton_setDM.clicked.connect(self.Signal_set_dm.emit)
-        self.QPushButton_update_cmd.clicked.connect(self.Signal_update_cmd.emit)
+        self.QPushButton_push_actuator.clicked.connect(self.push_dm_actuator)
+        self.QPushButton_influence_fuction_laser.clicked.connect(self.run_influence_function)
+        self.QPushButton_set_zernike_mode.clicked.connect(self.set_dm_zernike)
+        self.QPushButton_setDM.clicked.connect(self.set_dm_acts)
+        self.QPushButton_update_cmd.clicked.connect(self.update_dm_cmd)
         self.QPushButton_load_dm.clicked.connect(self.load_dm_file)
-        self.QPushButton_save_dm.clicked.connect(self.Signal_save_dm.emit)
-        self.QPushButton_dwfs_cl_correction.clicked.connect(self.close_loop_correction)
-        self.QPushButton_sensorless_run.clicked.connect(self.Signal_sensorlessAO_run.emit)
-        self.QPushButton_sensorless_save.clicked.connect(self.Signal_sensorlessAO_save.emit)
+        self.QPushButton_save_dm.clicked.connect(self.save_dm_cmd)
+        self.QPushButton_dwfs_cl_correction.clicked.connect(self.run_close_loop_correction)
+        self.QPushButton_sensorless_run.clicked.connect(self.run_sensorless_correction)
+        self.QPushButton_sensorless_save.clicked.connect(self.save_sensorless_correction)
 
+    def _set_initial_values(self):
         self.QComboBox_wfs_camera_selection.setCurrentIndex(1)
         self.QSpinBox_base_xcenter_img.setValue(983)
         self.QSpinBox_base_ycenter_img.setValue(1081)
@@ -229,22 +254,26 @@ class AOWidget(QtWidgets.QWidget):
         self.QSpinBox_spacing_img.setValue(61)
         self.QSpinBox_radius_img.setValue(24)
 
+    @QtCore.pyqtSlot()
     def img_wfs_base(self):
         self.Signal_img_shwfs_base.emit()
 
+    @QtCore.pyqtSlot()
     def run_img_wfs(self):
         if self.QPushButton_run_img_wfs.isChecked():
             self.Signal_img_wfs.emit(True)
         else:
             self.Signal_img_wfs.emit(False)
 
+    @QtCore.pyqtSlot()
     def run_img_wfr(self):
         self.Signal_img_shwfr_run.emit()
 
-    def close_loop_correction(self):
-        n = self.QSpinBox_close_loop_number.value()
-        self.Signal_img_shwfs_correct_wf.emit(n)
+    @QtCore.pyqtSlot()
+    def compute_img_wf(self):
+        self.Signal_img_shwfs_compute_wf.emit()
 
+    @QtCore.pyqtSlot()
     def save_img_wf(self):
         dialog = cw.create_file_dialogue(name="Save File", file_filter="All Files (*)",
                                          default_dir=r"C:/Users/ruizhe.lin/Documents/data")
@@ -259,6 +288,27 @@ class AOWidget(QtWidgets.QWidget):
         dn = self.QComboBox_dms.currentText()
         self.Signal_dm_selection.emit(dn)
 
+    @QtCore.pyqtSlot()
+    def push_dm_actuator(self):
+        self.Signal_push_actuator.emit()
+
+    @QtCore.pyqtSlot()
+    def run_influence_function(self):
+        self.Signal_influence_function.emit()
+
+    @QtCore.pyqtSlot()
+    def set_dm_zernike(self):
+        self.Signal_set_zernike.emit()
+
+    @QtCore.pyqtSlot()
+    def set_dm_acts(self):
+        self.Signal_set_dm.emit()
+
+    @QtCore.pyqtSlot()
+    def update_dm_cmd(self):
+        self.Signal_update_cmd.emit()
+
+    @QtCore.pyqtSlot()
     def load_dm_file(self):
         dialog = cw.create_file_dialogue(name="Open File", file_filter="All Files (*)",
                                          default_dir=r"C:/Users/ruizhe.lin/Documents/data")
@@ -268,10 +318,26 @@ class AOWidget(QtWidgets.QWidget):
                 print(selected_files[0])
                 self.Signal_load_dm.emit(selected_files[0])
 
+    @QtCore.pyqtSlot()
+    def save_dm_cmd(self):
+        self.Signal_save_dm.emit()
 
-import sys
+    @QtCore.pyqtSlot()
+    def run_close_loop_correction(self):
+        n = self.QSpinBox_close_loop_number.value()
+        self.Signal_img_shwfs_correct_wf.emit(n)
+
+    @QtCore.pyqtSlot()
+    def run_sensorless_correction(self):
+        self.Signal_sensorlessAO_run.emit()
+
+    @QtCore.pyqtSlot()
+    def save_sensorless_correction(self):
+        self.Signal_sensorlessAO_save.emit()
+
 
 if __name__ == '__main__':
+    import sys
     app = QtWidgets.QApplication(sys.argv)
     window = AOWidget(None, None, None)
     window.show()
