@@ -54,7 +54,7 @@ class DeformableMirror:
             self.logg.info("Number of actuator for " + sn + ": " + str(n_act))
             return dm, n_act
         except Exception as e:
-            self.logg.error(f"Error Initializing DM: {e}")
+            self.logg.error(f"Error Initializing DM {self.dm_name}: {e}")
             return None, None
 
     def _configure_dm(self):
@@ -89,22 +89,22 @@ class DeformableMirror:
 
     def close(self):
         self.reset_dm()
-        self.logg.info("Exit")
+        self.logg.info(f"DM {self.dm_name} Close")
 
     def reset_dm(self):
         self.dm.Reset()
-        self.logg.info("Reset")
+        self.logg.info(f"DM {self.dm_name} Reset")
 
     def set_dm(self, values):
         if all(np.abs(v) < 1. for v in values):
             self.dm.Send(values)
-            self.logg.info('DM set')
+            self.logg.info(f"DM {self.dm_name} set")
         else:
             raise ValueError("Some actuators exceed the DM push range!")
 
     def null_dm(self):
         self.dm.Send([0.] * self.n_actuator)
-        self.logg.info('DM set to null')
+        self.logg.info(f"DM {self.dm_name} set to null")
 
     def get_correction(self, measurements, method="phase"):
         if method == 'phase':
@@ -123,8 +123,7 @@ class DeformableMirror:
         _c = self.cmd_add(self.dm_cmd[self.current_cmd], self.correction[-1])
         self.dm_cmd.append(_c)
 
-    @staticmethod
-    def zernike_modes():
+    def zernike_modes(self):
         """
         z2c index:
         0, 1 - tip / tilt
@@ -134,8 +133,10 @@ class DeformableMirror:
         7, 8 - trefoil
         9 - spherical
         """
+        pth = r"C:\Program Files\Alpao\SDK\Config"
+        fn = f"{self.dm_serial}-Z2C.csv"
         Z2C = []
-        with open(r'C:\Program Files\Alpao\SDK\Config\BAX513-Z2C.csv', newline='') as csvfile:
+        with open(os.path.join(pth, fn), newline='') as csvfile:
             csvrows = csv.reader(csvfile, delimiter=' ')
             for row in csvrows:
                 x = row[0].split(",")
@@ -160,12 +161,12 @@ class DeformableMirror:
 
     def write_cmd(self, path, t, flatfile=False):
         if flatfile:
-            filename = t + "_flat_file.xlsx"
+            filename = t + f"{self.dm_serial}_flat_file.xlsx"
             df = pd.DataFrame(self.dm_cmd[-1], index=np.arange(97), columns=['Push'])
             fd = os.path.join(path, filename)
             df.to_excel(str(fd), index_label='Actuator')
         else:
-            filename = t + "_cmd_file.xlsx"
+            filename = t + f"{self.dm_serial}_cmd_file.xlsx"
             fd = os.path.join(path, filename)
             data = {f'cmd{i}': cmd for i, cmd in enumerate(self.dm_cmd)}
             with pd.ExcelWriter(str(fd), engine='xlsxwriter') as writer:

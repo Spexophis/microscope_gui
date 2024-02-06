@@ -30,10 +30,13 @@ class MainModule:
             self.cam_set[2] = self.tiscam
         except Exception as e:
             self.logg.error_log.error(f"{e}")
-        try:
-            self.dm = module_deformablemirror.DeformableMirror(logg=self.logg.error_log, config=self.config)
-        except Exception as e:
-            self.logg.error_log.error(f"{e}")
+        self.dm = {}
+        for key in self.config["Adaptive Optics"]["Deformable Mirrors"].keys():
+            try:
+                self.dm[key] = module_deformablemirror.DeformableMirror(name=key, logg=self.logg.error_log,
+                                                                        config=self.config)
+            except Exception as e:
+                self.logg.error_log.error(f"{e}")
         try:
             self.laser = module_laser.CoboltLaser(logg=self.logg.error_log)
         except Exception as e:
@@ -70,7 +73,8 @@ class MainModule:
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
-            self.dm.close()
+            for key in self.dm.keys():
+                self.dm[key].close()
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:

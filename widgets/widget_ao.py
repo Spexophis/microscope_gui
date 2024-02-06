@@ -10,6 +10,7 @@ class AOWidget(QtWidgets.QWidget):
     Signal_img_shwfs_compute_wf = QtCore.pyqtSignal()
     Signal_img_shwfs_correct_wf = QtCore.pyqtSignal(int)
     Signal_img_shwfs_save_wf = QtCore.pyqtSignal(str)
+    Signal_dm_selection = QtCore.pyqtSignal(str)
     Signal_push_actuator = QtCore.pyqtSignal()
     Signal_influence_function = QtCore.pyqtSignal()
     Signal_set_zernike = QtCore.pyqtSignal()
@@ -106,6 +107,8 @@ class AOWidget(QtWidgets.QWidget):
         group_commands.setLayout(layout_shwfs)
 
         layout_deformablemirror = QtWidgets.QGridLayout()
+        self.QLabel_dms = cw.label_widget(str('DM '))
+        self.QComboBox_dms = cw.combobox_widget(list_items=[])
         self.QLabel_wfsmd = cw.label_widget(str('Method'))
         self.QComboBox_wfsmd = cw.combobox_widget(list_items=['phase', 'zonal', 'modal'])
         self.QLabel_actuator = cw.label_widget(str('Actuator'))
@@ -125,8 +128,10 @@ class AOWidget(QtWidgets.QWidget):
         self.QPushButton_load_dm = cw.pushbutton_widget('Load DM')
         self.QPushButton_update_cmd = cw.pushbutton_widget('Add DM')
         self.QPushButton_save_dm = cw.pushbutton_widget('Save DM')
-        layout_deformablemirror.addWidget(self.QLabel_wfsmd, 0, 0, 1, 1)
-        layout_deformablemirror.addWidget(self.QComboBox_wfsmd, 0, 1, 1, 1)
+        layout_deformablemirror.addWidget(self.QLabel_dms, 0, 0, 1, 1)
+        layout_deformablemirror.addWidget(self.QComboBox_dms, 0, 1, 1, 1)
+        layout_deformablemirror.addWidget(self.QLabel_wfsmd, 0, 2, 1, 1)
+        layout_deformablemirror.addWidget(self.QComboBox_wfsmd, 0, 3, 1, 1)
         layout_deformablemirror.addWidget(self.QLabel_actuator, 1, 0, 1, 1)
         layout_deformablemirror.addWidget(self.QSpinBox_actuator, 1, 1, 1, 1)
         layout_deformablemirror.addWidget(self.QLabel_actuator_push, 2, 0, 1, 1)
@@ -202,6 +207,7 @@ class AOWidget(QtWidgets.QWidget):
         self.QPushButton_run_img_wfr.clicked.connect(self.run_img_wfr)
         self.QPushButton_img_shwfs_compute_wf.clicked.connect(self.Signal_img_shwfs_compute_wf.emit)
         self.QPushButton_img_shwfs_save_wf.clicked.connect(self.save_img_wf)
+        self.QComboBox_dms.currentIndexChanged.connect(self.select_dm)
         self.QPushButton_push_actuator.clicked.connect(self.Signal_push_actuator.emit)
         self.QPushButton_influence_fuction_laser.clicked.connect(self.Signal_influence_function.emit)
         self.QPushButton_set_zernike_mode.clicked.connect(self.Signal_set_zernike.emit)
@@ -247,6 +253,11 @@ class AOWidget(QtWidgets.QWidget):
             if selected_file:
                 print(selected_file[0])
                 self.Signal_img_shwfs_save_wf.emit(selected_file[0])
+
+    @QtCore.pyqtSlot()
+    def select_dm(self):
+        dn = self.QComboBox_dms.currentText()
+        self.Signal_dm_selection.emit(dn)
 
     def load_dm_file(self):
         dialog = cw.create_file_dialogue(name="Open File", file_filter="All Files (*)",
