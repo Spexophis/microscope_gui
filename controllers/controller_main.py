@@ -114,6 +114,7 @@ class MainController:
 
             for key in self.m.dm.keys():
                 self.v.ao_view.QComboBox_dms.addItem(key)
+            self.dfm = self.m.dm[self.v.ao_view.QComboBox_dms.currentText()]
             self.logg.info("Finish setting up controllers")
         except Exception as e:
             self.logg.error(f"Initial setup Error: {e}")
@@ -655,9 +656,9 @@ class MainController:
     def push_actuator(self):
         try:
             n, a = self.ao_controller.get_actuator()
-            values = [0.] * self.dfmn_actuator
+            values = [0.] * self.dfm.n_actuator
             values[n] = a
-            self.dfmset_dm(self.dfmcmd_add(values, self.dfmdm_cmd[self.dfmcurrent_cmd]))
+            self.dfm.set_dm(self.dfm.cmd_add(values, self.dfm.dm_cmd[self.dfm.current_cmd]))
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
@@ -665,34 +666,34 @@ class MainController:
         try:
             indz, amp = self.ao_controller.get_zernike_mode()
             if factory:
-                self.dfmset_dm(
-                    self.dfmcmd_add([i * amp for i in self.dfmz2c[indz]], self.dfmdm_cmd[self.dfmcurrent_cmd]))
+                self.dfm.set_dm(
+                    self.dfm.cmd_add([i * amp for i in self.dfm.z2c[indz]], self.dfm.dm_cmd[self.dfm.current_cmd]))
             else:
-                self.dfmset_dm(
-                    self.dfmcmd_add(self.dfmget_zernike_cmd(indz, amp), self.dfmdm_cmd[self.dfmcurrent_cmd]))
+                self.dfm.set_dm(
+                    self.dfm.cmd_add(self.dfm.get_zernike_cmd(indz, amp), self.dfm.dm_cmd[self.dfm.current_cmd]))
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
     def set_dm(self):
         try:
             i = int(self.ao_controller.get_cmd_index())
-            self.dfmset_dm(self.dfmdm_cmd[i])
-            self.dfmcurrent_cmd = i
+            self.dfm.set_dm(self.dfm.dm_cmd[i])
+            self.dfm.current_cmd = i
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
     def update_dm(self):
         try:
-            self.dfmdm_cmd.append(self.dfmtemp_cmd[-1])
+            self.dfm.dm_cmd.append(self.dfm.temp_cmd[-1])
             self.ao_controller.update_cmd_index()
-            self.dfmset_dm(self.dfmdm_cmd[-1])
+            self.dfm.set_dm(self.dfm.dm_cmd[-1])
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
     def load_dm(self, filename):
         try:
-            self.dfmdm_cmd.append(self.dfmread_cmd(filename))
-            self.dfmset_dm(self.dfmdm_cmd[-1])
+            self.dfm.dm_cmd.append(self.dfm.read_cmd(filename))
+            self.dfm.set_dm(self.dfm.dm_cmd[-1])
             print('New DM cmd loaded')
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
@@ -700,7 +701,7 @@ class MainController:
     def save_dm(self):
         try:
             t = time.strftime("%Y%m%d_%H%M%S_")
-            self.dfmwrite_cmd(self.data_folder, t, flatfile=False)
+            self.dfm.write_cmd(self.data_folder, t, flatfile=False)
             print('DM cmd saved')
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
@@ -800,8 +801,8 @@ class MainController:
             self.logg.error(f"SHWFS Wavefront Show Error: {e}")
 
     def compute_img_wf(self):
-        # self.dfmrun_wf_modal_recon()
-        # self.view_controller.plot_update(self.dfmaz)
+        # self.dfm.run_wf_modal_recon()
+        # self.view_controller.plot_update(self.dfm.az)
         self.imshow_img_wfr()
 
     def save_img_wf(self, file_name):
@@ -848,32 +849,32 @@ class MainController:
             return
         n, amp = self.ao_controller.get_actuator()
         self.m.cam_set[self.cameras["wfs"]].start_live()
-        for i in range(self.dfmn_actuator):
+        for i in range(self.dfm.n_actuator):
             shimg = []
             self.v.dialog_text.setText(f"actuator {i}")
-            values = [0.] * self.dfmn_actuator
-            self.dfmset_dm(values)
+            values = [0.] * self.dfm.n_actuator
+            self.dfm.set_dm(values)
             time.sleep(0.02)
             self.m.daq.run_digital_trigger()
             time.sleep(0.04)
             shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
             self.m.daq.stop_triggers(_close=False)
             values[i] = amp
-            self.dfmset_dm(values)
+            self.dfm.set_dm(values)
             time.sleep(0.02)
             self.m.daq.run_digital_trigger()
             time.sleep(0.04)
             shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
             self.m.daq.stop_triggers(_close=False)
-            values = [0.] * self.dfmn_actuator
-            self.dfmset_dm(values)
+            values = [0.] * self.dfm.n_actuator
+            self.dfm.set_dm(values)
             time.sleep(0.02)
             self.m.daq.run_digital_trigger()
             time.sleep(0.04)
             shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
             self.m.daq.stop_triggers(_close=False)
             values[i] = - amp
-            self.dfmset_dm(values)
+            self.dfm.set_dm(values)
             time.sleep(0.02)
             self.m.daq.run_digital_trigger()
             time.sleep(0.04)
@@ -884,17 +885,17 @@ class MainController:
             md = self.ao_controller.get_img_wfs_method()
             self.v.dialog_text.setText(f"computing influence function")
             self.p.shwfsr.generate_influence_matrix(data_folder=fd, dm_info=(
-                self.dfmn_actuator, self.dfmamp, self.dfmn_zernike, self.dfmzslopes), method=md, sv=True)
+                self.dfm.n_actuator, self.dfm.amp, self.dfm.n_zernike, self.dfm.zslopes), method=md, sv=True)
         except Exception as e:
             self.logg.error(f"Error computing influence function: {e}")
             return
 
     def single_actuator(self, act_ind, p_amp):
         self.logg.info(f"actuator # {act_ind}")
-        self.dfmset_dm(self.dfmdm_cmd[-1])
-        values = [0.] * self.dfmn_actuator
+        self.dfm.set_dm(self.dfm.dm_cmd[-1])
+        values = [0.] * self.dfm.n_actuator
         values[act_ind] = p_amp
-        self.dfmset_dm(values)
+        self.dfm.set_dm(values)
         time.sleep(0.02)
         self.m.daq.run_digital_trigger()
         time.sleep(0.02)
@@ -935,14 +936,14 @@ class MainController:
         self.p.shwfsr.meas = self.m.cam_set[self.cameras["wfs"]].get_last_image()
         self.m.daq.stop_triggers(_close=False)
         if self.ao_controller.get_img_wfs_method() == "phase":
-            self.dfmget_correction(self.p.shwfsr.wavefront_reconstruction(rt=True), method="phase")
+            self.dfm.get_correction(self.p.shwfsr.wavefront_reconstruction(rt=True), method="phase")
         else:
-            self.dfmget_correction(self.p.shwfsr.get_gradient_xy(),
+            self.dfm.get_correction(self.p.shwfsr.get_gradient_xy(),
                                      method=self.ao_controller.get_img_wfs_method())
-        self.dfmset_dm(self.dfmdm_cmd[-1])
+        self.dfm.set_dm(self.dfm.dm_cmd[-1])
         self.ao_controller.update_cmd_index()
         i = int(self.ao_controller.get_cmd_index())
-        self.dfmcurrent_cmd = i
+        self.dfm.current_cmd = i
 
     def _finish_close_loop_correction(self):
         try:
@@ -988,11 +989,11 @@ class MainController:
             results = [('Mode', 'Amp', 'Metric')]
             za = []
             mv = []
-            zp = [0] * self.dfmn_zernike
-            cmd = self.dfmdm_cmd[self.dfmcurrent_cmd]
+            zp = [0] * self.dfm.n_zernike
+            cmd = self.dfm.dm_cmd[self.dfm.current_cmd]
             self.m.cam_set[self.cameras["imaging"]].start_live()
             self.logg.info("Sensorless AO iteration starts")
-            self.dfmset_dm(cmd)
+            self.dfm.set_dm(cmd)
             time.sleep(0.02)
             self.m.daq.run_digital_trigger()
             time.sleep(0.04)
@@ -1006,8 +1007,8 @@ class MainController:
                 for stnm in range(amp_step_number):
                     amp = amp_start + stnm * amp_step
                     amprange.append(amp)
-                    self.dfmset_dm(self.dfmcmd_add(self.dfmget_zernike_cmd(mode, amp), cmd))
-                    # self.dfmset_dm(self.dfmcmd_add([i * amp for i in self.dfmz2c[mode]], cmd))
+                    self.dfm.set_dm(self.dfm.cmd_add(self.dfm.get_zernike_cmd(mode, amp), cmd))
+                    # self.dfm.set_dm(self.dfm.cmd_add([i * amp for i in self.dfm.z2c[mode]], cmd))
                     time.sleep(0.02)
                     self.m.daq.run_digital_trigger()
                     time.sleep(0.04)
@@ -1029,23 +1030,23 @@ class MainController:
                     pmax = ipr.peak_find(amprange, dt)
                     zp[mode] = pmax
                     self.logg.info("setting mode %d at value of %.4f" % (mode, pmax))
-                    cmd = self.dfmcmd_add(self.dfmget_zernike_cmd(mode, pmax), cmd)
-                    self.dfmset_dm(cmd)
+                    cmd = self.dfm.cmd_add(self.dfm.get_zernike_cmd(mode, pmax), cmd)
+                    self.dfm.set_dm(cmd)
                 except ValueError as e:
                     self.logg.error(f"mode {mode} error {e}")
-            self.dfmset_dm(cmd)
+            self.dfm.set_dm(cmd)
             time.sleep(0.02)
             self.m.daq.run_digital_trigger()
             time.sleep(0.04)
             self.m.daq.stop_triggers(_close=False)
             fn = os.path.join(new_folder, 'final.tif')
             tf.imwrite(fn, self.m.cam_set[self.cameras["imaging"]].get_last_image())
-            self.dfmdm_cmd.append(cmd)
+            self.dfm.dm_cmd.append(cmd)
             self.ao_controller.update_cmd_index()
             i = int(self.ao_controller.get_cmd_index())
-            self.dfmcurrent_cmd = i
-            self.dfmwrite_cmd(new_folder, '_')
-            self.dfmsave_sensorless_results(os.path.join(new_folder, 'results.xlsx'), za, mv, zp)
+            self.dfm.current_cmd = i
+            self.dfm.write_cmd(new_folder, '_')
+            self.dfm.save_sensorless_results(os.path.join(new_folder, 'results.xlsx'), za, mv, zp)
         except Exception as e:
             self.logg.error(f"Sensorless AO Error: {e}")
 
