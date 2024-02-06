@@ -137,7 +137,8 @@ class MainController:
         self.task_thread.wait()
         self.v.dialog.accept()
 
-    def move_deck_single_step(self, direction):
+    @QtCore.pyqtSlot(bool)
+    def move_deck_single_step(self, direction: bool):
         if direction:
             self.move_deck_up()
         else:
@@ -149,7 +150,7 @@ class MainController:
             if _moving:
                 print("MadDeck is moving")
             else:
-                self.m.md.move_relative(3, 9.525e-05, velocity=1.5)
+                self.m.md.move_relative(3, 2 * 9.525e-05, velocity=1.5)
                 self.m.md.wait()
                 p = self.m.md.get_position_steps_taken(3)
                 self.con_controller.display_deck_position(p)
@@ -162,30 +163,29 @@ class MainController:
             if _moving:
                 print("MadDeck is moving")
             else:
-                self.m.md.move_relative(3, -9.525e-05, velocity=1.5)
+                self.m.md.move_relative(3, -2 * 9.525e-05, velocity=1.5)
                 self.m.md.wait()
                 p = self.m.md.get_position_steps_taken(3)
                 self.con_controller.display_deck_position(p)
         except Exception as e:
             self.logg.error(f"MadDeck Error: {e}")
 
-    def move_deck_continuous(self, moving):
+    @QtCore.pyqtSlot(bool, float, float)
+    def move_deck_continuous(self, moving: bool, distance: float, velocity: float):
         if moving:
-            self.move_deck()
+            self.move_deck(distance, velocity)
         else:
             self.stop_deck()
 
-    def move_deck(self):
+    def move_deck(self, distance, velocity):
         try:
             _moving = self.m.md.is_moving()
             if _moving:
                 self.m.md.stop_moving()
                 p = self.m.md.get_position_steps_taken(3)
                 self.con_controller.display_deck_position(p)
-                distance, velocity = self.con_controller.get_deck_movement()
                 self.m.md.move_relative(3, distance, velocity=velocity)
             else:
-                distance, velocity = self.con_controller.get_deck_movement()
                 self.m.md.move_relative(3, distance, velocity=velocity)
         except Exception as e:
             self.logg.error(f"MadDeck Error: {e}")
@@ -203,46 +203,45 @@ class MainController:
         except Exception as e:
             self.logg.error(f"MadDeck Error: {e}")
 
-    def set_piezo(self, axis):
+    @QtCore.pyqtSlot(str, float, float, float)
+    def set_piezo(self, axis: str, pos_x: float, pos_y: float, pos_z: float):
         if axis == "x":
-            self.set_piezo_position_x()
+            self.set_piezo_position_x(pos_x, pos_y)
         elif axis == "y":
-            self.set_piezo_position_y()
+            self.set_piezo_position_y(pos_x, pos_y)
         elif axis == "z":
-            self.set_piezo_position_z()
+            self.set_piezo_position_z(pos_z)
 
-    def set_piezo_position_x(self):
+    def set_piezo_position_x(self, pos_x, pos_y):
         try:
-            pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
             self.m.daq.set_piezo_position(pos_x / 10., pos_y / 10.)
             self.con_controller.display_piezo_position_x(self.m.pz.read_position(0))
         except Exception as e:
             self.logg.error(f"MCL Piezo Error: {e}")
 
-    def set_piezo_position_y(self):
+    def set_piezo_position_y(self, pos_x, pos_y):
         try:
-            pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
             self.m.daq.set_piezo_position(pos_x / 10., pos_y / 10.)
             self.con_controller.display_piezo_position_y(self.m.pz.read_position(1))
         except Exception as e:
             self.logg.error(f"MCL Piezo Error: {e}")
 
-    def set_piezo_position_z(self):
+    def set_piezo_position_z(self, pos_z):
         try:
-            pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
             z = self.m.pz.move_position(2, pos_z)
             self.con_controller.display_piezo_position_z(z)
         except Exception as e:
             self.logg.error(f"MCL Piezo Error: {e}")
 
-    def set_galvo(self):
+    @QtCore.pyqtSlot(float, float)
+    def set_galvo(self, voltx: float, volty: float):
         try:
-            voltx, volty = self.con_controller.get_galvo_scan()
             self.m.daq.set_galvo_position(voltx, volty)
         except Exception as e:
             self.logg.error(f"Galvo Error: {e}")
 
-    def set_laser(self, laser, switch):
+    @QtCore.pyqtSlot(list, bool)
+    def set_laser(self, laser: list, switch: bool):
         if switch:
             try:
                 self.m.laser.set_constant_power(laser, self.con_controller.get_cobolt_laser_power(laser[0]))
@@ -441,8 +440,8 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Error plotting digital triggers: {e}")
 
-    def data_acquisition(self):
-        acq_mod = self.con_controller.get_acquisition_mode()
+    @QtCore.pyqtSlot(str)
+    def data_acquisition(self, acq_mod: str):
         if acq_mod == "Widefield 3D":
             self.run_widefield_zstack()
         if acq_mod == "Confocal 2D":
@@ -939,7 +938,7 @@ class MainController:
             self.dfm.get_correction(self.p.shwfsr.wavefront_reconstruction(rt=True), method="phase")
         else:
             self.dfm.get_correction(self.p.shwfsr.get_gradient_xy(),
-                                     method=self.ao_controller.get_img_wfs_method())
+                                    method=self.ao_controller.get_img_wfs_method())
         self.dfm.set_dm(self.dfm.dm_cmd[-1])
         self.ao_controller.update_cmd_index()
         i = int(self.ao_controller.get_cmd_index())
