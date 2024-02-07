@@ -10,7 +10,7 @@ class ConWidget(QtWidgets.QWidget):
     Signal_deck_move_single_step = QtCore.pyqtSignal(bool)
     Signal_deck_move_continuous = QtCore.pyqtSignal(bool, float, float)
     Signal_galvo_set = QtCore.pyqtSignal(float, float)
-    Signal_set_laser = QtCore.pyqtSignal(list, bool)
+    Signal_set_laser = QtCore.pyqtSignal(list, bool, float)
     Signal_plot_trigger = QtCore.pyqtSignal()
     Signal_video = QtCore.pyqtSignal(bool)
     Signal_fft = QtCore.pyqtSignal(bool)
@@ -27,6 +27,7 @@ class ConWidget(QtWidgets.QWidget):
         self.data_folder = path
         self._setup_ui()
         self._set_signal_connections()
+        self.update_trigger_parameter_sets("live")
 
     def _setup_ui(self):
         self.layout = QtWidgets.QVBoxLayout(self)
@@ -393,19 +394,23 @@ class ConWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot(bool)
     def set_laser_488_0(self, checked: bool):
-        self.Signal_set_laser.emit(["488_0"], checked)
+        power = self.QDoubleSpinBox_laserpower_488_0.value()
+        self.Signal_set_laser.emit(["488_0"], checked, power)
 
     @QtCore.pyqtSlot(bool)
     def set_laser_488_1(self, checked: bool):
-        self.Signal_set_laser.emit(["488_1"], checked)
+        power = self.QDoubleSpinBox_laserpower_488_1.value()
+        self.Signal_set_laser.emit(["488_1"], checked, power)
 
     @QtCore.pyqtSlot(bool)
     def set_laser_488_2(self, checked: bool):
-        self.Signal_set_laser.emit(["488_2"], checked)
+        power = self.QDoubleSpinBox_laserpower_488_2.value()
+        self.Signal_set_laser.emit(["488_2"], checked, power)
 
     @QtCore.pyqtSlot(bool)
     def set_laser_405(self, checked: bool):
-        self.Signal_set_laser.emit(["405"], checked)
+        power = self.QDoubleSpinBox_laserpower_405.value()
+        self.Signal_set_laser.emit(["405"], checked, power)
 
     @QtCore.pyqtSlot()
     def plot_trigger_sequence(self):

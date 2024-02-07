@@ -10,9 +10,10 @@ from controllers import controller_ao, controller_con, controller_view
 from tools import tool_improc as ipr
 
 
-class MainController:
+class MainController(QtCore.QObject):
 
-    def __init__(self, view, module, process, config, logg, path):
+    def __init__(self, view, module, process, config, logg, path, parent=None):
+        super().__init__(parent)
 
         self.v = view
         self.m = module
@@ -23,9 +24,16 @@ class MainController:
         self.view_controller = controller_view.ViewController(self.v.view_view)
         self.con_controller = controller_con.ConController(self.v.con_view)
         self.ao_controller = controller_ao.AOController(self.v.ao_view)
+        self._setup_threads()
+        self._set_signal_connections()
+        self._initial_setup()
+        self.lasers = []
+        self.cameras = {"imaging": 0, "wfs": 1}
+        # dedicated thread pool for tasks
+        self.task_worker = None
+        self.task_thread = QtCore.QThread()
 
-        self.stack_params = None
-
+    def _setup_threads(self):
         # video thread
         self.videoWorker = LoopWorker(dt=100)
         self.videoWorker.signal_loop.connect(self.imshow_main)
@@ -54,11 +62,10 @@ class MainController:
         self.wfsWorker.moveToThread(self.thread_wfs)
         self.thread_wfs.started.connect(self.wfsWorker.start)
         self.thread_wfs.finished.connect(self.wfsWorker.stop)
-        # dedicated thread pool for tasks
-        self.task_worker = None
-        self.task_thread = QtCore.QThread()
+
+    def _set_signal_connections(self):
         # MCL Piezo
-        self.v.con_view.Signal_piezo_move.connect(self.set_piezo)
+        self.v.con_view.Signal_piezo_move.connect(self.set_piezo_positions)
         # MCL Mad Deck
         self.v.con_view.Signal_deck_move_single_step.connect(self.move_deck_single_step)
         self.v.con_view.Signal_deck_move_continuous.connect(self.move_deck_continuous)
@@ -95,18 +102,12 @@ class MainController:
         self.v.ao_view.Signal_img_shwfs_correct_wf.connect(self.run_close_loop_correction)
         self.v.ao_view.Signal_sensorlessAO_run.connect(self.run_sensorless_iteration)
 
-        self._initial_setup()
-        self.lasers = []
-        self.cameras = {"imaging": 0, "wfs": 1}
-
     def _initial_setup(self):
         try:
             p = self.m.md.get_position_steps_taken(3)
             self.con_controller.display_deck_position(p)
 
-            pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-            self.m.daq.set_piezo_position(pos_x / 10., pos_y / 10.)
-            self.set_piezo_position_z()
+            self.reset_piezo_positions()
 
             self.magnifications = [157.5, 1, 1]
             self.pixel_sizes = []
@@ -203,14 +204,19 @@ class MainController:
         except Exception as e:
             self.logg.error(f"MadDeck Error: {e}")
 
+    def reset_piezo_positions(self):
+        pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
+        self.m.daq.set_piezo_position(pos_x / 10., pos_y / 10.)
+        self.set_piezo_position_z(pos_z)
+
     @QtCore.pyqtSlot(str, float, float, float)
-    def set_piezo(self, axis: str, pos_x: float, pos_y: float, pos_z: float):
+    def set_piezo_positions(self, axis: str, value_x: float, value_y: float, value_z: float):
         if axis == "x":
-            self.set_piezo_position_x(pos_x, pos_y)
-        elif axis == "y":
-            self.set_piezo_position_y(pos_x, pos_y)
-        elif axis == "z":
-            self.set_piezo_position_z(pos_z)
+            self.set_piezo_position_x(value_x, value_y)
+        if axis == "y":
+            self.set_piezo_position_y(value_x, value_y)
+        if axis == "z":
+            self.set_piezo_position_z(value_z)
 
     def set_piezo_position_x(self, pos_x, pos_y):
         try:
@@ -240,11 +246,11 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Galvo Error: {e}")
 
-    @QtCore.pyqtSlot(list, bool)
-    def set_laser(self, laser: list, switch: bool):
-        if switch:
+    @QtCore.pyqtSlot(list, bool, float)
+    def set_laser(self, laser: list, sw: bool, pw: float):
+        if sw:
             try:
-                self.m.laser.set_constant_power(laser, self.con_controller.get_cobolt_laser_power(laser[0]))
+                self.m.laser.set_constant_power(laser, [pw])
                 self.m.laser.laser_on(laser)
             except Exception as e:
                 self.logg.error(f"Cobolt Laser Error: {e}")
@@ -269,13 +275,15 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Cobolt Laser Error: {e}")
 
+    @QtCore.pyqtSlot()
     def check_emdccd_temperature(self):
         try:
             self.con_controller.display_camera_temperature(self.m.ccdcam.get_ccd_temperature())
         except Exception as e:
             self.logg.error(f"CCD Camera Error: {e}")
 
-    def switch_emdccd_cooler(self, sw):
+    @QtCore.pyqtSlot(bool)
+    def switch_emdccd_cooler(self, sw: bool):
         if sw:
             self.switch_emdccd_cooler_on()
         else:
@@ -365,12 +373,14 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Error stopping imaging video: {e}")
 
-    def video(self, sw):
+    @QtCore.pyqtSlot(bool)
+    def video(self, sw: bool):
         if sw:
             self.start_video()
         else:
             self.stop_video()
 
+    @QtCore.pyqtSlot()
     def imshow_main(self):
         try:
             self.view_controller.plot_main(self.m.cam_set[self.cameras["imaging"]].get_last_image(),
@@ -378,7 +388,8 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Error showing imaging video: {e}")
 
-    def fft(self, sw):
+    @QtCore.pyqtSlot(bool)
+    def fft(self, sw: bool):
         if sw:
             self.run_fft()
         else:
@@ -397,6 +408,7 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Error stopping fft: {e}")
 
+    @QtCore.pyqtSlot()
     def imshow_fft(self):
         try:
             self.view_controller.plot_fft(
@@ -404,7 +416,8 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Error showing fft: {e}")
 
-    def plot_live(self, sw):
+    @QtCore.pyqtSlot(bool)
+    def plot_live(self, sw: bool):
         if sw:
             self.start_plot_live()
         else:
@@ -423,6 +436,7 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Error stopping plot: {e}")
 
+    @QtCore.pyqtSlot()
     def profile_plot(self):
         try:
             ax = self.con_controller.get_profile_axis()
@@ -431,6 +445,7 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Error plotting profile: {e}")
 
+    @QtCore.pyqtSlot()
     def plot_trigger(self):
         try:
             dtr = self.generate_live_triggers("imaging")
@@ -499,7 +514,7 @@ class MainController:
 
     def finish_widefield_zstack(self):
         try:
-            self.set_piezo_position_z()
+            self.reset_piezo_positions()
             self.m.cam_set[self.cameras["imaging"]].stop_live()
             self.lasers_off()
             self.m.daq.stop_triggers()
@@ -639,7 +654,8 @@ class MainController:
     def run_bead_scan(self):
         self.run_task(task=self.bead_scan_2d)
 
-    def save_data(self, file_name):
+    @QtCore.pyqtSlot(str)
+    def save_data(self, file_name: str):
         try:
             tf.imwrite(file_name + '.tif', self.m.cam_set[self.cameras["imaging"]].get_last_image(), imagej=True,
                        resolution=(
@@ -649,12 +665,13 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Error saving data: {e}")
 
+    @QtCore.pyqtSlot(str)
     def select_dm(self, dm_n):
         self.dfm = self.m.dm[dm_n]
 
-    def push_actuator(self):
+    @QtCore.pyqtSlot(int, float)
+    def push_actuator(self, n: int, a: float):
         try:
-            n, a = self.ao_controller.get_actuator()
             values = [0.] * self.dfm.n_actuator
             values[n] = a
             self.dfm.set_dm(self.dfm.cmd_add(values, self.dfm.dm_cmd[self.dfm.current_cmd]))
@@ -673,6 +690,7 @@ class MainController:
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
+    @QtCore.pyqtSlot()
     def set_dm(self):
         try:
             i = int(self.ao_controller.get_cmd_index())
@@ -681,6 +699,7 @@ class MainController:
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
+    @QtCore.pyqtSlot()
     def update_dm(self):
         try:
             self.dfm.dm_cmd.append(self.dfm.temp_cmd[-1])
@@ -689,7 +708,8 @@ class MainController:
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
-    def load_dm(self, filename):
+    @QtCore.pyqtSlot(str)
+    def load_dm(self, filename: str):
         try:
             self.dfm.dm_cmd.append(self.dfm.read_cmd(filename))
             self.dfm.set_dm(self.dfm.dm_cmd[-1])
@@ -697,6 +717,7 @@ class MainController:
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
+    @QtCore.pyqtSlot()
     def save_dm(self):
         try:
             t = time.strftime("%Y%m%d_%H%M%S_")
@@ -765,6 +786,7 @@ class MainController:
         else:
             self._stop_img_wfs()
 
+    @QtCore.pyqtSlot()
     def imshow_img_wfs(self):
         try:
             self.p.shwfsr.meas = self.m.cam_set[self.cameras["wfs"]].get_last_image()
@@ -772,6 +794,7 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Error showing shwfs: {e}")
 
+    @QtCore.pyqtSlot()
     def set_reference_wf(self):
         try:
             self.p.shwfsr.ref = self.m.cam_set[self.cameras["wfs"]].get_last_image()
@@ -780,6 +803,7 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Error setting shwfs base: {e}")
 
+    @QtCore.pyqtSlot()
     def run_img_wfr(self):
         self.run_task(task=self.img_wfr, callback=self.imshow_img_wfr)
 
@@ -799,12 +823,14 @@ class MainController:
         except Exception as e:
             self.logg.error(f"SHWFS Wavefront Show Error: {e}")
 
+    @QtCore.pyqtSlot()
     def compute_img_wf(self):
         # self.dfm.run_wf_modal_recon()
         # self.view_controller.plot_update(self.dfm.az)
         self.imshow_img_wfr()
 
-    def save_img_wf(self, file_name):
+    @QtCore.pyqtSlot(str)
+    def save_img_wf(self, file_name: str):
         try:
             tf.imwrite(file_name + '_shimg_base_raw.tif', self.p.shwfsr.ref)
         except Exception as e:
@@ -822,6 +848,7 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Error saving shwfs wavefront: {e}")
 
+    @QtCore.pyqtSlot()
     def run_influence_function(self):
         try:
             self._prepare_influence_function()
@@ -844,7 +871,7 @@ class MainController:
             os.makedirs(fd, exist_ok=True)
             self.logg.info(f'Directory {fd} has been created successfully.')
         except Exception as er:
-            self.logg.error(f'Error creating directory {fd}: {er}')
+            self.logg.error(f'Error creating directory: {er}')
             return
         n, amp = self.ao_controller.get_actuator()
         self.m.cam_set[self.cameras["wfs"]].start_live()
@@ -909,7 +936,8 @@ class MainController:
         except Exception as e:
             self.logg.error(f"Error finishing influence function: {e}")
 
-    def run_close_loop_correction(self, nlp):
+    @QtCore.pyqtSlot(int)
+    def run_close_loop_correction(self, nlp: int):
         try:
             self._prepare_close_loop_correction()
         except Exception as e:
@@ -957,6 +985,7 @@ class MainController:
         except Exception as e:
             self.logg.error(f"CloseLoop Correction Error: {e}")
 
+    @QtCore.pyqtSlot()
     def run_sensorless_iteration(self):
         try:
             self._prepare_sensorless_iteration()

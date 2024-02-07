@@ -11,7 +11,7 @@ class AOWidget(QtWidgets.QWidget):
     Signal_img_shwfs_correct_wf = QtCore.pyqtSignal(int)
     Signal_img_shwfs_save_wf = QtCore.pyqtSignal(str)
     Signal_dm_selection = QtCore.pyqtSignal(str)
-    Signal_push_actuator = QtCore.pyqtSignal()
+    Signal_push_actuator = QtCore.pyqtSignal(int, float)
     Signal_influence_function = QtCore.pyqtSignal()
     Signal_set_zernike = QtCore.pyqtSignal()
     Signal_set_dm = QtCore.pyqtSignal()
@@ -290,7 +290,9 @@ class AOWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot()
     def push_dm_actuator(self):
-        self.Signal_push_actuator.emit()
+        n = self.QSpinBox_actuator.value()
+        a = self.QDoubleSpinBox_actuator_push.value()
+        self.Signal_push_actuator.emit(n, a)
 
     @QtCore.pyqtSlot()
     def run_influence_function(self):
