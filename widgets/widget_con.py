@@ -379,7 +379,6 @@ class ConWidget(QtWidgets.QWidget):
     def deck_move_range(self, checked: bool):
         distance = self.QDoubleSpinBox_deck_movement.value()
         velocity = self.QDoubleSpinBox_deck_velocity.value()
-        print(distance, velocity)
         self.Signal_deck_move_continuous.emit(checked, distance, velocity)
 
     @QtCore.pyqtSlot(float)
@@ -456,7 +455,6 @@ class ConWidget(QtWidgets.QWidget):
         if dialog.exec_() == QtWidgets.QFileDialog.Accepted:
             selected_file = dialog.selectedFiles()
             if selected_file:
-                print(selected_file[0])
                 self.Signal_save_file.emit(selected_file[0])
 
     @QtCore.pyqtSlot(str)
