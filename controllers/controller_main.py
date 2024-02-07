@@ -722,7 +722,7 @@ class MainController(QtCore.QObject):
         try:
             t = time.strftime("%Y%m%d_%H%M%S_")
             self.dfm.write_cmd(self.data_folder, t, flatfile=False)
-            print('DM cmd saved')
+            self.logg.info('DM cmd saved')
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
