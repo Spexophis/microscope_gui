@@ -89,7 +89,7 @@ class DeformableMirror:
             self.zslopes = tz.get_zernike_slopes(nz=self.n_zernike, size=[self.nly, self.nlx])
             # self.z2c = self.zernike_modes()
         else:
-            raise RuntimeError(f"Wrong size of control matrix for DM {self.dm_name}")
+            raise ValueError(f"Wrong size of control matrix for DM {self.dm_name}")
 
     def close(self):
         self.reset_dm()
