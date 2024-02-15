@@ -18,7 +18,14 @@ class MicroscopeGUI(QtWidgets.QMainWindow):
     def __init__(self, config_file, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.data_folder = Path.home() / 'Documents' / 'data' / time.strftime("%Y%m%d")
+        try:
+            self.config = configurations.MicroscopeConfiguration(config_file)
+        except Exception as e:
+            self.info_log.error_log.error(f"Error: {e}")
+            self.error_n_exit(f"Error loading configuration: {e}")
+            return
+
+        self.data_folder = self.config.configs["Data Path"] + r"\\" + time.strftime("%Y%m%d")
         try:
             os.makedirs(self.data_folder, exist_ok=True)
             print(f'Directory {self.data_folder} has been created successfully.')
@@ -28,12 +35,6 @@ class MicroscopeGUI(QtWidgets.QMainWindow):
         self.log_file = os.path.join(self.data_folder, time.strftime("%H%M%S") + 'app.log')
         self.info_log = error_log.ErrorLog(self.log_file)
 
-        try:
-            self.config = configurations.MicroscopeConfiguration(config_file)
-        except Exception as e:
-            self.info_log.error_log.error(f"Error: {e}")
-            self.error_n_exit(f"Error loading configuration: {e}")
-            return
         try:
             self.module = module_main.MainModule(self.config.configs, self.info_log, self.data_folder)
         except Exception as e:
