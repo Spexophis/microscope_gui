@@ -1,4 +1,6 @@
 import numpy as np
+import cv2
+from skimage import filters
 
 wl = 0.5  # wavelength in microns
 na = 1.4  # numerical aperture
@@ -120,3 +122,20 @@ def pseudo_inverse(A, n=32):
 def get_eigen_coefficients(mta, mtb, ng=32):
     mp = pseudo_inverse(mtb, n=ng)
     return np.matmul(mp, mta)
+
+
+def calculate_focus_measure(image):
+    laplacian_var = cv2.Laplacian(image, cv2.CV_64F).var()
+    return laplacian_var
+
+
+def calculate_focus_measure_with_sobel(image):
+    edges = filters.sobel(image)
+    focus_measure = np.var(edges)
+    return focus_measure
+
+
+def calculate_focus_measure_with_laplacian(image):
+    laplacian_image = filters.laplace(image)
+    focus_measure = np.var(laplacian_image)
+    return focus_measure

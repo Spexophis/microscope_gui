@@ -64,6 +64,7 @@ class MainController(QtCore.QObject):
         self.thread_wfs.finished.connect(self.wfsWorker.stop)
 
     def _set_signal_connections(self):
+        self.v.view_view.Signal_image_metrics.connect(self.compute_image_metrics)
         # MCL Piezo
         self.v.con_view.Signal_piezo_move.connect(self.set_piezo_positions)
         # MCL Mad Deck
@@ -388,6 +389,19 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"Error showing imaging video: {e}")
 
+    @QtCore.pyqtSlot()
+    def compute_image_metrics(self):
+        try:
+            img = self.m.cam_set[self.cameras["imaging"]].get_last_image()
+            img = img - img.min()
+            img = img / img.max()
+            m1 = ipr.calculate_focus_measure(img)
+            m2 = ipr.calculate_focus_measure_with_laplacian(img)
+            m3 = ipr.calculate_focus_measure_with_sobel(img)
+            self.view_controller.display_metrics(m1, m2, m3)
+        except Exception as e:
+            self.logg.error(f"Error compute image metrics: {e}")
+
     @QtCore.pyqtSlot(bool)
     def fft(self, sw: bool):
         if sw:
@@ -463,7 +477,7 @@ class MainController(QtCore.QObject):
             self.run_confocal_scanning()
         if acq_mod == "GalvoScan 2D":
             self.run_galvo_scanning()
-        if acq_mod == "BeadScan 2D":
+        if acq_mod == "BeadScan":
             self.run_bead_scan()
 
     def prepare_widefield_zstack(self):
@@ -616,11 +630,12 @@ class MainController(QtCore.QObject):
         self.set_lasers()
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
-        self.update_trigger_parameters("imaging")
-        atr, dtr, pos = self.p.trigger.generate_bead_scan_2d(4)
-        self.m.cam_set[self.cameras["imaging"]].acq_num = pos
-        self.m.cam_set[self.cameras["imaging"]].prepare_data_acquisition()
-        self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=atr, digital_sequences=dtr)
+        self.m.cam_set[self.cameras["imaging"]].prepare_live()
+        self.m.daq.write_digital_sequences(self.generate_live_triggers("imaging"), mode="finite")
+        # atr, dtr, pos = self.p.trigger.generate_bead_scan_2d(self.cameras["imaging"])
+        # self.m.cam_set[self.cameras["imaging"]].acq_num = pos
+        # self.m.cam_set[self.cameras["imaging"]].prepare_data_acquisition()
+        # self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=atr, digital_sequences=dtr)
 
     def bead_scan_2d(self):
         try:
@@ -629,14 +644,33 @@ class MainController(QtCore.QObject):
             self.logg.error(f"Error preparing beads scanning: {e}")
             return
         try:
-            self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
-            time.sleep(0.02)
-            self.m.daq.run_triggers()
-            time.sleep(1)
+            positions = self.con_controller.get_piezo_positions()
+            axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
+            starts = [pos - length / 2 for pos, length in zip(positions, axis_lengths)]
+            ends = [pos + length / 2 for pos, length in zip(positions, axis_lengths)]
+            pos = [[starts[dim] + step * step_sizes[dim] for step in
+                    range(int((ends[dim] - starts[dim]) / step_sizes[dim]) + 1)] for dim in range(len(positions))]
+            data = []
+            self.m.cam_set[self.cameras["imaging"]].start_live()
+            for z_ in pos[2]:
+                pz = self.m.pz.move_position(2, z_)
+                time.sleep(0.01)
+                for y_ in pos[1]:
+                    for x_ in pos[0]:
+                        self.m.daq.set_piezo_position(x_ / 10., y_ / 10.)
+                        time.sleep(0.01)
+                        self.m.daq.run_digital_trigger()
+                        time.sleep(0.04)
+                        data.append(self.m.cam_set[self.cameras["imaging"]].get_last_image())
+                        self.m.daq.stop_triggers(_close=False)
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_bead_scanning.tif')
-            tf.imwrite(fd, self.m.cam_set[self.cameras["imaging"]].get_data(), imagej=True, resolution=(
+            tf.imwrite(fd, np.asarray(data), imagej=True, resolution=(
                 1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
-                       metadata={'unit': 'um', 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
+                       metadata={'unit': 'um',
+                                 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
+            # time.sleep(0.02)
+            # self.m.daq.run_triggers()
+            # time.sleep(1)
         except Exception as e:
             self.logg.error(f"Error running beads scanning: {e}")
             return
@@ -644,9 +678,10 @@ class MainController(QtCore.QObject):
 
     def finish_bead_scan(self):
         try:
-            self.m.daq.stop_triggers()
-            self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
+            self.reset_piezo_positions()
+            self.m.cam_set[self.cameras["imaging"]].stop_live()
             self.lasers_off()
+            self.m.daq.stop_triggers()
             self.logg.info("Beads scanning image acquired")
         except Exception as e:
             self.logg.error(f"Error stopping confocal scanning: {e}")

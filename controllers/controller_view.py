@@ -26,3 +26,8 @@ class ViewController:
 
     def plot_update(self, data):
         self.v.update_plot(data)
+
+    def display_metrics(self, m1, m2, m3):
+        self.v.QLCDNumber_img_laplacian_cv2.display(m1)
+        self.v.QLCDNumber_img_laplacian_scikit.display(m2)
+        self.v.QLCDNumber_img_sobel_scikit.display(m3)

@@ -303,7 +303,7 @@ class ConWidget(QtWidgets.QWidget):
                                                                           "Confocal 2D", "Confocal 3D",
                                                                           "GalvoScan 2D", "GalvoScan 3D",
                                                                           "RESOLFT 2D", "RESOLFT 3D",
-                                                                          "BeadScan 2D"])
+                                                                          "BeadScan"])
         self.QPushButton_acquire = cw.pushbutton_widget('Acquire')
         self.QPushButton_save = cw.pushbutton_widget('Save')
         layout_acquisition.addWidget(self.QLabel_acquisition_modes, 0, 0, 1, 1)
@@ -628,12 +628,12 @@ class ConWidget(QtWidgets.QWidget):
             self.QDoubleSpinBox_ttl_stop_emccd.setValue(0.065)
             self.QDoubleSpinBox_ttl_start_scmos.setValue(0.010)
             self.QDoubleSpinBox_ttl_stop_scmos.setValue(0.065)
-        if text == "BeadScan 2D":
-            self.QDoubleSpinBox_step_x.setValue(0.032)
-            self.QDoubleSpinBox_step_y.setValue(0.032)
-            self.QDoubleSpinBox_step_z.setValue(0.128)
-            self.QDoubleSpinBox_range_x.setValue(0.640)
-            self.QDoubleSpinBox_range_y.setValue(0.640)
+        if text == "BeadScan":
+            self.QDoubleSpinBox_step_x.setValue(0.020)
+            self.QDoubleSpinBox_step_y.setValue(0.020)
+            self.QDoubleSpinBox_step_z.setValue(0.100)
+            self.QDoubleSpinBox_range_x.setValue(0.400)
+            self.QDoubleSpinBox_range_y.setValue(0.400)
             self.QDoubleSpinBox_range_z.setValue(0.000)
             # self.QDoubleSpinBox_galvo_start_x.setValue(0.000)
             # self.QDoubleSpinBox_galvo_start_y.setValue(0.000)
@@ -641,18 +641,20 @@ class ConWidget(QtWidgets.QWidget):
             # self.QDoubleSpinBox_galvo_stop_y.setValue(0.000)
             # self.QSpinBox_galvo_laser_start.setValue(0)
             # self.QSpinBox_galvo_laser_interval.setValue(0)
-            self.QDoubleSpinBox_ttl_start_on_405.setValue(0.000)
-            self.QDoubleSpinBox_ttl_stop_on_405.setValue(0.000)
-            self.QDoubleSpinBox_ttl_start_off_488_0.setValue(0.000)
-            self.QDoubleSpinBox_ttl_stop_off_488_0.setValue(0.000)
-            self.QDoubleSpinBox_ttl_start_off_488_1.setValue(0.000)
-            self.QDoubleSpinBox_ttl_stop_off_488_1.setValue(0.000)
+            self.QDoubleSpinBox_ttl_start_on_405.setValue(0.008)
+            self.QDoubleSpinBox_ttl_stop_on_405.setValue(0.032)
+            self.QDoubleSpinBox_ttl_start_off_488_0.setValue(0.008)
+            self.QDoubleSpinBox_ttl_stop_off_488_0.setValue(0.032)
+            self.QDoubleSpinBox_ttl_start_off_488_1.setValue(0.008)
+            self.QDoubleSpinBox_ttl_stop_off_488_1.setValue(0.032)
             self.QDoubleSpinBox_ttl_start_read_488_2.setValue(0.008)
             self.QDoubleSpinBox_ttl_stop_read_488_2.setValue(0.032)
             self.QDoubleSpinBox_ttl_start_emccd.setValue(0.008)
             self.QDoubleSpinBox_ttl_stop_emccd.setValue(0.032)
-            self.QDoubleSpinBox_ttl_start_scmos.setValue(0.000)
-            self.QDoubleSpinBox_ttl_stop_scmos.setValue(0.000)
+            self.QDoubleSpinBox_ttl_start_scmos.setValue(0.008)
+            self.QDoubleSpinBox_ttl_stop_scmos.setValue(0.032)
+            self.QDoubleSpinBox_ttl_start_tis.setValue(0.008)
+            self.QDoubleSpinBox_ttl_stop_tis.setValue(0.032)
 
 
 if __name__ == "__main__":

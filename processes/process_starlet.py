@@ -8,8 +8,7 @@ class StarletTransform:
         self.c = []
         self.w = []
 
-    def input_image(self, file):
-        img = tf.imread(file)
+    def input_image(self, img):
         self.img_shape = img.shape
         self.c.append(img)
 

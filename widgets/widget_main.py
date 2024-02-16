@@ -49,9 +49,8 @@ class MainWidget(QtWidgets.QMainWindow):
         self.dialog_text.setText(f"Task is running, please wait...")
 
 
-import sys
-
 if __name__ == '__main__':
+    import sys
     app = QtWidgets.QApplication(sys.argv)
     gui = MainWidget(config=None, logg=None, path=None)
     gui.show()

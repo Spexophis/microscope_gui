@@ -54,10 +54,9 @@ class MicroscopeGUI(QtWidgets.QMainWindow):
             self.info_log.error_log.error(f"Error: {e}")
 
     def error_n_exit(self, message):
-        msg_box = cw.message_box()
+        msg_box = cw.message_box("Error")
         msg_box.setIcon(QtWidgets.QMessageBox.Critical)
         msg_box.setText(message)
-        msg_box.setWindowTitle("Error")
         msg_box.exec_()
         self.close()
 
