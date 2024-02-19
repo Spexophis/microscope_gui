@@ -26,12 +26,13 @@ class DeformableMirror:
         self.dm_serial = self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Serial"]
         self.dm, self.n_actuator = self._initialize_dm(self.dm_serial)
         if self.dm is not None:
-            try:
-                self._configure_dm()
-            except Exception as e:
-                self.logg.error(f"Error configuring DM {self.dm_name}: {e}")
+            self._configure_dm()
         else:
             raise RuntimeError(f"Error Initializing DM {self.dm_name}")
+        try:
+            self.set_dm(self.dm_cmd[self.current_cmd])
+        except Exception as e:
+            self.logg.error(f"Error set dm {e}")
 
     def __del__(self):
         pass
@@ -61,25 +62,24 @@ class DeformableMirror:
             return None, None
 
     def _configure_dm(self):
-        influence_function_images = tf.imread(
-            self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Influence Function Images"])
-        nct, self.nly, self.nlx = influence_function_images.shape
-        self.nls = self.nly * self.nlx
-        self.control_matrix_phase = tf.imread(
-            self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Phase Control Matrix"])
-        self.control_matrix_zonal = tf.imread(
-            self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Zonal Control Matrix"])
-        self.control_matrix_modal = tf.imread(
-            self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Modal Control Matrix"])
-        initial_flat = self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Initial Flat"]
-        if self.control_matrix_phase.shape[0] == self.n_actuator:
+        try:
+            influence_function_images = tf.imread(
+                self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Influence Function Images"])
+            nct, self.nly, self.nlx = influence_function_images.shape
+            self.nls = self.nly * self.nlx
+            self.control_matrix_phase = tf.imread(
+                self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Phase Control Matrix"])
+            self.control_matrix_zonal = tf.imread(
+                self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Zonal Control Matrix"])
+            self.control_matrix_modal = tf.imread(
+                self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Modal Control Matrix"])
+            initial_flat = self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Initial Flat"]
+        except Exception as e:
+            self.logg.error(f"Error Loading DM {self.dm_name} files: {e}")
+        if hasattr(self, "initial_flat"):
             self.dm_cmd = [[0.] * self.n_actuator]
             self.dm_cmd.append(self.read_cmd(initial_flat))
             self.current_cmd = 1
-            try:
-                self.set_dm(self.dm_cmd[self.current_cmd])
-            except Exception as e:
-                self.logg.error(f"Error set dm {e}")
             self.correction = []
             self.temp_cmd = []
             self.amp = 0.1
@@ -89,7 +89,8 @@ class DeformableMirror:
             self.zslopes = tz.get_zernike_slopes(nz=self.n_zernike, size=[self.nly, self.nlx])
             # self.z2c = self.zernike_modes()
         else:
-            raise ValueError(f"Wrong size of control matrix for DM {self.dm_name}")
+            self.dm_cmd = [[0.] * self.n_actuator]
+            self.current_cmd = 0
 
     def close(self):
         self.reset_dm()
