@@ -9,15 +9,13 @@ class BeadScanReconstruction:
         self.na = 1.4
         self.wl = 0.505
         self.d = int(np.ceil((self.wl / (2 * self.na)) / self.dx))
-        self.neighborhood_size = 32
-        self.threshold = 2000
 
-    def reconstruct_all_beads(self, data, step_size):
+    def reconstruct_all_beads(self, data, step_size, threshold, neighborhood_size=32):
         nz, nx, ny = data.shape
         ns = int(np.sqrt(nz) - 1)
         sr = int(np.ceil(ns * step_size / self.dx))
         rd = self.d + sr
-        x, y = self.find_beads(data[0], self.neighborhood_size, self.threshold, rd)
+        x, y = self.find_beads(data[0], neighborhood_size, threshold, rd)
         final_image = np.zeros((nx, ny))
         s = int((ns + 1) / 2)
         for l_ in range(len(x)):
@@ -62,14 +60,18 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
     matplotlib.use('Qt5Agg')
-
-    fn = r"C:\Users\ruizhe.lin\Documents\data\20240216\20240216160649_bead_scanning.tif"
+    fn = input("Enter data file directory: ")
     img = tf.imread(fn)
+    sz = input("Enter step size: ")
     img = img - img.min()
+    hist, bins = np.histogram(img[0])
+    print(hist)
+    print(bins)
+    thr = input("Enter threshold: ")
     r = BeadScanReconstruction()
-    r.threshold = 1000
-    results = r.reconstruct_all_beads(img, 0.02)
-    tf.imwrite(r"C:\Users\ruizhe.lin\Documents\data\20240216\20240216160649_bead_scanning_recon.tif", results[1])
+    results = r.reconstruct_all_beads(img, float(sz), float(thr), 32)
+    fn = input("Enter data file save directory: ")
+    tf.imwrite(fn, results[1])
 
     plt.figure()
     plt.imshow(img[0])

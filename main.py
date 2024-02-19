@@ -21,7 +21,6 @@ class MicroscopeGUI(QtWidgets.QMainWindow):
         try:
             self.config = configurations.MicroscopeConfiguration(config_file)
         except Exception as e:
-            self.info_log.error_log.error(f"Error: {e}")
             self.error_n_exit(f"Error loading configuration: {e}")
             return
 
