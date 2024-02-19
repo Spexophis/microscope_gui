@@ -1,7 +1,6 @@
 import os
 import sys
 import time
-from pathlib import Path
 
 from PyQt5 import QtWidgets
 
@@ -60,45 +59,16 @@ class MicroscopeGUI(QtWidgets.QMainWindow):
         self.close()
 
 
-def close():
-    gui.module.close()
-    app.exit()
+if __name__ == '__main__':
+
+    app = QtWidgets.QApplication(sys.argv)
+
+    def close():
+        gui.module.close()
+        app.exit()
 
 
-class ConfigDialog(QtWidgets.QDialog):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.setStyleSheet(''' 
-                QDialog {
-                    background-color: #333;
-                    color: #FFF;
-                }
-                ''')
-        self.init()
-        self.selected_config = None
-
-    def init(self):
-        layout = QtWidgets.QVBoxLayout(self)
-        btn_select_file = cw.pushbutton_widget('Select Configuration File')
-        btn_select_file.clicked.connect(self.open_file_dial)
-        layout.addWidget(btn_select_file)
-
-    def open_file_dial(self):
-        options = QtWidgets.QFileDialog.Options()
-        options |= QtWidgets.QFileDialog.DontUseNativeDialog
-        title = "Select Configuration File"
-        directory = str(Path.home() / "Documents" / "data" / "config_files")
-        config_file_path, _ = QtWidgets.QFileDialog.getOpenFileName(None, title, directory, "All Files (*)",
-                                                                    options=options)
-        if config_file_path:
-            self.selected_config = config_file_path
-            self.accept()
-
-
-app = QtWidgets.QApplication(sys.argv)
-dialog = ConfigDialog()
-if dialog.exec_() == QtWidgets.QDialog.Accepted:
-    cfd = dialog.selected_config
+    cfd = r"C:\Users\ruizhe.lin\Documents\data\config_files\microscope_configurations_20240207.json"
     if cfd:
         try:
             gui = MicroscopeGUI(cfd)
@@ -107,9 +77,5 @@ if dialog.exec_() == QtWidgets.QDialog.Accepted:
         except Exception as er:
             print(f"Fatal error: {er}")
             sys.exit(1)
-    else:
-        QtWidgets.QMessageBox.information(None, "Information", "No configuration file selected. Application will exit.")
-        sys.exit()
-else:
-    sys.exit()
-sys.exit(app.exec_())
+
+    sys.exit(app.exec_())
