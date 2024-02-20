@@ -18,10 +18,15 @@ class BeadScanReconstruction:
         x, y = self.find_beads(data[0], neighborhood_size, threshold, rd)
         final_image = np.zeros((nx, ny))
         s = int((ns + 1) / 2)
+        ims = []
         for l_ in range(len(x)):
             temp = self.reconstruction_single_bead(data, x[l_], y[l_], ns + 1, rd)
-            final_image[y[l_] - s:y[l_] + s, x[l_] - s:x[l_] + s] = temp
-        return [x, y], final_image
+            ims.append(temp)
+            try:
+                final_image[y[l_] - s:y[l_] + s, x[l_] - s:x[l_] + s] = temp
+            except Exception as e:
+                print(f"{e}")
+        return [x, y], ims, final_image
 
     @staticmethod
     def find_beads(data, neighborhood_size, threshold, hcr):
@@ -31,12 +36,13 @@ class BeadScanReconstruction:
         maxima = (data == data_max) & (diff > threshold)
         labeled, _ = label(maxima)
         slices = find_objects(labeled)
+        nx, ny = data.shape
         x, y = [], []
         for slice_ in slices:
             if slice_ is not None:
                 slice_center = [(s.start + s.stop - 1) / 2 for s in slice_]
                 x_center, y_center = slice_center[1], slice_center[0]
-                if x_center > hcr and y_center > hcr:
+                if hcr < x_center < (nx - hcr) and hcr < y_center < (ny - hcr):
                     x.append(int(x_center))
                     y.append(int(y_center))
         return x, y
