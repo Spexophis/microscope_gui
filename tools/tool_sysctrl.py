@@ -2,85 +2,104 @@
 Linear quadratic Gaussian (LQG) control based on Kalman filter
 """
 
-import matplotlib.pyplot as plt
 import numpy as np
+import tifffile as tf
 from scipy.linalg import solve_discrete_are
 
-# System parameters for a 4-variable system
-A = np.eye(4)  # System dynamics matrix
-B = np.eye(4)  # Control input matrix
-H = np.eye(4)  # Measurement matrix
-Q = np.eye(4) * 0.01  # Process noise covariance
-R = np.eye(4) * 0.01  # Measurement noise covariance
 
-# LQR parameters for 4-variable system
-Q_lqr = np.eye(4)  # State weight in the cost function
-R_lqr = np.eye(4) * 0.01  # Control weight in the cost function
+class DynamicControl:
 
-# Compute LQR gain K using the solution of Riccati equation for 4-variable system
-P = solve_discrete_are(A, B, Q_lqr, R_lqr)
-K = np.linalg.inv(B.T @ P @ B + R_lqr) @ (B.T @ P @ A)
+    def __init__(self, variable_number, logg=None):
+        self.logg = logg or self.setup_logging()
+        self.v_n = variable_number
+        self._setup_control()
+
+    @staticmethod
+    def setup_logging():
+        import logging
+        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+        return logging
+
+    def _setup_control(self):
+        # System parameters for a multi-variable system
+        self.A = np.eye(self.v_n)  # System dynamics matrix
+        self.B = tf.imread(
+            r"C:\Users\ruizhe.lin\Documents\data\dm_files\bax513\influence_function_zonal_20240219.tif")  # Control input matrix
+        self.H = np.eye(self.v_n)  # Measurement matrix
+        self.Q = np.eye(self.v_n) * 0.001  # Process noise covariance
+        self.R = np.eye(self.v_n) * 0.01  # Measurement noise covariance
+
+        # LQR parameters for multi-variable system
+        self.Q_lqr = np.eye(self.v_n) * 0.5  # State weight in the cost function
+        self.R_lqr = np.eye(97) * 0.5  # Control weight in the cost function
+
+        # Compute LQR gain K using the solution of Riccati equation for multi-variable system
+        self.P = solve_discrete_are(self.A, self.B, self.Q_lqr, self.R_lqr)
+        self.K = np.linalg.inv(self.B.T @ self.P @ self.B + self.R_lqr) @ (self.B.T @ self.P @ self.A)
+
+    def kalman_filter_multi(self, est_x, est_p, u, z):
+        """
+        Kalman Filter function for multi-variable system
+        u: control
+        z: measurement
+        """
+        # Prediction
+        prd_x = self.A @ est_x + self.B @ u
+        prd_p = self.A @ est_p @ self.A.T + self.Q
+        # Measurement Update
+        k_gain = prd_p @ self.H.T @ np.linalg.inv(self.H @ prd_p @ self.H.T + self.R)  # Kalman gain
+        est_new_x = prd_x + k_gain @ (z - self.H @ prd_x)
+        est_new_p = (np.eye(self.v_n) - k_gain @ self.H) @ prd_p
+        return est_new_x, est_new_p
 
 
-# Adjust Kalman Filter function for 4-variable system
-def kalman_filter_multi(x_est, P_est, u, z):
-    # Prediction
-    x_pred = A @ x_est + B @ u
-    P_pred = A @ P_est @ A.T + Q
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
 
-    # Measurement Update
-    K_gain = P_pred @ H.T @ np.linalg.inv(H @ P_pred @ H.T + R)  # Kalman gain
-    x_est_new = x_pred + K_gain @ (z - H @ x_pred)
-    P_est_new = (np.eye(4) - K_gain @ H) @ P_pred
+    # Time simulation parameters
+    time_steps = 512  # Total number of time steps to simulate
+    disturbance_interval = 64  # Apply a disturbance every 'disturbance_interval' steps
 
-    return x_est_new, P_est_new
+    v_n = 16
+    dc = DynamicControl(v_n)
+    # Initialize arrays to store simulation data
+    x_est_history = np.zeros((v_n, time_steps))
+    control_history = np.zeros((v_n, time_steps))
 
+    # Initial state and covariance for multi-variable system
+    x_est = np.zeros((v_n, 1))  # Initial estimate of state
+    p_est = np.eye(v_n)  # Initial estimate of error covariance
 
-# Time simulation parameters
-time_steps = 1024  # Total number of time steps to simulate
-disturbance_interval = 64  # Apply a disturbance every 'disturbance_interval' steps
+    # Simulation loop
+    for t in range(time_steps):
+        # Apply disturbance at specified intervals
+        if t > 0 and t % disturbance_interval == 0:
+            disturbance = np.random.normal(0, 1, (v_n, 1))  # Random disturbance
+        else:
+            disturbance = np.zeros((v_n, 1))  # No disturbance
 
-# Initialize arrays to store simulation data
-x_est_history = np.zeros((4, time_steps))
-control_history = np.zeros((4, time_steps))
+        # Simulate measurement with disturbance and noise
+        measurement = x_est + disturbance + np.random.normal(0, np.sqrt(dc.R[0, 0]), (v_n, 1))
 
-# Initial state and covariance for 4-variable system
-x_est = np.zeros((4, 1))  # Initial estimate of state (4-dimensional)
-P_est = np.eye(4)  # Initial estimate of error covariance (4x4 matrix)
-print(P_est)
+        # Calculate control based on LQR and current state estimate
+        control = -dc.K @ x_est
 
-# Simulation loop
-for t in range(time_steps):
-    # Apply disturbance at specified intervals
-    if t > 0 and t % disturbance_interval == 0:
-        disturbance = np.random.normal(0, 2, (4, 1))  # Random disturbance
-    else:
-        disturbance = np.zeros((4, 1))  # No disturbance
+        # Update state estimate with Kalman Filter
+        x_est, p_est = dc.kalman_filter_multi(x_est, p_est, control, measurement)
 
-    # Simulate measurement with disturbance and noise
-    measurement = x_est + disturbance + np.random.normal(0, np.sqrt(R[0, 0]), (4, 1))
+        # Store history for plotting
+        x_est_history[:, t] = x_est.ravel()
+        control_history[:, t] = control.ravel()
 
-    # Calculate control based on LQR and current state estimate
-    control = -K @ x_est
+    # Plotting
+    time = np.arange(time_steps)
+    fig, axs = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
+    for i in range(4):
+        axs[i].plot(time, x_est_history[i, :], label=f'State {i + 1}')
+        axs[i].set_ylabel(f'State {i + 1}')
+        axs[i].legend(loc="upper right")
+        axs[i].grid(True)
 
-    # Update state estimate with Kalman Filter
-    x_est, P_est = kalman_filter_multi(x_est, P_est, control, measurement)
-
-    # Store history for plotting
-    x_est_history[:, t] = x_est.ravel()
-    control_history[:, t] = control.ravel()
-
-print(P_est)
-
-# Plotting
-time = np.arange(time_steps)
-fig, axs = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
-for i in range(4):
-    axs[i].plot(time, x_est_history[i, :], label=f'State {i + 1}')
-    axs[i].set_ylabel(f'State {i + 1}')
-    axs[i].legend(loc="upper right")
-    axs[i].grid(True)
-
-axs[-1].set_xlabel('Time Step')
-plt.tight_layout()
-plt.show()
+    axs[-1].set_xlabel('Time Step')
+    plt.tight_layout()
+    plt.show()
