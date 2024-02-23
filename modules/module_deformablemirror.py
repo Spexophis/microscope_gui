@@ -73,12 +73,12 @@ class DeformableMirror:
                 self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Zonal Control Matrix"])
             self.control_matrix_modal = tf.imread(
                 self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Modal Control Matrix"])
-            initial_flat = self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Initial Flat"]
+            self.initial_flat = self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Initial Flat"]
         except Exception as e:
             self.logg.error(f"Error Loading DM {self.dm_name} files: {e}")
         if hasattr(self, "initial_flat"):
             self.dm_cmd = [[0.] * self.n_actuator]
-            self.dm_cmd.append(self.read_cmd(initial_flat))
+            self.dm_cmd.append(self.read_cmd(self.initial_flat))
             self.current_cmd = 1
             self.correction = []
             self.temp_cmd = []
@@ -91,6 +91,7 @@ class DeformableMirror:
         else:
             self.dm_cmd = [[0.] * self.n_actuator]
             self.current_cmd = 0
+            self.logg.error(f"Missing initial flat, started with Null")
 
     def close(self):
         self.reset_dm()
