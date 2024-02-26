@@ -1041,7 +1041,7 @@ class MainController(QtCore.QObject):
         try:
             lpr, hpr, mindex, metric = self.ao_controller.get_ao_parameters()
             name = time.strftime("%Y%m%d_%H%M%S_") + '_ao_iteration_' + metric
-            new_folder = self.data_folder / name
+            new_folder = os.path.join(self.data_folder, name)
             os.makedirs(new_folder, exist_ok=True)
             self.logg.info(f'Directory {new_folder} has been created successfully.')
         except Exception as e:
