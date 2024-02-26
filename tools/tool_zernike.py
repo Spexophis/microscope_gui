@@ -91,7 +91,7 @@ def _zernike_derivatives(n, m, rho, phi):
         _dO = - m * np.cos(m * phi)
     zdx = _dR * _O * np.cos(phi) - (_R / rho) * _dO * np.sin(phi)
     zdy = _dR * _O * np.sin(phi) + (_R / rho) * _dO * np.cos(phi)
-    return zdx, zdy
+    return _O, _dO
 
 
 def _gs_orthogonalisation(arrays):
@@ -124,24 +124,6 @@ def get_zernike_polynomials(nz=60, size=None):
     return _gs_orthogonalisation(zernike)
 
 
-def get_zernike_derivatives(nz=60, size=None):
-    if size is None:
-        size = [16, 16]
-    y, x = size
-    yv, xv = _cartesian_grid(x, y)
-    rho, phi = _polar_grid(xv, yv)
-    phi = np.pi / 2 - phi
-    phi = np.mod(phi, 2 * np.pi)
-    zernike_derivatives = np.zeros((nz, 2, y, x))
-    msk = _elliptical_mask((y / 2, x / 2), (y, x))
-    for j in range(nz):
-        n, m = _zernike_j_nm(j + 1)
-        dx, dy = _zernike_derivatives(n, m, rho, phi)
-        zernike_derivatives[j, 0, :, :] = dy * msk
-        zernike_derivatives[j, 1, :, :] = dx * msk
-    return zernike_derivatives
-
-
 def get_zernike_slopes(nz=58, size=None):
     if size is None:
         size = [64, 64]
@@ -150,10 +132,10 @@ def get_zernike_slopes(nz=58, size=None):
     rho, phi = _polar_grid(xv, yv)
     phi = np.pi / 2 - phi
     phi = np.mod(phi, 2 * np.pi)
-    msk = 1
+    msk = _elliptical_mask((y / 2, x / 2), (y, x))
     zs = np.zeros((2 * x * y, nz))
     for j in range(nz):
-        n, m = _zernike_j_nm(j + 3)
+        n, m = _zernike_j_nm(j + 1)
         zdx, zdy = msk * _zernike_derivatives(n, m, rho, phi)
         zs[:x * y, j] = zdx.flatten()
         zs[x * y:, j] = zdy.flatten()
