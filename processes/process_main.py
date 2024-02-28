@@ -1,4 +1,4 @@
-from processes import beads_scan_reconstruction, process_shwfs, process_trigger
+from processes import process_shwfs, process_trigger
 
 
 class MainProcess:
@@ -9,5 +9,5 @@ class MainProcess:
         self.data_folder = path
         self.shwfsr = process_shwfs.WavefrontSensing(self.logg.error_log)
         self.trigger = process_trigger.TriggerSequence(self.logg.error_log)
-        self.bsrecon = beads_scan_reconstruction.BeadScanReconstruction()
+        # self.bsrecon = beads_scan_reconstruction.BeadScanReconstruction()
         self.logg.error_log.info("All processing set up")

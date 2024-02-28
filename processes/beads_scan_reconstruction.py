@@ -77,7 +77,7 @@ if __name__ == '__main__':
     r = BeadScanReconstruction()
     results = r.reconstruct_all_beads(img, float(sz), float(thr), 32)
     fn = input("Enter data file save directory: ")
-    tf.imwrite(fn, results[1])
+    tf.imwrite(fn, results[2])
 
     plt.figure()
     plt.imshow(img[0])
