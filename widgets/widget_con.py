@@ -15,7 +15,7 @@ class ConWidget(QtWidgets.QWidget):
     Signal_video = QtCore.pyqtSignal(bool)
     Signal_fft = QtCore.pyqtSignal(bool)
     Signal_plot_profile = QtCore.pyqtSignal(bool)
-    Signal_data_acquire = QtCore.pyqtSignal(str)
+    Signal_data_acquire = QtCore.pyqtSignal(str, int)
     Signal_save_file = QtCore.pyqtSignal(str)
 
     def __init__(self, config, logg, path, *args, **kwargs):
@@ -186,12 +186,12 @@ class ConWidget(QtWidgets.QWidget):
         # self.QDoubleSpinBox_galvo_velocity = cw.doublespinbox_widget(0, 4, 0.02, 2, 4)
         # self.QSpinBox_galvo_laser_start = cw.spinbox_widget(0, 128, 1, 8)
         # self.QSpinBox_galvo_laser_interval = cw.spinbox_widget(0, 128, 1, 16)
-        self.QSpinBox_galvo_frequency = cw.spinbox_widget(0, 4000, 1, 200)
+        self.QSpinBox_galvo_frequency = cw.spinbox_widget(0, 4000, 1, 250)
         self.QDoubleSpinBox_dot_start = cw.doublespinbox_widget(-10, 10, 0.02, 2, -0.8)
         self.QDoubleSpinBox_dot_range = cw.doublespinbox_widget(0, 20, 0.02, 2, 1.6)
-        self.QDoubleSpinBox_dot_step = cw.doublespinbox_widget(0, 20, 0.01, 2, 0.04)
+        self.QSpinBox_dot_step = cw.spinbox_widget(0, 4000, 1, 4)
         self.QSpinBox_galvo_delay = cw.spinbox_widget(-4000, 4000, 1, 0)
-        self.QSpinBox_galvo_interval = cw.spinbox_widget(0, 4000, 1, 4)
+        self.QSpinBox_galvo_dwell = cw.spinbox_widget(0, 4000, 1, 1)
         self.galvo_scroll_area, galvo_scroll_layout = cw.create_scroll_area()
         galvo_scroll_layout.addRow(cw.label_widget(str('Galvo Scanner')))
         galvo_scroll_layout.addRow(cw.frame_widget())
@@ -210,9 +210,9 @@ class ConWidget(QtWidgets.QWidget):
         galvo_scroll_layout.addRow(cw.label_widget(str('Frequency / Hz')), self.QSpinBox_galvo_frequency)
         galvo_scroll_layout.addRow(cw.label_widget(str('Dot Start / V')), self.QDoubleSpinBox_dot_start)
         galvo_scroll_layout.addRow(cw.label_widget(str('Dot Range / V')), self.QDoubleSpinBox_dot_range)
-        galvo_scroll_layout.addRow(cw.label_widget(str('Dot Step / V')), self.QDoubleSpinBox_dot_step)
+        galvo_scroll_layout.addRow(cw.label_widget(str('Dot Step / sample')), self.QSpinBox_dot_step)
         galvo_scroll_layout.addRow(cw.label_widget(str('Delay / sample')), self.QSpinBox_galvo_delay)
-        galvo_scroll_layout.addRow(cw.label_widget(str('Interval / sample')), self.QSpinBox_galvo_interval)
+        galvo_scroll_layout.addRow(cw.label_widget(str('Dwell / sample')), self.QSpinBox_galvo_dwell)
         layout_position.addWidget(self.mad_deck_scroll_area)
         layout_position.addWidget(self.mcl_piezo_scroll_area)
         layout_position.addWidget(self.galvo_scroll_area)
@@ -446,7 +446,8 @@ class ConWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def run_acquisition(self):
         acq_mode = self.QComboBox_acquisition_modes.currentText()
-        self.Signal_data_acquire.emit(acq_mode)
+        acq_num = self.QSpinBox_acquisition_number.value()
+        self.Signal_data_acquire.emit(acq_mode, acq_num)
 
     @QtCore.pyqtSlot()
     def save(self):

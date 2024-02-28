@@ -86,7 +86,7 @@ class DeformableMirror:
             self.n_zernike = 60
             self.az = None
             self.zernike = tz.get_zernike_polynomials(nz=self.n_zernike, size=[self.nly, self.nlx])
-            self.zslopes = tz.get_zernike_slopes(nz=self.n_zernike, size=[self.nly, self.nlx])
+            # self.zslopes = tz.get_zernike_slopes(nz=self.n_zernike, size=[self.nly, self.nlx])
             # self.z2c = self.zernike_modes()
         else:
             self.dm_cmd = [[0.] * self.n_actuator]

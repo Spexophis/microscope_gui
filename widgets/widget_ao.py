@@ -10,6 +10,7 @@ class AOWidget(QtWidgets.QWidget):
     Signal_img_shwfs_compute_wf = QtCore.pyqtSignal()
     Signal_img_shwfs_correct_wf = QtCore.pyqtSignal(int)
     Signal_img_shwfs_save_wf = QtCore.pyqtSignal(str)
+    Signal_img_shwfs_acquisition = QtCore.pyqtSignal()
     Signal_dm_selection = QtCore.pyqtSignal(str)
     Signal_push_actuator = QtCore.pyqtSignal(int, float)
     Signal_influence_function = QtCore.pyqtSignal()
@@ -118,10 +119,11 @@ class AOWidget(QtWidgets.QWidget):
         # self.radioButton_exclude_zm = cw.radiobutton_widget("Exclude", f"rgb(220, 20, 60)")
         self.QPushButton_img_shwfs_compute_wf = cw.pushbutton_widget('ComputeWF', enable=True)
         self.QPushButton_img_shwfs_save_wf = cw.pushbutton_widget('SaveWF', enable=True)
+        self.QPushButton_img_shwfs_acquisition = cw.pushbutton_widget('ACQ')
         self.image_shwfs_scroll_area, image_shwfs_scroll_layout = cw.create_scroll_area()
         image_shwfs_scroll_layout.addRow(self.QLabel_image_shwfs, self.QComboBox_wfs_camera_selection)
         image_shwfs_scroll_layout.addRow(self.QPushButton_run_img_wfs, self.QPushButton_img_shwfs_base)
-        image_shwfs_scroll_layout.addRow(self.QPushButton_run_img_wfr)
+        image_shwfs_scroll_layout.addRow(self.QPushButton_run_img_wfr, self.QPushButton_img_shwfs_acquisition)
         image_shwfs_scroll_layout.addRow(self.QPushButton_img_shwfs_compute_wf, self.QPushButton_img_shwfs_save_wf)
         layout_shwfs.addWidget(self.image_shwfs_scroll_area)
         return layout_shwfs
@@ -231,6 +233,7 @@ class AOWidget(QtWidgets.QWidget):
         self.QPushButton_run_img_wfr.clicked.connect(self.run_img_wfr)
         self.QPushButton_img_shwfs_compute_wf.clicked.connect(self.compute_img_wf)
         self.QPushButton_img_shwfs_save_wf.clicked.connect(self.save_img_wf)
+        self.QPushButton_img_shwfs_acquisition.clicked.connect(self.wfs_acq)
         self.QComboBox_dms.currentIndexChanged.connect(self.select_dm)
         self.QPushButton_push_actuator.clicked.connect(self.push_dm_actuator)
         self.QPushButton_influence_fuction_laser.clicked.connect(self.run_influence_function)
@@ -282,6 +285,10 @@ class AOWidget(QtWidgets.QWidget):
             if selected_file:
                 print(selected_file[0])
                 self.Signal_img_shwfs_save_wf.emit(selected_file[0])
+
+    @QtCore.pyqtSlot()
+    def wfs_acq(self):
+        self.Signal_img_shwfs_acquisition.emit()
 
     @QtCore.pyqtSlot()
     def select_dm(self):

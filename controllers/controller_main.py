@@ -3,6 +3,7 @@ import time
 import traceback
 
 import numpy as np
+import pandas as pd
 import tifffile as tf
 from PyQt5 import QtCore
 
@@ -99,6 +100,7 @@ class MainController(QtCore.QObject):
         self.v.ao_view.Signal_img_shwfr_run.connect(self.run_img_wfr)
         self.v.ao_view.Signal_img_shwfs_compute_wf.connect(self.compute_img_wf)
         self.v.ao_view.Signal_img_shwfs_save_wf.connect(self.save_img_wf)
+        self.v.ao_view.Signal_img_shwfs_acquisition.connect(self.run_shwfs_acquisition)
         # AO
         self.v.ao_view.Signal_img_shwfs_correct_wf.connect(self.run_close_loop_correction)
         self.v.ao_view.Signal_sensorlessAO_run.connect(self.run_sensorless_iteration)
@@ -326,9 +328,9 @@ class MainController(QtCore.QObject):
             self.p.trigger.update_digital_parameters(digital_starts, digital_ends)
             gv_starts, gv_stops, gv_frequency, dot_pos, laser_pulse = self.con_controller.get_galvo_scan_parameters()
             self.p.trigger.update_galvo_scan_parameters(galvo_start=gv_starts[0], galvo_stop=gv_stops[0],
-                                                        dot_start=dot_pos[0], dot_range=dot_pos[1], dot_step=dot_pos[2],
-                                                        frequency=gv_frequency,
-                                                        samples_delay=laser_pulse[0], samples_low=laser_pulse[1])
+                                                        dot_start=dot_pos[0], dot_range=dot_pos[1],
+                                                        dot_step_s=dot_pos[2], frequency=gv_frequency,
+                                                        samples_delay=laser_pulse[0], samples_high=laser_pulse[1])
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             positions = self.con_controller.get_piezo_positions()
             self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, positions)
@@ -469,16 +471,16 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"Error plotting digital triggers: {e}")
 
-    @QtCore.pyqtSlot(str)
-    def data_acquisition(self, acq_mod: str):
+    @QtCore.pyqtSlot(str, int)
+    def data_acquisition(self, acq_mod: str, acq_num: int):
         if acq_mod == "Widefield 3D":
-            self.run_widefield_zstack()
+            self.run_widefield_zstack(acq_num)
         if acq_mod == "Confocal 2D":
-            self.run_confocal_scanning()
+            self.run_confocal_scanning(acq_num)
         if acq_mod == "GalvoScan 2D":
-            self.run_galvo_scanning()
+            self.run_galvo_scanning(acq_num)
         if acq_mod == "BeadScan":
-            self.run_bead_scan()
+            self.run_bead_scan(acq_num)
 
     def prepare_widefield_zstack(self):
         self.lasers = self.con_controller.get_lasers()
@@ -536,8 +538,8 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"Error stopping widefield zstack: {e}")
 
-    def run_widefield_zstack(self):
-        self.run_task(task=self.widefield_zstack)
+    def run_widefield_zstack(self, n: int):
+        self.run_task(task=self.widefield_zstack, iteration=n)
 
     def prepare_galvo_scanning(self):
         self.lasers = self.con_controller.get_lasers()
@@ -579,8 +581,8 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"Error stopping galvo scanning: {e}")
 
-    def run_galvo_scanning(self):
-        self.run_task(task=self.galvo_scanning)
+    def run_galvo_scanning(self, n: int):
+        self.run_task(task=self.galvo_scanning, iteration=n)
 
     def prepare_confocal_scanning(self):
         self.lasers = self.con_controller.get_lasers()
@@ -622,8 +624,8 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"Error stopping confocal scanning: {e}")
 
-    def run_confocal_scanning(self):
-        self.run_task(task=self.confocal_scanning)
+    def run_confocal_scanning(self, n: int):
+        self.run_task(task=self.confocal_scanning, iteration=n)
 
     def prepare_bead_scan(self):
         self.lasers = self.con_controller.get_lasers()
@@ -686,8 +688,8 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"Error stopping confocal scanning: {e}")
 
-    def run_bead_scan(self):
-        self.run_task(task=self.bead_scan_2d)
+    def run_bead_scan(self, n: int):
+        self.run_task(task=self.bead_scan_2d, iteration=n)
 
     @QtCore.pyqtSlot(str)
     def save_data(self, file_name: str):
@@ -1121,6 +1123,79 @@ class MainController(QtCore.QObject):
             self.logg.info("sensorless AO finished")
         except Exception as e:
             self.logg.error(f"Finish Sensorless AO Error: {e}")
+
+    @QtCore.pyqtSlot()
+    def run_shwfs_acquisition(self):
+        try:
+            self._prepare_shwfs_acquisition()
+        except Exception as e:
+            self.logg.error(f"Error prepare shwfs acquisition: {e}")
+            return
+        self.run_task(self.shwfs_acquisition, callback=self._finish_shwfs_acquisition)
+
+    def _prepare_shwfs_acquisition(self):
+        self.lasers = self.con_controller.get_lasers()
+        self.set_lasers()
+        self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
+        self.set_camera_roi("wfs")
+        self.m.cam_set[self.cameras["wfs"]].prepare_live()
+        self.m.daq.write_digital_sequences(self.generate_wfs_trigger("wfs"), mode="finite")
+
+    def shwfs_acquisition(self):
+        try:
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M") + '_shwfs_acquisition')
+            os.makedirs(fd, exist_ok=True)
+            self.logg.info(f'Directory {fd} has been created successfully.')
+        except Exception as er:
+            self.logg.error(f'Error creating directory: {er}')
+            return
+        modes = np.arange(4, 22)
+        self.m.cam_set[self.cameras["wfs"]].start_live()
+        for i in range(64):
+            self.v.dialog_text.setText(f"Acquisition #{i}")
+            data = []
+            cmd = self.dfm.dm_cmd[self.dfm.current_cmd]
+            self.dfm.set_dm(cmd)
+            time.sleep(0.02)
+            self.m.daq.run_digital_trigger()
+            time.sleep(0.04)
+            data.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
+            self.m.daq.stop_triggers(_close=False)
+            amps = np.random.rand(modes.shape[0]) / 5
+            for m, mode in enumerate(modes):
+                amp = amps[m]
+                cmd = self.dfm.cmd_add(self.dfm.get_zernike_cmd(mode, amp), cmd)
+            self.dfm.set_dm(cmd)
+            time.sleep(0.02)
+            self.m.daq.run_digital_trigger()
+            time.sleep(0.04)
+            data.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
+            self.m.daq.stop_triggers(_close=False)
+            try:
+                self.p.shwfsr.method = self.ao_controller.get_gradient_method_img()
+                self.p.shwfsr.ref = data[0]
+                self.p.shwfsr.meas = data[1]
+                self.p.shwfsr.wavefront_reconstruction()
+            except Exception as e:
+                self.logg.error(f"SHWFS Reconstruction Error: {e}")
+                return
+            t = time.strftime("%Y%m%d_%H%M%S_")
+            fn = os.path.join(fd, t + "shwfs_proc_images.tif")
+            tf.imwrite(fn, self.p.shwfsr.im)
+            fn = os.path.join(fd, t + "shwfs_recon_wf.tif")
+            tf.imwrite(fn, self.p.shwfsr.wf)
+            fn = os.path.join(fd, t + "shwfs_wf_zcoffs.xlsx")
+            df = pd.DataFrame(amps, index=modes, columns=['Amplitudes'])
+            with pd.ExcelWriter(fn, engine='xlsxwriter') as writer:
+                df.to_excel(writer, sheet_name='Zernike Amplitudes')
+
+    def _finish_shwfs_acquisition(self):
+        try:
+            self.lasers_off()
+            self.m.cam_set[self.cameras["wfs"]].stop_live()
+            self.m.daq.stop_triggers()
+        except Exception as e:
+            self.logg.error(f"Error finishing influence function: {e}")
 
 
 class TaskWorkerSignals(QtCore.QObject):
