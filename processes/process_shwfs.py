@@ -1,4 +1,6 @@
 import os
+import time
+
 import numpy as np
 import tifffile as tf
 from scipy.signal import fftconvolve as corr
@@ -14,16 +16,16 @@ class WavefrontSensing:
 
     def __init__(self, logg=None):
         self.logg = logg or self.setup_logging()
-        self.n_lenslets_x = 19
-        self.n_lenslets_y = 18
+        self.n_lenslets_x = 16
+        self.n_lenslets_y = 16
         self.n_lenslets = self.n_lenslets_x * self.n_lenslets_y
-        self.x_center_base = 1275
-        self.y_center_base = 1154
-        self.x_center_offset = 1275
-        self.y_center_offset = 1154
-        self.lenslet_spacing = 40  # spacing between each lenslet
-        self.hsp = 16  # size of subimage is 2 * hsp
-        self.calfactor = (.00345 / 5.2) * 150  # pixel size * focalLength * pitch
+        self.x_center_base = 1385
+        self.y_center_base = 1097
+        self.x_center_offset = 1385
+        self.y_center_offset = 1097
+        self.lenslet_spacing = 24  # spacing between each lenslet
+        self.hsp = 12  # size of subimage is 2 * hsp
+        self.calfactor = (.0065 / 5.2) * 150  # pixel size * focalLength * pitch
         self.method = 'correlation'
         self.mag = 1
         section = np.ones((2 * self.hsp, 2 * self.hsp))
@@ -235,14 +237,14 @@ class WavefrontSensing:
         return (x * x / (radius[0] * radius[0])) + (y * y / (radius[1] * radius[1])) <= 1
 
     def generate_influence_matrix(self, data_folder, dm_info, method='phase', sv=False, verbose=False):
-        n_actuators, amp, n_zernikes, zslopes = dm_info
+        n_actuators, amp = dm_info
         if method == 'phase':
             _influence_matrix = np.zeros((self.n_lenslets, n_actuators))
             wfs = np.zeros((n_actuators, self.n_lenslets_y, self.n_lenslets_x))
         elif method == 'zonal':
             _influence_matrix = np.zeros((2 * self.n_lenslets, n_actuators))
-        elif method == 'modal':
-            _influence_matrix = np.zeros((n_zernikes, n_actuators))
+        # elif method == 'modal':
+        #     _influence_matrix = np.zeros((n_zernikes, n_actuators))
         else:
             raise ValueError("Invalid method")
         _msk = self._elliptical_mask((self.n_lenslets_y / 2, self.n_lenslets_x / 2),
@@ -274,14 +276,15 @@ class WavefrontSensing:
                     if method == 'zonal':
                         _influence_matrix[:self.n_lenslets, ind] = ((gdxp - gdxn) / (2 * amp)).reshape(self.n_lenslets)
                         _influence_matrix[self.n_lenslets:, ind] = ((gdyp - gdyn) / (2 * amp)).reshape(self.n_lenslets)
-                    if method == 'modal':
-                        a1 = ipr.get_eigen_coefficients(np.concatenate((gdxp.flatten(), gdyp.flatten())), zslopes)
-                        a2 = ipr.get_eigen_coefficients(np.concatenate((gdxn.flatten(), gdyn.flatten())), zslopes)
-                        _influence_matrix[:, ind] = ((a1 - a2) / (2 * amp)).flatten()
+                    # if method == 'modal':
+                    #     a1 = ipr.get_eigen_coefficients(np.concatenate((gdxp.flatten(), gdyp.flatten())), zslopes)
+                    #     a2 = ipr.get_eigen_coefficients(np.concatenate((gdxn.flatten(), gdyn.flatten())), zslopes)
+                    #     _influence_matrix[:, ind] = ((a1 - a2) / (2 * amp)).flatten()
         _control_matrix = ipr.pseudo_inverse(_influence_matrix, n=32)
         if sv:
-            tf.imwrite(os.path.join(data_folder, f"influence_function_{method}.tif"), _influence_matrix)
-            tf.imwrite(os.path.join(data_folder, f"control_matrix_{method}.tif"), _control_matrix)
+            t = time.strftime("%Y%m%d")
+            tf.imwrite(os.path.join(data_folder, f"influence_function_{method}_{t}.tif"), _influence_matrix)
+            tf.imwrite(os.path.join(data_folder, f"control_matrix_{method}_{t}.tif"), _control_matrix)
             if 'wfs' in locals():
                 if isinstance(wfs, np.ndarray):
-                    tf.imwrite(os.path.join(data_folder, "influence_function_images.tif"), wfs)
+                    tf.imwrite(os.path.join(data_folder, "influence_function_images_{t}.tif"), wfs)

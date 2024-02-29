@@ -71,11 +71,14 @@ class DeformableMirror:
                 self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Phase Control Matrix"])
             self.control_matrix_zonal = tf.imread(
                 self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Zonal Control Matrix"])
-            self.control_matrix_modal = tf.imread(
-                self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Modal Control Matrix"])
             self.initial_flat = self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Initial Flat"]
         except Exception as e:
             self.logg.error(f"Error Loading DM {self.dm_name} files: {e}")
+        try:
+            self.control_matrix_modal = tf.imread(
+                self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Modal Control Matrix"])
+        except Exception as e:
+            self.logg.error(f"Error Loading DM {self.dm_name} modal control file: {e}")
         if hasattr(self, "initial_flat"):
             self.dm_cmd = [[0.] * self.n_actuator]
             self.dm_cmd.append(self.read_cmd(self.initial_flat))
@@ -91,6 +94,9 @@ class DeformableMirror:
         else:
             self.dm_cmd = [[0.] * self.n_actuator]
             self.current_cmd = 0
+            self.correction = []
+            self.temp_cmd = []
+            self.amp = 0.1
             self.logg.error(f"Missing initial flat, started with Null")
 
     def close(self):
@@ -120,9 +126,9 @@ class DeformableMirror:
             measurement = np.concatenate((gradx.reshape(self.nls), grady.reshape(self.nls)))
             if method == 'zonal':
                 self.correction.append(list(np.dot(self.control_matrix_zonal, -measurement)))
-            elif method == 'modal':
-                a = ipr.get_eigen_coefficients(-measurement, self.zslopes)
-                self.correction.append(list(np.dot(self.control_matrix_modal, a)))
+            # elif method == 'modal':
+            #     a = ipr.get_eigen_coefficients(-measurement, self.zslopes)
+            #     self.correction.append(list(np.dot(self.control_matrix_modal, a)))
             else:
                 self.logg.error(f"Invalid AO correction method")
                 return
@@ -168,7 +174,7 @@ class DeformableMirror:
     def write_cmd(self, path, t, flatfile=False):
         if flatfile:
             filename = t + f"{self.dm_serial}_flat_file.xlsx"
-            df = pd.DataFrame(self.dm_cmd[-1], index=np.arange(97), columns=['Push'])
+            df = pd.DataFrame(self.dm_cmd[-1], index=np.arange(self.n_actuator), columns=['Push'])
             fd = os.path.join(path, filename)
             df.to_excel(str(fd), index_label='Actuator')
         else:
@@ -177,7 +183,7 @@ class DeformableMirror:
             data = {f'cmd{i}': cmd for i, cmd in enumerate(self.dm_cmd)}
             with pd.ExcelWriter(str(fd), engine='xlsxwriter') as writer:
                 for sheet_name, list_data in data.items():
-                    df = pd.DataFrame(list_data, index=np.arange(97), columns=['Push'])
+                    df = pd.DataFrame(list_data, index=np.arange(self.n_actuator), columns=['Push'])
                     df.to_excel(writer, sheet_name=sheet_name, index_label='Actuator')
 
     def save_sensorless_results(self, fd, a, v, p):

@@ -19,13 +19,14 @@ class BeadScanReconstruction:
         final_image = np.zeros((nx, ny))
         s = int((ns + 1) / 2)
         ims = []
+        print(len(x))
         for l_ in range(len(x)):
             temp = self.reconstruction_single_bead(data, x[l_], y[l_], ns + 1, rd)
             ims.append(temp)
-            try:
+            if (ns + 1) % 2:
+                final_image[y[l_] - s:y[l_] + s + 1, x[l_] - s:x[l_] + s + 1] = temp
+            else:
                 final_image[y[l_] - s:y[l_] + s, x[l_] - s:x[l_] + s] = temp
-            except Exception as e:
-                print(f"{e}")
         return [x, y], ims, final_image
 
     @staticmethod

@@ -168,13 +168,13 @@ class NIDAQ:
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
 
-    def write_digital_sequences(self, digital_sequences, clock_source="base", mode="finite"):
-        if clock_source == "base":
+    def write_digital_sequences(self, digital_sequences, base_clock=True, finite=True):
+        if base_clock:
             self.clock = "100kHzTimebase"
         else:
             self.clock = "Ctr0InternalOutput"
             self.write_clock_channel()
-        if mode == "finite":
+        if finite:
             self.mode = AcquisitionType.FINITE
         else:
             self.mode = AcquisitionType.CONTINUOUS
@@ -218,14 +218,18 @@ class NIDAQ:
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
 
-    def write_piezo_scan(self, piezo_sequences):
+    def write_piezo_scan(self, piezo_sequences, finite=True):
+        if finite:
+            mode = AcquisitionType.FINITE
+        else:
+            mode = AcquisitionType.CONTINUOUS
         try:
             self.tasks["piezo"] = nidaqmx.Task("piezo")
             self.tasks["piezo"].ao_channels.add_ao_voltage_chan(self.piezo_channels, min_val=0., max_val=10.)
             _channels, _samples = piezo_sequences.shape
             self.tasks["piezo"].timing.cfg_samp_clk_timing(self.sample_rate, source="Ctr0InternalOutput",
-                                                           active_edge=Edge.RISING,
-                                                           sample_mode=AcquisitionType.FINITE, samps_per_chan=_samples)
+                                                           active_edge=Edge.RISING, sample_mode=mode,
+                                                           samps_per_chan=_samples)
             self.tasks["piezo"].write(piezo_sequences, auto_start=False)
             self._active["piezo"] = True
             self.tasks["piezo"].start()
@@ -239,14 +243,18 @@ class NIDAQ:
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
 
-    def write_galvo_scan(self, galvo_sequences):
+    def write_galvo_scan(self, galvo_sequences, finite=True):
+        if finite:
+            mode = AcquisitionType.FINITE
+        else:
+            mode = AcquisitionType.CONTINUOUS
         try:
             self.tasks["galvo"] = nidaqmx.Task("galvo")
             self.tasks["galvo"].ao_channels.add_ao_voltage_chan(self.galvo_channels, min_val=-10., max_val=10.)
             _channels, _samples = galvo_sequences.shape
             self.tasks["galvo"].timing.cfg_samp_clk_timing(self.sample_rate, source="Ctr0InternalOutput",
-                                                           active_edge=Edge.RISING,
-                                                           sample_mode=AcquisitionType.FINITE, samps_per_chan=_samples)
+                                                           active_edge=Edge.RISING, sample_mode=mode,
+                                                           samps_per_chan=_samples)
             self.tasks["galvo"].write(galvo_sequences, auto_start=False)
             self._active["galvo"] = True
             self.tasks["galvo"].start()
@@ -260,14 +268,18 @@ class NIDAQ:
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
 
-    def write_anolog_sequences(self, anolog_sequences=None):
+    def write_anolog_sequences(self, anolog_sequences=None, finite=True):
+        if finite:
+            mode = AcquisitionType.FINITE
+        else:
+            mode = AcquisitionType.CONTINUOUS
         try:
             self.tasks["anolog"] = nidaqmx.Task("anolog")
             self.tasks["anolog"].ao_channels.add_ao_voltage_chan(self.anolog_channels, min_val=-10., max_val=10.)
             _channels, _samples = anolog_sequences.shape
             self.tasks["anolog"].timing.cfg_samp_clk_timing(self.sample_rate, source="Ctr0InternalOutput",
-                                                            active_edge=Edge.RISING,
-                                                            sample_mode=AcquisitionType.FINITE, samps_per_chan=_samples)
+                                                            active_edge=Edge.RISING, sample_mode=mode,
+                                                            samps_per_chan=_samples)
             self.tasks["anolog"].write(anolog_sequences, auto_start=False)
             self._active["anolog"] = True
             self.tasks["anolog"].start()
@@ -281,17 +293,17 @@ class NIDAQ:
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
 
-    def write_triggers(self, piezo_sequences=None, galvo_sequences=None, digital_sequences=None):
+    def write_triggers(self, piezo_sequences=None, galvo_sequences=None, digital_sequences=None, finite=True):
         try:
             if piezo_sequences is not None and galvo_sequences is not None:
-                self.write_anolog_sequences(np.concatenate((piezo_sequences, galvo_sequences)))
+                self.write_anolog_sequences(np.concatenate((piezo_sequences, galvo_sequences)), finite)
             else:
                 if piezo_sequences is not None:
-                    self.write_piezo_scan(piezo_sequences)
+                    self.write_piezo_scan(piezo_sequences, finite)
                 elif galvo_sequences is not None:
-                    self.write_galvo_scan(galvo_sequences)
+                    self.write_galvo_scan(galvo_sequences, finite)
             if digital_sequences is not None:
-                self.write_digital_sequences(digital_sequences, "internal", "finite")
+                self.write_digital_sequences(digital_sequences, False, finite)
         except nidaqmx.DaqWarning as e:
             self.logg.warning("DaqWarning caught as exception: %s", e)
             try:
@@ -304,7 +316,8 @@ class NIDAQ:
         try:
             self._running["clock"] = True
             self.tasks["clock"].start()
-            self.tasks["digital"].wait_until_done(WAIT_INFINITELY)
+            if self.mode == AcquisitionType.FINITE:
+                self.tasks["digital"].wait_until_done(WAIT_INFINITELY)
         except nidaqmx.DaqWarning as e:
             self.logg.warning("DaqWarning caught as exception: %s", e)
             try:

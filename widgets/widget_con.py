@@ -12,7 +12,7 @@ class ConWidget(QtWidgets.QWidget):
     Signal_galvo_set = QtCore.pyqtSignal(float, float)
     Signal_set_laser = QtCore.pyqtSignal(list, bool, float)
     Signal_plot_trigger = QtCore.pyqtSignal()
-    Signal_video = QtCore.pyqtSignal(bool)
+    Signal_video = QtCore.pyqtSignal(bool, str)
     Signal_fft = QtCore.pyqtSignal(bool)
     Signal_plot_profile = QtCore.pyqtSignal(bool)
     Signal_data_acquire = QtCore.pyqtSignal(str, int)
@@ -302,7 +302,6 @@ class ConWidget(QtWidgets.QWidget):
                                                                           "Widefield 2D", "Widefield 3D",
                                                                           "Confocal 2D", "Confocal 3D",
                                                                           "GalvoScan 2D", "GalvoScan 3D",
-                                                                          "RESOLFT 2D", "RESOLFT 3D",
                                                                           "BeadScan"])
         self.QPushButton_acquire = cw.pushbutton_widget('Acquire')
         self.QPushButton_save = cw.pushbutton_widget('Save')
@@ -417,12 +416,13 @@ class ConWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot()
     def run_video(self):
+        vm = self.QComboBox_acquisition_modes.currentText()
         if self.QPushButton_video.isChecked():
-            self.Signal_video.emit(True)
+            self.Signal_video.emit(True, vm)
             self.QPushButton_fft.setEnabled(True)
             self.QPushButton_plot_profile.setEnabled(True)
         else:
-            self.Signal_video.emit(False)
+            self.Signal_video.emit(False, vm)
             if self.QPushButton_fft.isChecked():
                 self.Signal_fft.emit(False)
             self.QPushButton_fft.setEnabled(False)
