@@ -1,11 +1,11 @@
-from modules import module_andorixon
-from modules import module_deformablemirror
-from modules import module_hamamatsu
-from modules import module_laser
-from modules import module_mcldeck
-from modules import module_mclpiezo
-from modules import module_nidaq
-from modules import module_tis
+from miao.modules import module_andorixon
+from miao.modules import module_deformablemirror
+from miao.modules import module_hamamatsu
+from miao.modules import module_laser
+from miao.modules import module_mcldeck
+from miao.modules import module_mclpiezo
+from miao.modules import module_nidaq
+from miao.modules import module_tis
 
 
 class MainModule:

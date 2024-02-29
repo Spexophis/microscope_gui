@@ -4,12 +4,12 @@ import time
 
 from PyQt5 import QtWidgets
 
-from controllers import controller_main
-from modules import module_main
-from processes import process_main
-from utilities import configurations, error_log
-from utilities import customized_widgets as cw
-from widgets import widget_main
+from miao.controllers import controller_main
+from miao.modules import module_main
+from miao.processes import process_main
+from miao.utilities import configurations, error_log
+from miao.utilities import customized_widgets as cw
+from miao.widgets import widget_main
 
 
 class MicroscopeGUI(QtWidgets.QMainWindow):
@@ -59,23 +59,32 @@ class MicroscopeGUI(QtWidgets.QMainWindow):
         self.close()
 
 
-if __name__ == '__main__':
-
-    app = QtWidgets.QApplication(sys.argv)
-
-    def close():
-        gui.module.close()
-        app.exit()
+cfd = r"C:\Users\ruizhe.lin\Documents\data\config_files\microscope_configurations_20240207.json"
 
 
-    cfd = r"C:\Users\ruizhe.lin\Documents\data\config_files\microscope_configurations_20240207.json"
-    if cfd:
+class AppWrapper:
+    def __init__(self, config_file):
+        self.app = QtWidgets.QApplication(sys.argv)  # Create an instance of QApplication
+        self.gui = MicroscopeGUI(config_file)
+        self.gui.view.Signal_quit.connect(self.close)  # Ensure this signal exists in your GUI
+
+    def run(self):
         try:
-            gui = MicroscopeGUI(cfd)
-            gui.view.Signal_quit.connect(close)
-            gui.view.show()
-        except Exception as er:
-            print(f"Fatal error: {er}")
+            self.gui.view.show()
+            sys.exit(self.app.exec_())
+        except Exception as e:
+            print(f"Fatal error: {e}")
             sys.exit(1)
 
-    sys.exit(app.exec_())
+    def close(self):
+        self.gui.module.close()
+        self.app.exit()
+
+
+def main():
+    app_wrapper = AppWrapper(cfd)
+    app_wrapper.run()
+
+
+if __name__ == '__main__':
+    main()

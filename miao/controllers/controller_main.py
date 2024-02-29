@@ -7,8 +7,8 @@ import pandas as pd
 import tifffile as tf
 from PyQt5 import QtCore
 
-from controllers import controller_ao, controller_con, controller_view
-from tools import tool_improc as ipr
+from miao.controllers import controller_ao, controller_con, controller_view
+from miao.tools import tool_improc as ipr
 
 
 class MainController(QtCore.QObject):

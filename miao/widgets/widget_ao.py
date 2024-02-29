@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, QtCore
 
-from utilities import customized_widgets as cw
+from miao.utilities import customized_widgets as cw
 
 
 class AOWidget(QtWidgets.QWidget):

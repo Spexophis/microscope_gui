@@ -5,7 +5,7 @@ import numpy as np
 import tifffile as tf
 from scipy.signal import fftconvolve as corr
 from skimage.filters import threshold_otsu
-from tools import tool_improc as ipr
+from miao.tools import tool_improc as ipr
 fft2 = np.fft.fft2
 ifft2 = np.fft.ifft2
 fftshift = np.fft.fftshift

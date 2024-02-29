@@ -7,8 +7,8 @@ import numpy as np
 import pandas as pd
 import tifffile as tf
 
-from tools import tool_improc as ipr
-from tools import tool_zernike as tz
+from miao.tools import tool_improc as ipr
+from miao.tools import tool_zernike as tz
 
 sys.path.append(r'C:\Program Files\Alpao\SDK\Samples\Python3')
 if (8 * struct.calcsize("P")) == 32:

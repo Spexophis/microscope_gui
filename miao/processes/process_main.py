@@ -1,4 +1,4 @@
-from processes import process_shwfs, process_trigger
+from miao.processes import process_shwfs, process_trigger
 
 
 class MainProcess:
