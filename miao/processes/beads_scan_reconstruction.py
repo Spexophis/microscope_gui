@@ -49,8 +49,8 @@ class BeadScanReconstruction:
         return x, y
 
     @staticmethod
-    def reconstruction_single_bead(img_stack, x, y, stpn, hcr):
-        img_ = img_stack[:, int(y - hcr):int(y + hcr), int(x - hcr):int(x + hcr)]
+    def reconstruction_single_bead(imstack, x, y, stpn, hcr):
+        img_ = imstack[:, int(y - hcr):int(y + hcr), int(x - hcr):int(x + hcr)]
         result = np.zeros((stpn, stpn))
         for j in range(stpn):
             for i in range(stpn):
@@ -63,25 +63,22 @@ class BeadScanReconstruction:
 
 if __name__ == '__main__':
     import tifffile as tf
-    import matplotlib
-    import matplotlib.pyplot as plt
-
-    matplotlib.use('Qt5Agg')
+    import pprint
     fn = input("Enter data file directory: ")
-    img = tf.imread(fn)
+    img_stack = tf.imread(fn)
     sz = input("Enter step size: ")
-    img = img - img.min()
-    hist, bins = np.histogram(img[0])
-    print(hist)
-    print(bins)
+    img_stack = img_stack - img_stack.min()
+    hist, bins = np.histogram(img_stack[0], bins=32)
+    pprint.pprint(hist)
+    pprint.pprint(bins)
+    bg = input("Enter background: ")
+    img_stack = np.maximum(img_stack - float(bg), 0)
+    img = img_stack[0]
+    hist, bins = np.histogram(img, bins=16)
+    pprint.pprint(hist)
+    pprint.pprint(bins)
     thr = input("Enter threshold: ")
     r = BeadScanReconstruction()
-    results = r.reconstruct_all_beads(img, float(sz), float(thr), 32)
+    results = r.reconstruct_all_beads(img_stack, float(sz), float(thr), 32)
     fn = input("Enter data file save directory: ")
     tf.imwrite(fn, results[2])
-
-    plt.figure()
-    plt.imshow(img[0])
-    plt.autoscale(False)
-    plt.plot(results[0][0], results[0][1], 'ro')
-    plt.show(block=False)
