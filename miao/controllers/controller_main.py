@@ -648,10 +648,6 @@ class MainController(QtCore.QObject):
         self.set_camera_roi("imaging")
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
         self.m.daq.write_digital_sequences(self.generate_live_triggers("imaging"), finite=True)
-        # atr, dtr, pos = self.p.trigger.generate_bead_scan_2d(self.cameras["imaging"])
-        # self.m.cam_set[self.cameras["imaging"]].acq_num = pos
-        # self.m.cam_set[self.cameras["imaging"]].prepare_data_acquisition()
-        # self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=atr, digital_sequences=dtr)
 
     def bead_scan_2d(self):
         try:
@@ -684,9 +680,6 @@ class MainController(QtCore.QObject):
                 1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
                        metadata={'unit': 'um',
                                  'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
-            # time.sleep(0.02)
-            # self.m.daq.run_triggers()
-            # time.sleep(1)
         except Exception as e:
             self.logg.error(f"Error running beads scanning: {e}")
             return
