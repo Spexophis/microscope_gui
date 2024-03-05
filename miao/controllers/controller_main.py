@@ -329,8 +329,9 @@ class MainController(QtCore.QObject):
             gv_starts, gv_stops, gv_frequency, dot_pos, laser_pulse = self.con_controller.get_galvo_scan_parameters()
             self.p.trigger.update_galvo_scan_parameters(galvo_start=gv_starts[0], galvo_stop=gv_stops[0],
                                                         dot_start=dot_pos[0], dot_range=dot_pos[1],
-                                                        dot_step_s=dot_pos[2], frequency=gv_frequency,
-                                                        samples_delay=laser_pulse[0], samples_high=laser_pulse[1])
+                                                        dot_offset=dot_pos[2], dot_step_s=laser_pulse[0],
+                                                        frequency=gv_frequency, samples_delay=laser_pulse[1],
+                                                        samples_high=laser_pulse[2])
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             positions = self.con_controller.get_piezo_positions()
             self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, positions)

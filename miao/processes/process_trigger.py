@@ -38,6 +38,7 @@ class TriggerSequence:
             # dot array
             self.dot_start = -0.8  # V
             self.dot_range = 1.6  # V
+            self.dot_offset = 0.0  # V
             self.dot_step_s = 4  # samples
             self.dot_step_v = (self.dot_step_s / self.sample_rate) * (
                     np.abs(self.galvo_stop - self.galvo_start) / (1 / self.frequency))
@@ -47,7 +48,7 @@ class TriggerSequence:
             self.samples_high = 1
             self.samples_low = self.dot_step_s - self.samples_high
             self.samples_delay = int(np.abs(self.dot_start - self.galvo_start) / (
-                        np.abs(self.galvo_stop - self.galvo_start) / self.samples_period))
+                    np.abs(self.galvo_stop - self.galvo_start) / self.samples_period))
             self.samples_offset = self.samples_period - self.samples_delay - self.dot_step_s * self.dot_pos.size
             # digital triggers
             self.digital_starts = [0.002, 0.007, 0.007, 0.012, 0.012, 0.012, 0.012]
@@ -104,12 +105,14 @@ class TriggerSequence:
             return
 
     def update_galvo_scan_parameters(self, galvo_start=None, galvo_stop=None, dot_start=None, dot_range=None,
-                                     dot_step_s=None, frequency=None, samples_delay=None, samples_high=None):
+                                     dot_offset=None, dot_step_s=None, frequency=None, samples_delay=None,
+                                     samples_high=None):
         original_values = {
             "galvo_start": self.galvo_start,
             "galvo_stop": self.galvo_stop,
             "dot_start": self.dot_start,
             "dot_range": self.dot_range,
+            "dot_offset": self.dot_offset,
             "dot_step_s": self.dot_step_s,
             "frequency": self.frequency,
             "samples_period": self.samples_period,
@@ -125,6 +128,8 @@ class TriggerSequence:
                 self.dot_start = dot_start
             if dot_range is not None:
                 self.dot_range = dot_range
+            if dot_offset is not None:
+                self.dot_offset = dot_offset
             if frequency is not None:
                 self.frequency = frequency
                 self.samples_period = int(self.sample_rate / self.frequency)
@@ -192,7 +197,7 @@ class TriggerSequence:
         _sth = np.linspace(0, self.duration, self.duration, endpoint=False)
         fast_axis_galvo = np.abs(self.galvo_stop - self.galvo_start) * (
                 np.mod(_sth, self.samples_period) / self.samples_period) + self.galvo_start
-        slow_axis_galvo = self.dot_start + self.dot_step_v * (_sth // self.samples_period)
+        slow_axis_galvo = self.dot_offset + self.dot_start + self.dot_step_v * (_sth // self.samples_period)
         square_wave = np.pad(np.ones((self.samples_period - 2 * self.samples_delay)),
                              (self.samples_delay, self.samples_delay), 'constant', constant_values=(0, 0))
         laser_trigger = np.tile(square_wave, self.dot_pos.size)
@@ -291,7 +296,7 @@ class TriggerSequence:
         _sth = np.linspace(0, self.duration, self.duration, endpoint=False)
         fast_axis_galvo = np.abs(self.galvo_stop - self.galvo_start) * (
                 np.mod(_sth, self.samples_period) / self.samples_period) + self.galvo_start
-        slow_axis_galvo = self.dot_start + self.dot_step_v * (_sth // self.samples_period)
+        slow_axis_galvo = self.dot_offset + self.dot_start + self.dot_step_v * (_sth // self.samples_period)
         _sqr = np.concatenate((np.ones(self.samples_high), np.zeros(self.samples_low)))
         square_wave = np.pad(np.tile(_sqr, self.dot_pos.size), (self.samples_delay, self.samples_offset),
                              'constant', constant_values=(0, 0))
