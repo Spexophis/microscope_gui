@@ -670,11 +670,11 @@ class MainController(QtCore.QObject):
             self.m.cam_set[self.cameras["imaging"]].start_live()
             for z_ in pos[2]:
                 pz = self.m.pz.move_position(2, z_)
-                time.sleep(0.01)
+                time.sleep(0.02)
                 for y_ in pos[1]:
                     for x_ in pos[0]:
                         self.m.daq.set_piezo_position(x_ / 10., y_ / 10.)
-                        time.sleep(0.01)
+                        time.sleep(0.02)
                         self.m.daq.run_digital_trigger()
                         time.sleep(0.04)
                         data.append(self.m.cam_set[self.cameras["imaging"]].get_last_image())
