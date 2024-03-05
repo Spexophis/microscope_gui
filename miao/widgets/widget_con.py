@@ -176,7 +176,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QDoubleSpinBox_galvo_stop_y = cw.doublespinbox_widget(-10, 10, 0.001, 3, 1.0)
         self.QSpinBox_galvo_frequency = cw.spinbox_widget(0, 4000, 1, 250)
         self.QDoubleSpinBox_dot_start = cw.doublespinbox_widget(-10, 10, 0.002, 3, -0.6)
-        self.QDoubleSpinBox_dot_range = cw.doublespinbox_widget(0, 20, 0.002, 3, 1.6)
+        self.QDoubleSpinBox_dot_range = cw.doublespinbox_widget(0, 20, 0.002, 3, 1.2)
         self.QDoubleSpinBox_dot_offset = cw.doublespinbox_widget(0, 10, 0.002, 3, 0.0)
         self.QSpinBox_dot_step = cw.spinbox_widget(0, 4000, 1, 4)
         self.QSpinBox_galvo_delay = cw.spinbox_widget(-4000, 4000, 1, 0)
