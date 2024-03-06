@@ -102,6 +102,9 @@ class ConController:
     def get_profile_axis(self):
         return self.v.QComboBox_profile_axis.currentText()
 
+    def get_live_mode(self):
+        return self.v.QComboBox_live_modes.currentText()
+
     def get_acquisition_mode(self):
         return self.v.QComboBox_acquisition_modes.currentText()
 

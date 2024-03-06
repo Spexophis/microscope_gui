@@ -352,13 +352,13 @@ class MainController(QtCore.QObject):
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
-        if vd_mod == "Live" or vd_mod == "Widefield 2D":
+        if vd_mod == "Wide Field":
             self.m.daq.write_digital_sequences(self.generate_live_triggers("imaging"), finite=False)
-        elif vd_mod == "Confocal 2D":
+        elif vd_mod == "Line Scan":
             self.update_trigger_parameters("imaging")
             gtr, ptr, dtr, pos = self.p.trigger.generate_confocal_presolft_2d()
             self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=gtr, digital_sequences=dtr, finite=False)
-        elif vd_mod == "GalvoScan 2D":
+        elif vd_mod == "Dot Scan":
             self.update_trigger_parameters("imaging")
             gtr, ptr, dtr, pos = self.p.trigger.generate_galvo_presolft_2d()
             self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=gtr, digital_sequences=dtr, finite=False)
@@ -487,13 +487,15 @@ class MainController(QtCore.QObject):
 
     @QtCore.pyqtSlot(str, int)
     def data_acquisition(self, acq_mod: str, acq_num: int):
-        if acq_mod == "Widefield 3D":
+        if acq_mod == "Wide Field 2D":
             self.run_widefield_zstack(acq_num)
-        if acq_mod == "Confocal 2D":
+        if acq_mod == "Wide Field 3D":
+            self.run_widefield_zstack(acq_num)
+        if acq_mod == "Line Scan 2D":
             self.run_confocal_scanning(acq_num)
-        if acq_mod == "GalvoScan 2D":
+        if acq_mod == "Dot Scan 2D":
             self.run_galvo_scanning(acq_num)
-        if acq_mod == "BeadScan":
+        if acq_mod == "Bead Scan 2D":
             self.run_bead_scan(acq_num)
 
     def prepare_widefield_zstack(self):
@@ -513,8 +515,8 @@ class MainController(QtCore.QObject):
         try:
             positions = self.con_controller.get_piezo_positions()
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
-            if axis_lengths[2] == 0 or step_sizes[2] == 0:
-                self.logg.error(f"Error running widefield zstack: range or step is zero")
+            if step_sizes[2] == 0:
+                self.logg.error(f"Error running widefield zstack: z step size cannot be zero")
                 return
             else:
                 num_steps = int(axis_lengths[2] / (2 * step_sizes[2]))
