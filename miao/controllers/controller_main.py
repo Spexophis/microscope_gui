@@ -332,6 +332,7 @@ class MainController(QtCore.QObject):
                                                         dot_offset=dot_pos[2], dot_step_s=laser_pulse[0],
                                                         frequency=gv_frequency, samples_delay=laser_pulse[1],
                                                         samples_high=laser_pulse[2])
+            self.con_controller.display_dot_step(self.p.trigger.dot_step_v)
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             positions = self.con_controller.get_piezo_positions()
             self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, positions)

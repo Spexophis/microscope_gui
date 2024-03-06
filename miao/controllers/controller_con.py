@@ -99,6 +99,9 @@ class ConController:
                        self.v.QSpinBox_galvo_dwell.value()]
         return galvo_starts, galvo_stops, galvo_frequency, dot_pos, laser_pulse
 
+    def display_dot_step(self, dsv):
+        self.v.QLCDNumber_dot_step.display(dsv)
+
     def get_profile_axis(self):
         return self.v.QComboBox_profile_axis.currentText()
 

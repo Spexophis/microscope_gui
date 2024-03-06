@@ -178,6 +178,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QDoubleSpinBox_dot_range = cw.doublespinbox_widget(0, 20, 0.002, 3, 1.2)
         self.QDoubleSpinBox_dot_offset = cw.doublespinbox_widget(0, 10, 0.0002, 4, 0.0)
         self.QSpinBox_dot_step = cw.spinbox_widget(0, 4000, 1, 4)
+        self.QLCDNumber_dot_step = cw.lcdnumber_widget(0, 8)
         self.QSpinBox_galvo_delay = cw.spinbox_widget(-4000, 4000, 1, 0)
         self.QSpinBox_galvo_dwell = cw.spinbox_widget(0, 4000, 1, 1)
         self.galvo_scroll_area, galvo_scroll_layout = cw.create_scroll_area()
@@ -195,7 +196,8 @@ class ConWidget(QtWidgets.QWidget):
         galvo_scroll_layout.addRow(cw.label_widget(str('Dot Start / V')), self.QDoubleSpinBox_dot_start)
         galvo_scroll_layout.addRow(cw.label_widget(str('Dot Range / V')), self.QDoubleSpinBox_dot_range)
         galvo_scroll_layout.addRow(cw.label_widget(str('Dot Offset / V')), self.QDoubleSpinBox_dot_offset)
-        galvo_scroll_layout.addRow(cw.label_widget(str('Spot Step / sample')), self.QSpinBox_dot_step)
+        galvo_scroll_layout.addRow(cw.label_widget(str('Dot Step / sample')), self.QSpinBox_dot_step)
+        galvo_scroll_layout.addRow(cw.label_widget(str('Dot Step / volt')), self.QLCDNumber_dot_step)
         galvo_scroll_layout.addRow(cw.label_widget(str('Delay / sample')), self.QSpinBox_galvo_delay)
         galvo_scroll_layout.addRow(cw.label_widget(str('Dwell / sample')), self.QSpinBox_galvo_dwell)
         layout_position.addWidget(self.mad_deck_scroll_area)
@@ -282,18 +284,16 @@ class ConWidget(QtWidgets.QWidget):
 
     def _create_acquisition_widgets(self):
         layout_acquisition = QtWidgets.QGridLayout()
-        self.QLabel_acquisition_number = cw.label_widget(str('Acq Number'))
-        self.QSpinBox_acquisition_number = cw.spinbox_widget(1, 50000, 1, 1)
-        self.QLabel_acquisition_modes = cw.label_widget(str('Acq Modes'))
         self.QComboBox_acquisition_modes = cw.combobox_widget(list_items=["Wide Field 2D", "Wide Field 3D",
                                                                           "Line Scan 2D", "Line Scan 3D",
                                                                           "Dot Scan 2D", "Dot Scan 3D",
                                                                           "Bead Scan 2D", "Bead Scan 3D"])
+        self.QSpinBox_acquisition_number = cw.spinbox_widget(1, 50000, 1, 1)
         self.QPushButton_acquire = cw.pushbutton_widget('Acquire')
         self.QPushButton_save = cw.pushbutton_widget('Save')
-        layout_acquisition.addWidget(self.QLabel_acquisition_modes, 0, 0, 1, 1)
+        layout_acquisition.addWidget(cw.label_widget(str('Acq Modes')), 0, 0, 1, 1)
         layout_acquisition.addWidget(self.QComboBox_acquisition_modes, 1, 0, 1, 1)
-        layout_acquisition.addWidget(self.QLabel_acquisition_number, 0, 1, 1, 1)
+        layout_acquisition.addWidget(cw.label_widget(str('Acq Number')), 0, 1, 1, 1)
         layout_acquisition.addWidget(self.QSpinBox_acquisition_number, 1, 1, 1, 1)
         layout_acquisition.addWidget(self.QPushButton_acquire, 1, 2, 1, 1)
         layout_acquisition.addWidget(self.QPushButton_save, 1, 3, 1, 1)
