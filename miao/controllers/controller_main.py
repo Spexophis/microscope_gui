@@ -356,11 +356,11 @@ class MainController(QtCore.QObject):
             self.m.daq.write_digital_sequences(self.generate_live_triggers("imaging"), finite=False)
         elif vd_mod == "Line Scan":
             self.update_trigger_parameters("imaging")
-            gtr, ptr, dtr, pos = self.p.trigger.generate_confocal_presolft_2d()
+            gtr, ptr, dtr, pos = self.p.trigger.generate_linescan_resolft_2d()
             self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=gtr, digital_sequences=dtr, finite=False)
         elif vd_mod == "Dot Scan":
             self.update_trigger_parameters("imaging")
-            gtr, ptr, dtr, pos = self.p.trigger.generate_galvo_presolft_2d()
+            gtr, ptr, dtr, pos = self.p.trigger.generate_dotscan_resolft_2d()
             self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=gtr, digital_sequences=dtr, finite=False)
         else:
             self.m.cam_set[self.cameras["imaging"]].stop_live()
@@ -492,9 +492,9 @@ class MainController(QtCore.QObject):
         if acq_mod == "Wide Field 3D":
             self.run_widefield_zstack(acq_num)
         if acq_mod == "Line Scan 2D":
-            self.run_confocal_scanning(acq_num)
+            self.run_line_scanning(acq_num)
         if acq_mod == "Dot Scan 2D":
-            self.run_galvo_scanning(acq_num)
+            self.run_dot_scanning(acq_num)
         if acq_mod == "Bead Scan 2D":
             self.run_bead_scan(acq_num)
 
@@ -557,63 +557,20 @@ class MainController(QtCore.QObject):
     def run_widefield_zstack(self, n: int):
         self.run_task(task=self.widefield_zstack, iteration=n)
 
-    def prepare_galvo_scanning(self):
+    def prepare_line_scanning(self):
         self.lasers = self.con_controller.get_lasers()
         self.set_lasers()
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
         self.update_trigger_parameters("imaging")
-        gtr, ptr, dtr, pos = self.p.trigger.generate_galvo_presolft_2d()
+        gtr, ptr, dtr, pos = self.p.trigger.generate_linescan_resolft_2d()
         self.m.cam_set[self.cameras["imaging"]].acq_num = pos
         self.m.cam_set[self.cameras["imaging"]].prepare_data_acquisition()
         self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=gtr, digital_sequences=dtr)
 
-    def galvo_scanning(self):
+    def line_scanning(self):
         try:
-            self.prepare_galvo_scanning()
-        except Exception as e:
-            self.logg.error(f"Error preparing galvo scanning: {e}")
-            return
-        try:
-            self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
-            time.sleep(0.02)
-            self.m.daq.run_triggers()
-            time.sleep(1.)
-            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_galvo_scanning.tif')
-            tf.imwrite(fd, self.m.cam_set[self.cameras["imaging"]].get_data(), imagej=True, resolution=(
-                1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
-                       metadata={'unit': 'um', 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
-        except Exception as e:
-            self.logg.error(f"Error running galvo scanning: {e}")
-            return
-        self.finish_galvo_scanning()
-
-    def finish_galvo_scanning(self):
-        try:
-            self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
-            self.m.daq.stop_triggers()
-            self.lasers_off()
-            self.logg.info("Galvo scanning image acquired")
-        except Exception as e:
-            self.logg.error(f"Error stopping galvo scanning: {e}")
-
-    def run_galvo_scanning(self, n: int):
-        self.run_task(task=self.galvo_scanning, iteration=n)
-
-    def prepare_confocal_scanning(self):
-        self.lasers = self.con_controller.get_lasers()
-        self.set_lasers()
-        self.cameras["imaging"] = self.con_controller.get_imaging_camera()
-        self.set_camera_roi("imaging")
-        self.update_trigger_parameters("imaging")
-        gtr, ptr, dtr, pos = self.p.trigger.generate_confocal_presolft_2d()
-        self.m.cam_set[self.cameras["imaging"]].acq_num = pos
-        self.m.cam_set[self.cameras["imaging"]].prepare_data_acquisition()
-        self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=gtr, digital_sequences=dtr)
-
-    def confocal_scanning(self):
-        try:
-            self.prepare_confocal_scanning()
+            self.prepare_line_scanning()
         except Exception as e:
             self.logg.error(f"Error preparing confocal scanning: {e}")
             return
@@ -629,9 +586,9 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"Error running confocal scanning: {e}")
             return
-        self.finish_confocal_scanning()
+        self.finish_line_scanning()
 
-    def finish_confocal_scanning(self):
+    def finish_line_scanning(self):
         try:
             self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
             self.m.daq.stop_triggers()
@@ -640,8 +597,51 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"Error stopping confocal scanning: {e}")
 
-    def run_confocal_scanning(self, n: int):
-        self.run_task(task=self.confocal_scanning, iteration=n)
+    def run_line_scanning(self, n: int):
+        self.run_task(task=self.line_scanning, iteration=n)
+
+    def prepare_dot_scanning(self):
+        self.lasers = self.con_controller.get_lasers()
+        self.set_lasers()
+        self.cameras["imaging"] = self.con_controller.get_imaging_camera()
+        self.set_camera_roi("imaging")
+        self.update_trigger_parameters("imaging")
+        gtr, ptr, dtr, pos = self.p.trigger.generate_dotscan_resolft_2d()
+        self.m.cam_set[self.cameras["imaging"]].acq_num = pos
+        self.m.cam_set[self.cameras["imaging"]].prepare_data_acquisition()
+        self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=gtr, digital_sequences=dtr)
+
+    def dot_scanning(self):
+        try:
+            self.prepare_dot_scanning()
+        except Exception as e:
+            self.logg.error(f"Error preparing galvo scanning: {e}")
+            return
+        try:
+            self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
+            time.sleep(0.02)
+            self.m.daq.run_triggers()
+            time.sleep(1.)
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_galvo_scanning.tif')
+            tf.imwrite(fd, self.m.cam_set[self.cameras["imaging"]].get_data(), imagej=True, resolution=(
+                1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
+                       metadata={'unit': 'um', 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
+        except Exception as e:
+            self.logg.error(f"Error running galvo scanning: {e}")
+            return
+        self.finish_dot_scanning()
+
+    def finish_dot_scanning(self):
+        try:
+            self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
+            self.m.daq.stop_triggers()
+            self.lasers_off()
+            self.logg.info("Galvo scanning image acquired")
+        except Exception as e:
+            self.logg.error(f"Error stopping galvo scanning: {e}")
+
+    def run_dot_scanning(self, n: int):
+        self.run_task(task=self.dot_scanning, iteration=n)
 
     def prepare_bead_scan(self):
         self.lasers = self.con_controller.get_lasers()
@@ -665,12 +665,14 @@ class MainController(QtCore.QObject):
             pos = [[starts[dim] + step * step_sizes[dim] for step in
                     range(int((ends[dim] - starts[dim]) / step_sizes[dim]) + 1)] for dim in range(len(positions))]
             data = []
+            scan = []
             self.m.cam_set[self.cameras["imaging"]].start_live()
             for z_ in pos[2]:
                 pz = self.m.pz.move_position(2, z_)
                 time.sleep(0.02)
                 for y_ in pos[1]:
                     for x_ in pos[0]:
+                        scan.append([x_, y_, z_])
                         self.m.daq.set_piezo_position(x_ / 10., y_ / 10.)
                         time.sleep(0.02)
                         self.m.daq.run_digital_trigger()
@@ -681,7 +683,8 @@ class MainController(QtCore.QObject):
             tf.imwrite(fd, np.asarray(data), imagej=True, resolution=(
                 1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
                        metadata={'unit': 'um',
-                                 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
+                                 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list),
+                                 'scans': scan})
         except Exception as e:
             self.logg.error(f"Error running beads scanning: {e}")
             return

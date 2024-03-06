@@ -189,7 +189,7 @@ class TriggerSequence:
             digital_trigger[laser, self.digital_starts[laser]:self.digital_ends[laser]] = 1
         return digital_trigger
 
-    def generate_confocal_presolft_2d(self, camera=0):
+    def generate_linescan_resolft_2d(self, camera=0):
         interval_samples = 16
         digital_sequences = [np.empty((0,)) for _ in range(len(self.digital_starts))]
         galvo_sequences = [np.empty((0,)) for _ in range(2)]
@@ -288,7 +288,7 @@ class TriggerSequence:
                                                     self.piezo_starts, self.piezo_steps, self.piezo_ranges, scan_pos))
         return np.asarray(galvo_sequences), np.asarray(piezo_sequences), np.asarray(digital_sequences), scan_pos
 
-    def generate_galvo_presolft_2d(self, camera=0):
+    def generate_dotscan_resolft_2d(self, camera=0):
         interval_samples = 16
         digital_sequences = [np.empty((0,)) for _ in range(len(self.digital_starts))]
         galvo_sequences = [np.empty((0,)) for _ in range(2)]
