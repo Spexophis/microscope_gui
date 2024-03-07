@@ -287,4 +287,4 @@ class WavefrontSensing:
             tf.imwrite(os.path.join(data_folder, f"control_matrix_{method}_{t}.tif"), _control_matrix)
             if 'wfs' in locals():
                 if isinstance(wfs, np.ndarray):
-                    tf.imwrite(os.path.join(data_folder, "influence_function_images_{t}.tif"), wfs)
+                    tf.imwrite(os.path.join(data_folder, f"influence_function_images_{t}.tif"), wfs)
