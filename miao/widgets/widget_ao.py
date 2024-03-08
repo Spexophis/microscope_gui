@@ -33,13 +33,15 @@ class AOWidget(QtWidgets.QWidget):
         self._set_initial_values()
 
     def _setup_ui(self):
-        self.layout = QtWidgets.QVBoxLayout(self)
+        layout = QtWidgets.QVBoxLayout(self)
         self._create_docks()
         self._create_widgets()
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         for name, (dock, group) in self.docks.items():
-            self.layout.addWidget(dock)
+            splitter.addWidget(dock)
             group.setLayout(self.widgets[name])
-        self.setLayout(self.layout)
+        layout.addWidget(splitter)
+        self.setLayout(layout)
 
     def _create_docks(self):
         self.docks = {
