@@ -117,11 +117,10 @@ class EMCCDCamera:
             self.logg.error(atmcd_errors.Error_Codes(ret))
 
     def get_ccd_temperature(self):
-        ret, self.temperature = self.sdk.GetTemperature()
-        if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
-            self.logg.info("EMCCD Temperature is {}".format(self.temperature))
-        else:
-            self.logg.error(atmcd_errors.Error_Codes(ret))
+        ret, temperature = self.sdk.GetTemperature()
+        self.logg.info("{}".format(ret))
+        self.logg.info("EMCCD Temperature is {}".format(self.temperature))
+        return temperature
 
     def check_camera_status(self):
         ret, status = self.sdk.GetStatus()
