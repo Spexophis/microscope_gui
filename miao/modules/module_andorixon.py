@@ -78,8 +78,8 @@ class EMCCDCamera:
         try:
             self.get_sn()
             self.cooler_on()
-            self.set_frame_transfer(0)
-            self.set_readout_rate(0, 3)
+            # self.set_frame_transfer(0)
+            # self.set_readout_rate(0, 3)
         except Exception as e:
             self.logg.error(f"Error configuring camera: {e}")
 
@@ -99,9 +99,13 @@ class EMCCDCamera:
             self.logg.error(atmcd_errors.Error_Codes(ret))
 
     def cooler_on(self):
-        ret = self.sdk.CoolerON()
+        ret = self.sdk.SetTemperature(-60)
         if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
-            self.logg.info("EMCCD Cooler ON")
+            ret = self.sdk.CoolerON()
+            if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
+                self.logg.info("EMCCD Cooler ON")
+            else:
+                self.logg.error(atmcd_errors.Error_Codes(ret))
         else:
             self.logg.error(atmcd_errors.Error_Codes(ret))
 
