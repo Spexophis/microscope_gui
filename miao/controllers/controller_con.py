@@ -33,7 +33,7 @@ class ConController:
         return [self.v.QDoubleSpinBox_stage_x.value(), self.v.QDoubleSpinBox_stage_y.value(),
                 self.v.QDoubleSpinBox_stage_z.value()]
 
-    def get_galvo_scan(self):
+    def get_galvo_positions(self):
         return [self.v.QDoubleSpinBox_galvo_x.value(), self.v.QDoubleSpinBox_galvo_y.value()]
 
     def get_lasers(self):
@@ -90,14 +90,12 @@ class ConController:
         return axis_lengths, step_sizes
 
     def get_galvo_scan_parameters(self):
-        galvo_starts = [self.v.QDoubleSpinBox_galvo_start_x.value(), self.v.QDoubleSpinBox_galvo_start_y.value()]
-        galvo_stops = [self.v.QDoubleSpinBox_galvo_stop_x.value(), self.v.QDoubleSpinBox_galvo_stop_y.value()]
         galvo_frequency = self.v.QSpinBox_galvo_frequency.value()
-        dot_pos = [self.v.QDoubleSpinBox_dot_start.value(), self.v.QDoubleSpinBox_dot_range.value(),
-                   self.v.QDoubleSpinBox_dot_offset.value()]
-        laser_pulse = [self.v.QSpinBox_dot_step.value(), self.v.QSpinBox_galvo_delay.value(),
-                       self.v.QSpinBox_galvo_dwell.value()]
-        return galvo_starts, galvo_stops, galvo_frequency, dot_pos, laser_pulse
+        galvo_positions = [self.v.QDoubleSpinBox_galvo_x.value(), self.v.QDoubleSpinBox_galvo_y.value()]
+        galvo_ranges = [self.v.QDoubleSpinBox_galvo_range_x.value(), self.v.QDoubleSpinBox_galvo_range_y.value()]
+        dot_pos = [[self.v.QDoubleSpinBox_dot_range_x.value(), self.v.QDoubleSpinBox_dot_range_y.value()],
+                   self.v.QSpinBox_dot_step.value(), self.v.QSpinBox_galvo_dwell.value()]
+        return galvo_frequency, galvo_positions, galvo_ranges, dot_pos
 
     def display_dot_step(self, dsv):
         self.v.QLCDNumber_dot_step.display(dsv)
