@@ -80,5 +80,9 @@ if __name__ == '__main__':
     thr = input("Enter threshold: ")
     r = BeadScanReconstruction()
     results = r.reconstruct_all_beads(img_stack, float(sz), float(thr), 32)
-    fn = input("Enter data file save directory: ")
-    tf.imwrite(fn, results[2])
+    fns = input("Enter data file save directory: ")
+    if fns == fn:
+        fns = input("Enter a different data file save directory: ")
+        tf.imwrite(fns, results[2])
+    else:
+        tf.imwrite(fns, results[2])

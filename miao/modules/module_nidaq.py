@@ -312,6 +312,17 @@ class NIDAQ:
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
 
+    def start_triggers(self):
+        try:
+            for key, _task in self.tasks.items():
+                if key != "clock":
+                    if self._active.get(key, False):
+                        if not self._running[key]:
+                            _task.start()
+                            self._running[key] = True
+        except nidaqmx.DaqWarning as e:
+            self.logg.warning("DaqWarning caught as exception: %s", e)
+
     def run_triggers(self):
         try:
             self._running["clock"] = True
@@ -328,8 +339,9 @@ class NIDAQ:
 
     def stop_triggers(self, _close=True):
         for key, _task in self.tasks.items():
-            if self._running.get(key, False):
-                _task.stop()
+            if self._active.get(key, False):
+                if self._running.get(key, False):
+                    _task.stop()
         self._running = {key: False for key in self._running}
         if _close:
             self.close_triggers()
