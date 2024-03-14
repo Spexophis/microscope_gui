@@ -641,31 +641,17 @@ class MainController(QtCore.QObject):
     def run_dot_scanning(self, n: int):
         self.run_task(task=self.dot_scanning, iteration=n)
 
-    def prepare_bead_scan(self, bs_md):
+    def prepare_bead_scan(self):
         self.lasers = self.con_controller.get_lasers()
         self.set_lasers()
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
-        if bs_md == "Wide Field":
-            self.m.daq.write_digital_sequences(self.generate_live_triggers("imaging"), base_clock=False, finite=True)
-        elif bs_md == "Line Scan":
-            self.update_trigger_parameters("imaging")
-            gtr, ptr, dtr, pos = self.p.trigger.generate_linescan_resolft_2d()
-            self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=gtr, digital_sequences=dtr, finite=True)
-        elif bs_md == "Dot Scan":
-            self.update_trigger_parameters("imaging")
-            gtr, ptr, dtr, pos = self.p.trigger.generate_dotscan_resolft_2d()
-            self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=gtr, digital_sequences=dtr, finite=True)
-        else:
-            self.m.cam_set[self.cameras["imaging"]].stop_live()
-            self.lasers_off()
-            raise ValueError("Invalid video mode")
+        self.m.daq.write_digital_sequences(self.generate_live_triggers("imaging"), finite=True)
 
     def bead_scan_2d(self):
-        bs_md = self.con_controller.get_live_mode()
         try:
-            self.prepare_bead_scan(bs_md)
+            self.prepare_bead_scan()
         except Exception as e:
             self.logg.error(f"Error preparing beads scanning: {e}")
             return
@@ -679,17 +665,19 @@ class MainController(QtCore.QObject):
             data = []
             scan = []
             self.m.cam_set[self.cameras["imaging"]].start_live()
-            for y_ in pos[1]:
-                for x_ in pos[0]:
-                    scan.append([x_, y_])
-                    self.m.daq.set_piezo_position(x_ / 10., y_ / 10.)
-                    time.sleep(0.02)
-                    self.m.daq.start_triggers()
-                    self.m.daq.run_triggers()
-                    time.sleep(0.04)
-                    data.append(self.m.cam_set[self.cameras["imaging"]].get_last_image())
-                    self.m.daq.stop_triggers(_close=False)
-            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + f'_bead_scanning_.tif')
+            for z_ in pos[2]:
+                pz = self.m.pz.move_position(2, z_)
+                time.sleep(0.02)
+                for y_ in pos[1]:
+                    for x_ in pos[0]:
+                        scan.append([x_, y_, z_])
+                        self.m.daq.set_piezo_position(x_ / 10., y_ / 10.)
+                        time.sleep(0.02)
+                        self.m.daq.run_digital_trigger()
+                        time.sleep(0.04)
+                        data.append(self.m.cam_set[self.cameras["imaging"]].get_last_image())
+                        self.m.daq.stop_triggers(_close=False)
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_bead_scanning.tif')
             tf.imwrite(fd, np.asarray(data), imagej=True, resolution=(
                 1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
                        metadata={'unit': 'um',

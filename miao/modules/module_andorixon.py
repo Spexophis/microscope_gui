@@ -304,7 +304,7 @@ class EMCCDCamera:
         ret, first, last = self.sdk.GetNumberNewImages()
         if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
             num = last - first + 1
-            (ret, data_array, valid_first, valid_last) = self.sdk.GetImages16(first, last, self.img_size * num)
+            (ret, data_array, valid_first, valid_last) = self.sdk.GetImages(first, last, self.img_size * num)
             if ret == atmcd_errors.Error_Codes.DRV_SUCCESS:
                 self.valid_index = valid_last
                 data_array = np.split(data_array.reshape(num, self.img_size), num, axis=0)
