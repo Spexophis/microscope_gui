@@ -73,6 +73,7 @@ class MainController(QtCore.QObject):
         self.v.con_view.Signal_deck_move_continuous.connect(self.move_deck_continuous)
         # Galvo Scanners
         self.v.con_view.Signal_galvo_set.connect(self.set_galvo)
+        self.v.con_view.Signal_galvo_scan_update.connect(self.update_galvo_scanner)
         # Cobolt Lasers
         self.v.con_view.Signal_set_laser.connect(self.set_laser)
         # Main Image Control
@@ -111,6 +112,8 @@ class MainController(QtCore.QObject):
             self.con_controller.display_deck_position(p)
 
             self.reset_piezo_positions()
+
+            self.update_galvo_scanner()
 
             self.magnifications = [157.5, 1, 1]
             self.pixel_sizes = []
@@ -322,6 +325,13 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"Camera Error: {e}")
 
+    @QtCore.pyqtSlot()
+    def update_galvo_scanner(self):
+        galvo_frequency, galvo_positions, galvo_ranges, dot_pos = self.con_controller.get_galvo_scan_parameters()
+        self.p.trigger.update_galvo_scan_parameters(frequency=galvo_frequency, origins=galvo_positions,
+                                                    ranges=galvo_ranges, foci=dot_pos)
+        self.con_controller.display_dot_step(self.p.trigger.dot_step_v)
+
     def update_trigger_parameters(self, cam_key):
         try:
             digital_starts, digital_ends = self.con_controller.get_digital_parameters()
@@ -329,7 +339,7 @@ class MainController(QtCore.QObject):
             galvo_frequency, galvo_positions, galvo_ranges, dot_pos = self.con_controller.get_galvo_scan_parameters()
             self.p.trigger.update_galvo_scan_parameters(frequency=galvo_frequency, origins=galvo_positions,
                                                         ranges=galvo_ranges, foci=dot_pos)
-            self.con_controller.display_dot_step(self.p.trigger.dot_step_v)
+            self.p.trigger.dot_step_v = self.con_controller.get_galvo_step()
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             positions = self.con_controller.get_piezo_positions()
             self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, positions)

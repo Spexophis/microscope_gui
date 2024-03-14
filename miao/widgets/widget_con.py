@@ -10,6 +10,7 @@ class ConWidget(QtWidgets.QWidget):
     Signal_deck_move_single_step = QtCore.pyqtSignal(bool)
     Signal_deck_move_continuous = QtCore.pyqtSignal(bool, float, float)
     Signal_galvo_set = QtCore.pyqtSignal(float, float)
+    Signal_galvo_scan_update = QtCore.pyqtSignal()
     Signal_set_laser = QtCore.pyqtSignal(list, bool, float)
     Signal_plot_trigger = QtCore.pyqtSignal()
     Signal_video = QtCore.pyqtSignal(bool, str)
@@ -177,7 +178,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QDoubleSpinBox_dot_range_x = cw.doublespinbox_widget(0, 20, 0.0002, 4, 1.2)
         self.QDoubleSpinBox_dot_range_y = cw.doublespinbox_widget(0, 20, 0.0002, 4, 1.2)
         self.QSpinBox_dot_step = cw.spinbox_widget(0, 4000, 1, 4)
-        self.QLCDNumber_dot_step = cw.lcdnumber_widget(0, 8)
+        self.QDoubleSpinBox_dot_step = cw.doublespinbox_widget(0, 20, 0.0001, 4, 0.0)
         self.QSpinBox_galvo_dwell = cw.spinbox_widget(0, 4000, 1, 1)
         self.galvo_scroll_area, galvo_scroll_layout = cw.create_scroll_area()
         galvo_scroll_layout.addRow(cw.label_widget(str('Galvo Scanner')))
@@ -188,7 +189,7 @@ class ConWidget(QtWidgets.QWidget):
         galvo_scroll_layout.addRow(cw.label_widget(str('Scan Range / V')), self.QDoubleSpinBox_galvo_range_x)
         galvo_scroll_layout.addRow(cw.label_widget(str('Dot Range / V')), self.QDoubleSpinBox_dot_range_x)
         galvo_scroll_layout.addRow(cw.label_widget(str('Dot Step / sample')), self.QSpinBox_dot_step)
-        galvo_scroll_layout.addRow(cw.label_widget(str('Dot Step / volt')), self.QLCDNumber_dot_step)
+        galvo_scroll_layout.addRow(cw.label_widget(str('Dot Step / volt')), self.QDoubleSpinBox_dot_step)
         galvo_scroll_layout.addRow(cw.label_widget(str('Dot Dwell / sample')), self.QSpinBox_galvo_dwell)
         galvo_scroll_layout.addRow(cw.frame_widget())
         galvo_scroll_layout.addRow(cw.label_widget(str('Y / v')), self.QDoubleSpinBox_galvo_y)
@@ -304,6 +305,8 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_move_deck.clicked.connect(self.deck_move_range)
         self.QDoubleSpinBox_galvo_x.valueChanged.connect(self.set_galvo_x)
         self.QDoubleSpinBox_galvo_y.valueChanged.connect(self.set_galvo_y)
+        self.QSpinBox_galvo_frequency.valueChanged.connect(self.update_galvo_scan)
+        self.QSpinBox_dot_step.valueChanged.connect(self.update_galvo_scan)
         self.QPushButton_laser_488_0.clicked.connect(self.set_laser_488_0)
         self.QPushButton_laser_488_1.clicked.connect(self.set_laser_488_1)
         self.QPushButton_laser_488_2.clicked.connect(self.set_laser_488_2)
@@ -370,6 +373,10 @@ class ConWidget(QtWidgets.QWidget):
     def set_galvo_y(self, value: float):
         vx = self.QDoubleSpinBox_galvo_x.value()
         self.Signal_galvo_set.emit(vx, value)
+
+    @QtCore.pyqtSlot()
+    def update_galvo_scan(self):
+        self.Signal_galvo_scan_update.emit()
 
     @QtCore.pyqtSlot(bool)
     def set_laser_488_0(self, checked: bool):
