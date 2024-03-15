@@ -16,7 +16,7 @@ class TriggerSequence:
             self.piezo_steps = [0.032, 0.032, 0.128]
             self.piezo_ranges = [0.0, 0.0, 0.0]
             self.piezo_positions = [50., 50., 50.]
-            self.piezo_return_time = 0.016
+            self.piezo_return_time = 0.01
             self.piezo_steps = [step_size / conv_factor for step_size, conv_factor in
                                 zip(self.piezo_steps, self.piezo_conv_factors)]
             self.piezo_ranges = [move_range / conv_factor for move_range, conv_factor in
@@ -33,7 +33,7 @@ class TriggerSequence:
             self.galvo_ranges = [1.6, 1.6]  # V
             self.galvo_starts = [o_ - r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.galvo_ranges)]
             self.galvo_stops = [o_ + r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.galvo_ranges)]
-            self.galvo_return = 32  # ~640 us
+            self.galvo_return = 40  # ~640 us
             # sawtooth wave
             self.frequency = 275  # Hz
             self.samples_period = int(self.sample_rate / self.frequency)
