@@ -73,7 +73,7 @@ class BeadScanReconstruction:
 if __name__ == '__main__':
     fn = input("Enter data file directory: ")
     img_stack = tf.imread(fn)
-    sz = input("Enter step size: ")
+    sz = input("Enter step size (um): ")
     img_stack = img_stack - img_stack.min()
     hist, bins = np.histogram(img_stack[0], bins=32)
     plt.figure()
@@ -86,6 +86,6 @@ if __name__ == '__main__':
     fns = input("Enter data file save directory: ")
     if fns == fn:
         fns = input("Enter a different data file save directory: ")
-        tf.imwrite(fns, results[2])
+        tf.imwrite(fns, results[2], imagej=True, resolution=(1 / float(sz), 1 / float(sz)), metadata={'unit': 'um'})
     else:
-        tf.imwrite(fns, results[2])
+        tf.imwrite(fns, results[2], imagej=True, resolution=(1 / float(sz), 1 / float(sz)), metadata={'unit': 'um'})
