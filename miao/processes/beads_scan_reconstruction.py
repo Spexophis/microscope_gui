@@ -86,6 +86,6 @@ if __name__ == '__main__':
     fns = input("Enter data file save directory: ")
     if fns == fn:
         fns = input("Enter a different data file save directory: ")
-        tf.imwrite(fns, results[2], imagej=True, resolution=(1 / float(sz), 1 / float(sz)), metadata={'unit': 'um'})
+        tf.imwrite(fns, results[2])
     else:
-        tf.imwrite(fns, results[2], imagej=True, resolution=(1 / float(sz), 1 / float(sz)), metadata={'unit': 'um'})
+        tf.imwrite(fns, results[2])
