@@ -1,4 +1,6 @@
+import matplotlib.pyplot as plt
 import numpy as np
+import tifffile as tf
 from scipy.ndimage import maximum_filter, minimum_filter, label, find_objects
 
 
@@ -34,6 +36,13 @@ class BeadScanReconstruction:
         data_max = maximum_filter(data, neighborhood_size)
         data_min = minimum_filter(data, neighborhood_size)
         diff = data_max - data_min
+        if threshold is None:
+            hist_, bins_ = np.histogram(diff, bins=16)
+            plt.figure()
+            plt.bar(bins_[:-1], hist_ / (neighborhood_size ** 2), width=np.diff(bins_), edgecolor='black')
+            plt.show()
+            thr = input("Enter threshold: ")
+            threshold = float(thr)
         maxima = (data == data_max) & (diff > threshold)
         labeled, _ = label(maxima)
         slices = find_objects(labeled)
@@ -62,24 +71,18 @@ class BeadScanReconstruction:
 
 
 if __name__ == '__main__':
-    import tifffile as tf
-    import pprint
     fn = input("Enter data file directory: ")
     img_stack = tf.imread(fn)
     sz = input("Enter step size: ")
     img_stack = img_stack - img_stack.min()
     hist, bins = np.histogram(img_stack[0], bins=32)
-    pprint.pprint(hist)
-    pprint.pprint(bins)
+    plt.figure()
+    plt.bar(bins[:-1], hist, width=np.diff(bins), edgecolor='black')
+    plt.show()
     bg = input("Enter background: ")
     img_stack = np.maximum(img_stack - float(bg), 0)
-    img = img_stack[0]
-    hist, bins = np.histogram(img, bins=16)
-    pprint.pprint(hist)
-    pprint.pprint(bins)
-    thr = input("Enter threshold: ")
     r = BeadScanReconstruction()
-    results = r.reconstruct_all_beads(img_stack, float(sz), float(thr), 32)
+    results = r.reconstruct_all_beads(img_stack, float(sz), threshold=None, neighborhood_size=32)
     fns = input("Enter data file save directory: ")
     if fns == fn:
         fns = input("Enter a different data file save directory: ")
