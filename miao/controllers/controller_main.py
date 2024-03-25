@@ -155,9 +155,9 @@ class MainController(QtCore.QObject):
         try:
             _moving = self.m.md.is_moving()
             if _moving:
-                print("MadDeck is moving")
+                self.logg.info("MadDeck is moving")
             else:
-                self.m.md.move_relative(3, 2 * 9.525e-05, velocity=1.5)
+                self.m.md.move_relative(3, 0.000762, velocity=1.5)
                 self.m.md.wait()
                 p = self.m.md.get_position_steps_taken(3)
                 self.con_controller.display_deck_position(p)
@@ -168,47 +168,21 @@ class MainController(QtCore.QObject):
         try:
             _moving = self.m.md.is_moving()
             if _moving:
-                print("MadDeck is moving")
+                self.logg.info("MadDeck is moving")
             else:
-                self.m.md.move_relative(3, -2 * 9.525e-05, velocity=1.5)
+                self.m.md.move_relative(3, -0.000762, velocity=1.5)
                 self.m.md.wait()
                 p = self.m.md.get_position_steps_taken(3)
                 self.con_controller.display_deck_position(p)
         except Exception as e:
             self.logg.error(f"MadDeck Error: {e}")
 
-    @QtCore.pyqtSlot(bool, float, float)
-    def move_deck_continuous(self, moving: bool, distance: float, velocity: float):
+    @QtCore.pyqtSlot(bool, int, float)
+    def move_deck_continuous(self, moving: bool, direction: int, velocity: float):
         if moving:
-            self.move_deck(distance, velocity)
+            self.m.md.move_deck(direction, velocity)
         else:
-            self.stop_deck()
-
-    def move_deck(self, distance, velocity):
-        try:
-            _moving = self.m.md.is_moving()
-            if _moving:
-                self.m.md.stop_moving()
-                p = self.m.md.get_position_steps_taken(3)
-                self.con_controller.display_deck_position(p)
-                self.m.md.move_relative(3, distance, velocity=velocity)
-            else:
-                self.m.md.move_relative(3, distance, velocity=velocity)
-        except Exception as e:
-            self.logg.error(f"MadDeck Error: {e}")
-
-    def stop_deck(self):
-        try:
-            _moving = self.m.md.is_moving()
-            if _moving:
-                self.m.md.stop_moving()
-                p = self.m.md.get_position_steps_taken(3)
-                self.con_controller.display_deck_position(p)
-                self.logg.info("MadDeck is Stopped")
-            else:
-                self.logg.info("MadDeck is Stopped")
-        except Exception as e:
-            self.logg.error(f"MadDeck Error: {e}")
+            self.m.md.stop_deck()
 
     def reset_piezo_positions(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()

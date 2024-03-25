@@ -30,7 +30,7 @@ class TriggerSequence:
                                          zip(self.piezo_starts, self.piezo_ranges, self.piezo_steps)]
             # galvo scanner
             self.galvo_origins = [0.0, 0.0]  # V
-            self.galvo_ranges = [1.6, 1.6]  # V
+            self.galvo_ranges = [1.2, 1.2]  # V
             self.galvo_starts = [o_ - r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.galvo_ranges)]
             self.galvo_stops = [o_ + r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.galvo_ranges)]
             self.galvo_return = 40  # ~640 us
@@ -38,7 +38,7 @@ class TriggerSequence:
             self.frequency = 275  # Hz
             self.samples_period = int(self.sample_rate / self.frequency)
             # dot array
-            self.dot_ranges = [1.2, 1.2]  # V
+            self.dot_ranges = [1.0, 1.0]  # V
             self.dot_starts = [o_ - r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.dot_ranges)]
             self.dot_step_s = 4  # samples
             self.dot_step_v = (self.dot_step_s / self.sample_rate) * (
