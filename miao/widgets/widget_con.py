@@ -7,6 +7,8 @@ class ConWidget(QtWidgets.QWidget):
     Signal_check_emccd_temperature = QtCore.pyqtSignal()
     Signal_switch_emccd_cooler = QtCore.pyqtSignal(bool)
     Signal_piezo_move = QtCore.pyqtSignal(str, float, float, float)
+    Signal_deck_read_position = QtCore.pyqtSignal()
+    Signal_deck_zero_position = QtCore.pyqtSignal()
     Signal_deck_move_single_step = QtCore.pyqtSignal(bool)
     Signal_deck_move_continuous = QtCore.pyqtSignal(bool, int, float)
     Signal_galvo_set = QtCore.pyqtSignal(float, float)
@@ -118,6 +120,8 @@ class ConWidget(QtWidgets.QWidget):
     def _create_position_widgets(self):
         layout_position = QtWidgets.QHBoxLayout()
         self.QLCDNumber_deck_position = cw.lcdnumber_widget()
+        self.QPushButton_deck_position = cw.pushbutton_widget('Read')
+        self.QPushButton_deck_position_zero = cw.pushbutton_widget('Zero')
         self.QPushButton_move_deck_up = cw.pushbutton_widget('Up')
         self.QPushButton_move_deck_down = cw.pushbutton_widget('Down')
         self.QSpinBox_deck_direction = cw.spinbox_widget(-1, 1, 2, 1)
@@ -127,6 +131,7 @@ class ConWidget(QtWidgets.QWidget):
         mad_deck_scroll_layout.addRow(cw.label_widget(str('Mad Deck')))
         mad_deck_scroll_layout.addRow(cw.frame_widget())
         mad_deck_scroll_layout.addRow(cw.label_widget(str('Position (mm)')), self.QLCDNumber_deck_position)
+        mad_deck_scroll_layout.addRow(self.QPushButton_deck_position, self.QPushButton_deck_position_zero)
         mad_deck_scroll_layout.addRow(cw.label_widget(str('Direction (+up)')), self.QSpinBox_deck_direction)
         mad_deck_scroll_layout.addRow(cw.label_widget(str('Velocity (mm)')), self.QDoubleSpinBox_deck_velocity)
         mad_deck_scroll_layout.addRow(self.QPushButton_move_deck)
@@ -300,6 +305,8 @@ class ConWidget(QtWidgets.QWidget):
         self.QDoubleSpinBox_stage_x.valueChanged.connect(self.set_piezo_x)
         self.QDoubleSpinBox_stage_y.valueChanged.connect(self.set_piezo_y)
         self.QDoubleSpinBox_stage_z.valueChanged.connect(self.set_piezo_z)
+        self.QPushButton_deck_position.clicked.connect(self.read_deck)
+        self.QPushButton_deck_position_zero.clicked.connect(self.zero_deck)
         self.QPushButton_move_deck_up.clicked.connect(self.deck_move_up)
         self.QPushButton_move_deck_down.clicked.connect(self.deck_move_down)
         self.QPushButton_move_deck.clicked.connect(self.deck_move_range)
@@ -349,6 +356,14 @@ class ConWidget(QtWidgets.QWidget):
         pos_x = self.QDoubleSpinBox_stage_x.value()
         pos_y = self.QDoubleSpinBox_stage_y.value()
         self.Signal_piezo_move.emit("z", pos_x, pos_y, pos_z)
+
+    @QtCore.pyqtSlot()
+    def read_deck(self):
+        self.Signal_deck_read_position.emit()
+
+    @QtCore.pyqtSlot()
+    def zero_deck(self):
+        self.Signal_deck_zero_position.emit()
 
     @QtCore.pyqtSlot()
     def deck_move_up(self):

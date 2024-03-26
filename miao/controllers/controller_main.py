@@ -69,6 +69,8 @@ class MainController(QtCore.QObject):
         # MCL Piezo
         self.v.con_view.Signal_piezo_move.connect(self.set_piezo_positions)
         # MCL Mad Deck
+        self.v.con_view.Signal_deck_read_position.connect(self.deck_read_position)
+        self.v.con_view.Signal_deck_zero_position.connect(self.deck_zero_position)
         self.v.con_view.Signal_deck_move_single_step.connect(self.move_deck_single_step)
         self.v.con_view.Signal_deck_move_continuous.connect(self.move_deck_continuous)
         # Galvo Scanners
@@ -144,6 +146,15 @@ class MainController(QtCore.QObject):
         self.task_thread.wait()
         self.v.dialog.accept()
 
+    @QtCore.pyqtSlot()
+    def deck_read_position(self):
+        self.con_controller.display_deck_position(self.m.md.position)
+
+    @QtCore.pyqtSlot()
+    def deck_zero_position(self):
+        self.m.md.position = 0
+        self.con_controller.display_deck_position(self.m.md.position)
+
     @QtCore.pyqtSlot(bool)
     def move_deck_single_step(self, direction: bool):
         if direction:
@@ -157,10 +168,8 @@ class MainController(QtCore.QObject):
             if _moving:
                 self.logg.info("MadDeck is moving")
             else:
-                self.m.md.move_relative(3, 0.000762, velocity=1.5)
-                self.m.md.wait()
-                p = self.m.md.get_position_steps_taken(3)
-                self.con_controller.display_deck_position(p)
+                self.m.md.move_relative(3, 0.000762, velocity=0.8)
+                self.con_controller.display_deck_position(self.m.md.position)
         except Exception as e:
             self.logg.error(f"MadDeck Error: {e}")
 
@@ -170,10 +179,8 @@ class MainController(QtCore.QObject):
             if _moving:
                 self.logg.info("MadDeck is moving")
             else:
-                self.m.md.move_relative(3, -0.000762, velocity=1.5)
-                self.m.md.wait()
-                p = self.m.md.get_position_steps_taken(3)
-                self.con_controller.display_deck_position(p)
+                self.m.md.move_relative(3, -0.000762, velocity=0.8)
+                self.con_controller.display_deck_position(self.m.md.position)
         except Exception as e:
             self.logg.error(f"MadDeck Error: {e}")
 
