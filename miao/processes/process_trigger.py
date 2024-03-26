@@ -323,7 +323,7 @@ class TriggerSequence:
         galvo_sequences[0] = np.concatenate(
             (galvo_sequences[0], np.concatenate((self.galvo_starts[0] * np.ones(interval_samples), fast_axis_galvo))))
         galvo_sequences[1] = np.concatenate(
-            (galvo_sequences[1], np.concatenate((self.dot_starts[0] * np.ones(interval_samples), slow_axis_galvo))))
+            (galvo_sequences[1], np.concatenate((self.dot_starts[1] * np.ones(interval_samples), slow_axis_galvo))))
         for i in range(3):
             digital_sequences[i] = np.concatenate(
                 (digital_sequences[i], np.zeros(laser_trigger.size + interval_samples)))

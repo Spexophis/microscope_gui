@@ -607,6 +607,8 @@ class MainController(QtCore.QObject):
             self.logg.error(f"Error preparing galvo scanning: {e}")
             return
         try:
+            positions = self.con_controller.get_piezo_positions()
+            self.m.pz.lock_position(2, positions[2])
             self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
             time.sleep(0.02)
             self.m.daq.run_triggers()
@@ -622,6 +624,7 @@ class MainController(QtCore.QObject):
 
     def finish_dot_scanning(self):
         try:
+            self.m.pz.release_lock()
             self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
             self.m.daq.stop_triggers()
             self.lasers_off()

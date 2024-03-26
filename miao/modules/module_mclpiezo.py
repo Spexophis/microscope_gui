@@ -1,7 +1,8 @@
 import ctypes as ct
 import os
 import sys
-
+import threading
+import time
 sys.path.append(r'C:\Program Files\Mad City Labs\NanoDrive')
 nano_dll_path = os.path.join('C:', os.sep, 'Program Files', 'Mad City Labs', 'NanoDrive', 'Madlib.dll')
 
@@ -32,7 +33,6 @@ class MCLNanoDrive:
             self.mcl_piezo.MCL_ReleaseHandle(self.handle)
             return
 
-        # when function returns a c-type that is not an integer, must set the return type before you ever use it
         cal = self.mcl_piezo.MCL_GetCalibration
         cal.restype = ct.c_double
         readpos = self.mcl_piezo.MCL_SingleReadN
@@ -41,6 +41,7 @@ class MCLNanoDrive:
         self.calibration = []
         for i in range(len(self.axis)):
             self.calibration.append(self.mcl_piezo.MCL_GetCalibration(self.axis[i], self.handle))
+        self.lock_thread = None
 
     def __del__(self):
         pass
@@ -60,7 +61,6 @@ class MCLNanoDrive:
         return logging
 
     def get_device_info(self):
-        # find some basic information about the NanoDrive
         class ProductInfo(ct.Structure):
             _fields_ = [("axis_bitmap", ct.c_ubyte),
                         ("ADC_resolution", ct.c_short),
@@ -78,13 +78,6 @@ class MCLNanoDrive:
             self.mcl_piezo.MCL_ReleaseHandle(self.handle)  # be sure to release self.handle anytime before returning
             return
         else:
-            # print("Information about the NanoDrive:")
-            # print("axis bitmap:", pi.axis_bitmap)
-            # print("ADC resolution:", pi.ADC_resolution)
-            # print("DAC resolution:", pi.DAC_resolution)
-            # print("Product ID:", pi.Product_id)
-            # print("Firmware Version:", pi.FirmwareVersion)
-            # print("Firmware Profile:", pi.FirmwareProfile)
             return pi
 
     def read_position(self, ax):
@@ -108,8 +101,57 @@ class MCLNanoDrive:
             # read the new position to make sure it actually moved
             pos = self.mcl_piezo.MCL_SingleReadN(self.axis[ax], self.handle)
             if pos < 0:
-                print("Error: NanoDrive did not correctly read position. Error Code:", pos)
+                self.logg.error(f"Error: NanoDrive did not correctly read position. Error Code: {pos}")
                 self.mcl_piezo.MCL_ReleaseHandle(self.handle)
                 return
             else:
                 return pos
+
+    def lock_position(self, axs, pos):
+        self.lock_thread = LockThread(self, axs, pos)
+        self.lock_thread.start()
+
+    def release_lock(self):
+        if self.lock_thread is not None:
+            self.lock_thread.stop()
+            self.lock_thread.join()
+            self.lock_thread = None
+
+
+class LockThread(threading.Thread):
+    running = False
+    lock = threading.Lock()
+
+    def __init__(self, mpz, axis, position):
+        threading.Thread.__init__(self)
+        self.mpz = mpz
+        self.pos = position
+        self.ax = axis
+        self.error_threshold = 0.02
+
+    def run(self):
+        self.running = True
+        while self.running:
+            start_time = time.time()
+            with self.lock:
+                try:
+                    self.position_lock()
+                except Exception as e:
+                    self.mpz.logg.error(f"MadDeck Error: {e}")
+                    self.stop()
+            end_time = time.time()
+            execution_time = end_time - start_time
+            if execution_time < 2:
+                time.sleep(2 - execution_time)
+
+    def position_lock(self):
+        pos_ = self.mpz.read_position(self.ax)
+        pos_error = self.pos - pos_
+        while pos_error > self.error_threshold and self.running:
+            pos_ = self.mpz.move_position(self.ax, self.pos)
+            pos_error = self.pos - pos_
+            if pos_error <= self.error_threshold:
+                break
+
+    def stop(self):
+        self.running = False
