@@ -12,6 +12,7 @@ class MCLNanoDrive:
     def __init__(self, logg=None):
         self.logg = logg or self.setup_logging()
         self.mcl_piezo = ct.cdll.LoadLibrary(nano_dll_path)
+        self.mcl_piezo.MCL_ReleaseAllHandles()
         self.handle = self.mcl_piezo.MCL_InitHandle()
         if self.handle == 0:
             print("Error: Device handle not initialized correctly")

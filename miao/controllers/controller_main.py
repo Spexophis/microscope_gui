@@ -360,7 +360,7 @@ class MainController(QtCore.QObject):
         try:
             self.prepare_video(vm)
         except Exception as e:
-            self.logg.error(f"Error starting imaging video: {e}")
+            self.logg.error(f"Error preparing imaging video: {e}")
             return
         try:
             self.m.cam_set[self.cameras["imaging"]].start_live()
