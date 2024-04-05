@@ -33,7 +33,7 @@ class TriggerSequence:
             self.galvo_ranges = [1.2, 1.2]  # V
             self.galvo_starts = [o_ - r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.galvo_ranges)]
             self.galvo_stops = [o_ + r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.galvo_ranges)]
-            self.galvo_return = 40  # ~640 us
+            self.galvo_return = 64  # ~640 us
             # sawtooth wave
             self.frequency = 275  # Hz
             self.samples_period = int(self.sample_rate / self.frequency)
@@ -341,35 +341,54 @@ class TriggerSequence:
         # Piezo Fast Axis
         standby_samples = int(np.ceil(self.standby_time * self.sample_rate))
         return_samples = int(np.ceil(self.piezo_return_time * self.sample_rate))
-        _temp = np.tile(np.zeros(digital_sequences[0].size + standby_samples), self.piezo_scan_pos[0])
-        _temp[-standby_samples:-standby_samples + return_samples] = self.piezo_steps[1] * np.linspace(0, 1,
-                                                                                                      return_samples)
-        _temp[-standby_samples + return_samples:] = self.piezo_steps[1]
-        piezo_sequences[1] = _temp + self.piezo_starts[1]
-        for i in range(self.piezo_scan_pos[1] - 1):
-            temp = _temp + self.piezo_starts[1] + (i + 1) * self.piezo_steps[1]
-            piezo_sequences[1] = np.concatenate((piezo_sequences[1], temp))
-        piezo_sequences[0] = np.zeros(digital_sequences[0].size) + self.piezo_starts[0]
-        _temp = np.concatenate((np.linspace(0, 1, standby_samples), np.ones(digital_sequences[0].size)))
-        for i in range(self.piezo_scan_pos[0] - 1):
-            temp = _temp * self.piezo_steps[0] + self.piezo_starts[0] + i * self.piezo_steps[0]
-            piezo_sequences[0] = np.concatenate((piezo_sequences[0], temp))
-        piezo_sequences[0] = np.concatenate(
-            (piezo_sequences[0], np.linspace(piezo_sequences[0][-1], piezo_sequences[0][0], return_samples)))
-        piezo_sequences[0] = np.concatenate(
-            (piezo_sequences[0], piezo_sequences[0][-1] * np.ones(standby_samples - return_samples)))
-        piezo_sequences[0] = np.tile(piezo_sequences[0], self.piezo_scan_pos[1])
-        for i in range(2):
-            piezo_sequences[i][-interval_samples:] = np.linspace(piezo_sequences[i][-1], self.piezo_positions[i],
-                                                                 interval_samples)
-        galvo_sequences[0] = np.concatenate((galvo_sequences[0], self.galvo_starts[0] * np.ones(standby_samples)))
-        galvo_sequences[1] = np.concatenate((galvo_sequences[1], self.dot_starts[1] * np.ones(standby_samples)))
+        if standby_samples > return_samples:
+            _temp = np.tile(np.zeros(digital_sequences[0].size + standby_samples), self.piezo_scan_pos[0])
+            _temp[-standby_samples:-standby_samples + return_samples] = self.piezo_steps[1] * np.linspace(0, 1,
+                                                                                                          return_samples)
+            _temp[-standby_samples + return_samples:] = self.piezo_steps[1]
+            piezo_sequences[1] = _temp + self.piezo_starts[1]
+            for i in range(self.piezo_scan_pos[1] - 1):
+                temp = _temp + self.piezo_starts[1] + (i + 1) * self.piezo_steps[1]
+                piezo_sequences[1] = np.concatenate((piezo_sequences[1], temp))
+            piezo_sequences[0] = np.zeros(digital_sequences[0].size) + self.piezo_starts[0]
+            _temp = np.concatenate((np.linspace(0, 1, standby_samples), np.ones(digital_sequences[0].size)))
+            for i in range(self.piezo_scan_pos[0] - 1):
+                temp = _temp * self.piezo_steps[0] + self.piezo_starts[0] + i * self.piezo_steps[0]
+                piezo_sequences[0] = np.concatenate((piezo_sequences[0], temp))
+            piezo_sequences[0] = np.concatenate(
+                (piezo_sequences[0], np.linspace(piezo_sequences[0][-1], piezo_sequences[0][0], return_samples)))
+            piezo_sequences[0] = np.concatenate(
+                (piezo_sequences[0], piezo_sequences[0][-1] * np.ones(standby_samples - return_samples)))
+            piezo_sequences[0] = np.tile(piezo_sequences[0], self.piezo_scan_pos[1])
+            for i in range(2):
+                piezo_sequences[i][-interval_samples:] = np.linspace(piezo_sequences[i][-1], self.piezo_positions[i],
+                                                                     interval_samples)
+        else:
+            _temp = np.tile(np.zeros(digital_sequences[0].size + return_samples), self.piezo_scan_pos[0])
+            _temp[-return_samples:] = self.piezo_steps[1] * np.linspace(0, 1, return_samples)
+            piezo_sequences[1] = _temp + self.piezo_starts[1]
+            for i in range(self.piezo_scan_pos[1] - 1):
+                temp = _temp + self.piezo_starts[1] + (i + 1) * self.piezo_steps[1]
+                piezo_sequences[1] = np.concatenate((piezo_sequences[1], temp))
+            piezo_sequences[0] = np.zeros(digital_sequences[0].size) + self.piezo_starts[0]
+            _temp = np.concatenate((np.linspace(0, 1, return_samples), np.ones(digital_sequences[0].size)))
+            for i in range(self.piezo_scan_pos[0] - 1):
+                temp = _temp * self.piezo_steps[0] + self.piezo_starts[0] + i * self.piezo_steps[0]
+                piezo_sequences[0] = np.concatenate((piezo_sequences[0], temp))
+            piezo_sequences[0] = np.concatenate(
+                (piezo_sequences[0], np.linspace(piezo_sequences[0][-1], piezo_sequences[0][0], return_samples)))
+            piezo_sequences[0] = np.tile(piezo_sequences[0], self.piezo_scan_pos[1])
+            for i in range(2):
+                piezo_sequences[i][-interval_samples:] = np.linspace(piezo_sequences[i][-1], self.piezo_positions[i],
+                                                                     interval_samples)
+        galvo_sequences[0] = np.concatenate((galvo_sequences[0], self.galvo_starts[0] * np.ones(return_samples)))
+        galvo_sequences[1] = np.concatenate((galvo_sequences[1], self.dot_starts[1] * np.ones(return_samples)))
         for i in range(2):
             galvo_sequences[i] = np.tile(galvo_sequences[i], self.piezo_scan_pos[0])
             galvo_sequences[i] = np.tile(galvo_sequences[i], self.piezo_scan_pos[1])
             galvo_sequences[i][-interval_samples:] = np.linspace(galvo_sequences[i][-1], 0., interval_samples)
         for i in range(7):
-            digital_sequences[i] = np.concatenate((digital_sequences[i], np.zeros(standby_samples)))
+            digital_sequences[i] = np.concatenate((digital_sequences[i], np.zeros(return_samples)))
             digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[0])
             digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[1])
         scan_pos = 1

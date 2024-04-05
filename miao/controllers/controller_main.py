@@ -561,19 +561,19 @@ class MainController(QtCore.QObject):
         try:
             self.prepare_line_scanning()
         except Exception as e:
-            self.logg.error(f"Error preparing confocal scanning: {e}")
+            self.logg.error(f"Error preparing line scanning: {e}")
             return
         try:
             self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
             time.sleep(0.02)
             self.m.daq.run_triggers()
             time.sleep(1)
-            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_confocal_scanning.tif')
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_line_scanning.tif')
             tf.imwrite(fd, self.m.cam_set[self.cameras["imaging"]].get_data(), imagej=True, resolution=(
                 1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
                        metadata={'unit': 'um', 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
         except Exception as e:
-            self.logg.error(f"Error running confocal scanning: {e}")
+            self.logg.error(f"Error running line scanning: {e}")
             return
         self.finish_line_scanning()
 
@@ -582,9 +582,9 @@ class MainController(QtCore.QObject):
             self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
             self.m.daq.stop_triggers()
             self.lasers_off()
-            self.logg.info("Confocal scanning image acquired")
+            self.logg.info("Line scanning image acquired")
         except Exception as e:
-            self.logg.error(f"Error stopping confocal scanning: {e}")
+            self.logg.error(f"Error stopping line scanning: {e}")
 
     def run_line_scanning(self, n: int):
         self.run_task(task=self.line_scanning, iteration=n)
@@ -613,12 +613,12 @@ class MainController(QtCore.QObject):
             time.sleep(0.02)
             self.m.daq.run_triggers()
             time.sleep(1.)
-            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_galvo_scanning.tif')
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_dot_scanning.tif')
             tf.imwrite(fd, self.m.cam_set[self.cameras["imaging"]].get_data(), imagej=True, resolution=(
                 1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
                        metadata={'unit': 'um', 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
         except Exception as e:
-            self.logg.error(f"Error running galvo scanning: {e}")
+            self.logg.error(f"Error running dot scanning: {e}")
             return
         self.finish_dot_scanning()
 
@@ -628,9 +628,9 @@ class MainController(QtCore.QObject):
             self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
             self.m.daq.stop_triggers()
             self.lasers_off()
-            self.logg.info("Galvo scanning image acquired")
+            self.logg.info("Dot scanning image acquired")
         except Exception as e:
-            self.logg.error(f"Error stopping galvo scanning: {e}")
+            self.logg.error(f"Error stopping dot scanning: {e}")
 
     def run_dot_scanning(self, n: int):
         self.run_task(task=self.dot_scanning, iteration=n)
