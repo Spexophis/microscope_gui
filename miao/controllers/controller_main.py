@@ -343,10 +343,6 @@ class MainController(QtCore.QObject):
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
         if vd_mod == "Wide Field":
             self.m.daq.write_digital_sequences(self.generate_live_triggers("imaging"), finite=False)
-        elif vd_mod == "Line Scan":
-            self.update_trigger_parameters("imaging")
-            gtr, ptr, dtr, pos = self.p.trigger.generate_linescan_resolft_2d()
-            self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=gtr, digital_sequences=dtr, finite=False)
         elif vd_mod == "Dot Scan":
             self.update_trigger_parameters("imaging")
             gtr, ptr, dtr, pos = self.p.trigger.generate_dotscan_resolft_2d()
@@ -478,14 +474,14 @@ class MainController(QtCore.QObject):
     def data_acquisition(self, acq_mod: str, acq_num: int):
         if acq_mod == "Wide Field 2D":
             self.run_widefield_zstack(acq_num)
-        if acq_mod == "Wide Field 3D":
+        elif acq_mod == "Wide Field 3D":
             self.run_widefield_zstack(acq_num)
-        if acq_mod == "Line Scan 2D":
-            self.run_line_scanning(acq_num)
-        if acq_mod == "Dot Scan 2D":
+        elif acq_mod == "Monalisa Scan 2D":
+            self.run_monalisa_scan(acq_num)
+        elif acq_mod == "Dot Scan 2D":
             self.run_dot_scanning(acq_num)
-        if acq_mod == "Bead Scan 2D":
-            self.run_bead_scan(acq_num)
+        else:
+            self.logg.error(f"Invalid video mode")
 
     def prepare_widefield_zstack(self):
         self.lasers = self.con_controller.get_lasers()
@@ -546,49 +542,6 @@ class MainController(QtCore.QObject):
     def run_widefield_zstack(self, n: int):
         self.run_task(task=self.widefield_zstack, iteration=n)
 
-    def prepare_line_scanning(self):
-        self.lasers = self.con_controller.get_lasers()
-        self.set_lasers()
-        self.cameras["imaging"] = self.con_controller.get_imaging_camera()
-        self.set_camera_roi("imaging")
-        self.update_trigger_parameters("imaging")
-        gtr, ptr, dtr, pos = self.p.trigger.generate_linescan_resolft_2d()
-        self.m.cam_set[self.cameras["imaging"]].acq_num = pos
-        self.m.cam_set[self.cameras["imaging"]].prepare_data_acquisition()
-        self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=gtr, digital_sequences=dtr)
-
-    def line_scanning(self):
-        try:
-            self.prepare_line_scanning()
-        except Exception as e:
-            self.logg.error(f"Error preparing line scanning: {e}")
-            return
-        try:
-            self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
-            time.sleep(0.02)
-            self.m.daq.run_triggers()
-            time.sleep(1)
-            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_line_scanning.tif')
-            tf.imwrite(fd, self.m.cam_set[self.cameras["imaging"]].get_data(), imagej=True, resolution=(
-                1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
-                       metadata={'unit': 'um', 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
-        except Exception as e:
-            self.logg.error(f"Error running line scanning: {e}")
-            return
-        self.finish_line_scanning()
-
-    def finish_line_scanning(self):
-        try:
-            self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
-            self.m.daq.stop_triggers()
-            self.lasers_off()
-            self.logg.info("Line scanning image acquired")
-        except Exception as e:
-            self.logg.error(f"Error stopping line scanning: {e}")
-
-    def run_line_scanning(self, n: int):
-        self.run_task(task=self.line_scanning, iteration=n)
-
     def prepare_dot_scanning(self):
         self.lasers = self.con_controller.get_lasers()
         self.set_lasers()
@@ -635,65 +588,51 @@ class MainController(QtCore.QObject):
     def run_dot_scanning(self, n: int):
         self.run_task(task=self.dot_scanning, iteration=n)
 
-    def prepare_bead_scan(self):
+    def prepare_monalisa_scan(self):
         self.lasers = self.con_controller.get_lasers()
         self.set_lasers()
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
-        self.m.cam_set[self.cameras["imaging"]].prepare_live()
-        self.m.daq.write_digital_sequences(self.generate_live_triggers("imaging"), finite=True)
+        self.update_trigger_parameters("imaging")
+        ptr, dtr, pos = self.p.trigger.generate_monalisa_scan_2d()
+        self.m.cam_set[self.cameras["imaging"]].acq_num = pos
+        self.m.cam_set[self.cameras["imaging"]].prepare_data_acquisition()
+        self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=None, digital_sequences=dtr)
 
-    def bead_scan_2d(self):
+    def monalisa_scan_2d(self):
         try:
-            self.prepare_bead_scan()
+            self.prepare_monalisa_scan()
         except Exception as e:
             self.logg.error(f"Error preparing beads scanning: {e}")
             return
         try:
             positions = self.con_controller.get_piezo_positions()
-            axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
-            starts = [pos - length / 2 for pos, length in zip(positions, axis_lengths)]
-            ends = [pos + length / 2 for pos, length in zip(positions, axis_lengths)]
-            pos = [[starts[dim] + step * step_sizes[dim] for step in
-                    range(int((ends[dim] - starts[dim]) / step_sizes[dim]) + 1)] for dim in range(len(positions))]
-            data = []
-            scan = []
-            self.m.cam_set[self.cameras["imaging"]].start_live()
-            for z_ in pos[2]:
-                pz = self.m.pz.move_position(2, z_)
-                time.sleep(0.02)
-                for y_ in pos[1]:
-                    for x_ in pos[0]:
-                        scan.append([x_, y_, z_])
-                        self.m.daq.set_piezo_position(x_ / 10., y_ / 10.)
-                        time.sleep(0.02)
-                        self.m.daq.run_digital_trigger()
-                        time.sleep(0.04)
-                        data.append(self.m.cam_set[self.cameras["imaging"]].get_last_image())
-                        self.m.daq.stop_triggers(_close=False)
-            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_bead_scanning.tif')
-            tf.imwrite(fd, np.asarray(data), imagej=True, resolution=(
+            self.m.pz.lock_position(2, positions[2])
+            self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
+            time.sleep(0.02)
+            self.m.daq.run_triggers()
+            time.sleep(1.)
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_monalisa_scanning.tif')
+            tf.imwrite(fd, self.m.cam_set[self.cameras["imaging"]].get_data(), imagej=True, resolution=(
                 1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
-                       metadata={'unit': 'um',
-                                 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list),
-                                 'scans': scan})
+                       metadata={'unit': 'um', 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
         except Exception as e:
             self.logg.error(f"Error running beads scanning: {e}")
             return
-        self.finish_bead_scan()
+        self.finish_monalisa_scan()
 
-    def finish_bead_scan(self):
+    def finish_monalisa_scan(self):
         try:
-            self.reset_piezo_positions()
-            self.m.cam_set[self.cameras["imaging"]].stop_live()
-            self.lasers_off()
+            self.m.pz.release_lock()
+            self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
             self.m.daq.stop_triggers()
+            self.lasers_off()
             self.logg.info("Beads scanning image acquired")
         except Exception as e:
             self.logg.error(f"Error stopping confocal scanning: {e}")
 
-    def run_bead_scan(self, n: int):
-        self.run_task(task=self.bead_scan_2d, iteration=n)
+    def run_monalisa_scan(self, n: int):
+        self.run_task(task=self.monalisa_scan_2d, iteration=n)
 
     @QtCore.pyqtSlot(str)
     def save_data(self, file_name: str):

@@ -267,7 +267,7 @@ class ConWidget(QtWidgets.QWidget):
     def _create_video_widgets(self):
         layout_video = QtWidgets.QHBoxLayout()
         self.QComboBox_imaging_camera_selection = cw.combobox_widget(list_items=["EMCCD", "SCMOS", "TIS"])
-        self.QComboBox_live_modes = cw.combobox_widget(list_items=["Wide Field", "Line Scan", "Dot Scan"])
+        self.QComboBox_live_modes = cw.combobox_widget(list_items=["Wide Field", "Dot Scan"]) #"Line Scan"
         self.QPushButton_video = cw.pushbutton_widget("Video", checkable=True)
         self.QPushButton_fft = cw.pushbutton_widget("FFT", checkable=True, enable=False)
         self.QComboBox_profile_axis = cw.combobox_widget(list_items=["X", "Y"])
@@ -285,9 +285,8 @@ class ConWidget(QtWidgets.QWidget):
     def _create_acquisition_widgets(self):
         layout_acquisition = QtWidgets.QGridLayout()
         self.QComboBox_acquisition_modes = cw.combobox_widget(list_items=["Wide Field 2D", "Wide Field 3D",
-                                                                          "Line Scan 2D", "Line Scan 3D",
-                                                                          "Dot Scan 2D", "Dot Scan 3D",
-                                                                          "Bead Scan 2D", "Bead Scan 3D"])
+                                                                          "Monalisa Scan 2D", "Monalisa Scan 3D"
+                                                                          "Dot Scan 2D", "Dot Scan 3D"])
         self.QSpinBox_acquisition_number = cw.spinbox_widget(1, 50000, 1, 1)
         self.QPushButton_acquire = cw.pushbutton_widget('Acquire')
         self.QPushButton_save = cw.pushbutton_widget('Save')
