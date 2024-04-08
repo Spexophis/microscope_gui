@@ -4,6 +4,8 @@ import nidaqmx
 import numpy as np
 from nidaqmx.constants import Edge, AcquisitionType, LineGrouping, FrequencyUnits, Level, WAIT_INFINITELY
 from nidaqmx.error_codes import DAQmxWarnings
+from nidaqmx.stream_readers import AnalogSingleChannelReader  # , AnalogMultiChannelReader
+from nidaqmx.stream_writers import AnalogSingleChannelWriter  # , AnalogMultiChannelWriter
 from nidaqmx.system import System
 
 warnings.filterwarnings("error", category=nidaqmx.DaqWarning)
@@ -352,3 +354,27 @@ class NIDAQ:
                 _task.close()
                 _task = None
         self._active = {key: False for key in self._active}
+
+    def monitor(self, output_channel, input_channel, data):
+        num_samples = data.shape[0]
+        acquired_data = np.zeros(num_samples)
+        with nidaqmx.Task() as output_task:
+            output_task.ao_channels.add_ao_voltage_chan(output_channel)
+            output_task.timing.cfg_samp_clk_timing(rate=self.sample_rate,
+                                                   sample_mode=AcquisitionType.FINITE,
+                                                   samps_per_chan=num_samples)
+            with nidaqmx.Task() as input_task:
+                input_task.ai_channels.add_ai_voltage_chan(input_channel)
+                input_task.timing.cfg_samp_clk_timing(rate=self.sample_rate,
+                                                      sample_mode=AcquisitionType.FINITE,
+                                                      samps_per_chan=num_samples,
+                                                      source=f'/Dev1/ao/SampleClock')
+                writer = AnalogSingleChannelWriter(output_task.out_stream)
+                reader = AnalogSingleChannelReader(input_task.in_stream)
+                writer.write_many_sample(data)
+                input_task.start()
+                output_task.start()
+                output_task.wait_until_done()
+                input_task.wait_until_done()
+                reader.read_many_sample(data=acquired_data, number_of_samples_per_channel=num_samples)
+        return acquired_data
