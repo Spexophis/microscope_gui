@@ -10,7 +10,7 @@ class TriggerSequence:
             # camera
             self.cycle_time = 0.05
             self.initial_time = 0.008
-            self.standby_time = 0.04
+            self.standby_time = 0.02
             # piezo scanner
             self.piezo_conv_factors = [10., 10., 10.]
             self.piezo_steps = [0.032, 0.032, 0.128]
@@ -30,17 +30,17 @@ class TriggerSequence:
                                          zip(self.piezo_starts, self.piezo_ranges, self.piezo_steps)]
             # galvo scanner
             self.galvo_origins = [0.0, 0.0]  # V
-            self.galvo_ranges = [1.2, 1.2]  # V
+            self.galvo_ranges = [0.5, 0.5]  # V
             self.galvo_starts = [o_ - r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.galvo_ranges)]
             self.galvo_stops = [o_ + r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.galvo_ranges)]
             self.galvo_return = 64  # ~640 us
             # sawtooth wave
-            self.frequency = 275  # Hz
+            self.frequency = 147  # Hz
             self.samples_period = int(self.sample_rate / self.frequency)
             # dot array
-            self.dot_ranges = [1.0, 1.0]  # V
+            self.dot_ranges = [0.2, 0.2]  # V
             self.dot_starts = [o_ - r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.dot_ranges)]
-            self.dot_step_s = 4  # samples
+            self.dot_step_s = 30  # samples
             self.dot_step_v = (self.dot_step_s / self.sample_rate) * (
                     np.abs(self.galvo_stops[0] - self.galvo_starts[0]) / (1 / self.frequency))
             self.dot_pos = np.arange(self.dot_starts[0], self.dot_starts[0] + self.dot_ranges[0] + self.dot_step_v,
@@ -245,7 +245,8 @@ class TriggerSequence:
         if standby_samples > return_samples:
             cycle_samples = digital_sequences[0].size + standby_samples
             _temp = np.zeros(cycle_samples * self.piezo_scan_pos[0])
-            _temp[-standby_samples:-standby_samples + return_samples] = self.piezo_steps[1] * smooth_ramp(0, 1, return_samples)
+            _temp[-standby_samples:-standby_samples + return_samples] = self.piezo_steps[1] * smooth_ramp(0, 1,
+                                                                                                          return_samples)
             _temp[-standby_samples + return_samples:] = self.piezo_steps[1]
             piezo_sequences[1] = _temp + self.piezo_starts[1]
             for i in range(self.piezo_scan_pos[1] - 1):
@@ -261,7 +262,8 @@ class TriggerSequence:
                 piezo_sequences[0] = np.concatenate((piezo_sequences[0], temp))
             piezo_sequences[0] = np.concatenate((piezo_sequences[0], smooth_ramp(
                 piezo_sequences[0][-1], piezo_sequences[0][0], return_samples)))
-            piezo_sequences[0] = np.concatenate((piezo_sequences[0], piezo_sequences[0][-1] * np.ones(standby_samples - return_samples)))
+            piezo_sequences[0] = np.concatenate(
+                (piezo_sequences[0], piezo_sequences[0][-1] * np.ones(standby_samples - return_samples)))
             piezo_sequences[0] = np.tile(piezo_sequences[0], self.piezo_scan_pos[0])
             piezo_sequences[0][-standby_samples:-standby_samples + return_samples] = smooth_ramp(
                 piezo_sequences[0][-standby_samples], self.piezo_positions[0], return_samples)
@@ -411,7 +413,7 @@ class TriggerSequence:
         return np.asarray(piezo_sequences), np.asarray(digital_sequences), scan_pos
 
 
-def smooth_ramp(start, end, samples, curve_half=0.6):
+def smooth_ramp(start, end, samples, curve_half=0.04):
     n = int(curve_half * samples)
     x = np.linspace(0, np.pi / 2, n, endpoint=True)
     signal_first_half = np.sin(x) * (end - start) / np.sin(np.pi / 2) + start
