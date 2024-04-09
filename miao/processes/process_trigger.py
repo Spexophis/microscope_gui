@@ -10,7 +10,7 @@ class TriggerSequence:
             # camera
             self.cycle_time = 0.05
             self.initial_time = 0.008
-            self.standby_time = 0.02
+            self.standby_time = 0.01
             # piezo scanner
             self.piezo_conv_factors = [10., 10., 10.]
             self.piezo_steps = [0.032, 0.032, 0.128]
@@ -73,11 +73,13 @@ class TriggerSequence:
         logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
         return logging
 
-    def update_piezo_scan_parameters(self, piezo_ranges=None, piezo_steps=None, piezo_positions=None):
+    def update_piezo_scan_parameters(self, piezo_ranges=None, piezo_steps=None, piezo_positions=None,
+                                     piezo_return_time=None):
         original_values = {
             "piezo_ranges": self.piezo_ranges,
             "piezo_steps": self.piezo_steps,
-            "piezo_positions": self.piezo_positions
+            "piezo_positions": self.piezo_positions,
+            "piezo_return_time": self.piezo_return_time
         }
         try:
             if piezo_ranges is not None:
@@ -86,6 +88,8 @@ class TriggerSequence:
                 self.piezo_steps = piezo_steps
             if piezo_positions is not None:
                 self.piezo_positions = piezo_positions
+            if piezo_return_time is not None:
+                self.piezo_return_time = piezo_return_time
             self.piezo_steps = [step_size / conv_factor for step_size, conv_factor in
                                 zip(self.piezo_steps, self.piezo_conv_factors)]
             self.piezo_ranges = [move_range / conv_factor for move_range, conv_factor in
@@ -397,6 +401,8 @@ class TriggerSequence:
             temp = np.zeros(cycle_samples)
             temp[self.digital_starts[i]:self.digital_ends[i]] = 1
             temp = np.tile(temp, self.piezo_scan_pos[0])
+            if standby_samples < return_samples:
+                temp = np.concatenate((temp, np.zeros(return_samples - standby_samples)))
             temp = np.tile(temp, self.piezo_scan_pos[1])
             temp = np.concatenate((np.zeros(return_samples), temp))
             digital_sequences[i] = temp
@@ -405,11 +411,13 @@ class TriggerSequence:
                 temp = np.zeros(cycle_samples)
                 temp[self.digital_starts[i + 4]:self.digital_ends[i + 4]] = 1
                 temp = np.tile(temp, self.piezo_scan_pos[0])
+                if standby_samples < return_samples:
+                    temp = np.concatenate((temp, np.zeros(return_samples - standby_samples)))
                 temp = np.tile(temp, self.piezo_scan_pos[1])
                 temp = np.concatenate((np.zeros(return_samples), temp))
                 digital_sequences[i + 4] = temp
             else:
-                digital_sequences[i + 4] = np.zeros(cycle_samples * scan_pos + return_samples)
+                digital_sequences[i + 4] = np.zeros(digital_sequences[0].shape[0])
         return np.asarray(piezo_sequences), np.asarray(digital_sequences), scan_pos
 
 

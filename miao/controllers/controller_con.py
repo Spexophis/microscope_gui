@@ -89,6 +89,9 @@ class ConController:
                       self.v.QDoubleSpinBox_step_z.value()]
         return axis_lengths, step_sizes
 
+    def get_piezo_return_time(self):
+        return self.v.QDoubleSpinBox_piezo_return_time.value()
+
     def get_galvo_scan_parameters(self):
         galvo_frequency = self.v.QSpinBox_galvo_frequency.value()
         galvo_positions = [self.v.QDoubleSpinBox_galvo_x.value(), self.v.QDoubleSpinBox_galvo_y.value()]

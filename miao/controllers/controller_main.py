@@ -323,7 +323,8 @@ class MainController(QtCore.QObject):
             self.p.trigger.dot_step_v = self.con_controller.get_galvo_step()
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             positions = self.con_controller.get_piezo_positions()
-            self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, positions)
+            return_time = self.con_controller.get_piezo_return_time()
+            self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, positions, return_time)
             self.p.trigger.update_camera_parameters(self.m.cam_set[self.cameras[cam_key]].t_clean,
                                                     self.m.cam_set[self.cameras[cam_key]].t_readout,
                                                     self.m.cam_set[self.cameras[cam_key]].t_kinetic)
