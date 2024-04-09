@@ -33,7 +33,7 @@ class TriggerSequence:
             self.galvo_ranges = [0.5, 0.5]  # V
             self.galvo_starts = [o_ - r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.galvo_ranges)]
             self.galvo_stops = [o_ + r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.galvo_ranges)]
-            self.galvo_return = 64  # ~640 us
+            self.galvo_return = 80  # ~640 us
             # sawtooth wave
             self.frequency = 147  # Hz
             self.samples_period = int(self.sample_rate / self.frequency)
