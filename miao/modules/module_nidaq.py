@@ -153,6 +153,23 @@ class NIDAQ:
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
 
+    def get_galvo_position(self):
+        # if not self.tasks["galvo_pos"].is_task_done():
+        #     self.tasks["galvo_pos"].stop()
+        try:
+            with nidaqmx.Task() as task:
+                task.ai_channels.add_ai_voltage_chan("Dev1/ai4:5")
+                pos = task.read()
+            # pos = self.tasks["galvo_pos"].read(number_of_samples_per_channel=1)
+            return pos
+        except nidaqmx.DaqWarning as e:
+            self.logg.warning("DaqWarning caught as exception: %s", e)
+            try:
+                assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE, "Unexpected error code: {}".format(
+                    e.error_code)
+            except AssertionError as ae:
+                self.logg.error("Assertion Error: %s", ae)
+
     def write_clock_channel(self):
         try:
             self.tasks["clock"] = nidaqmx.Task("clock")

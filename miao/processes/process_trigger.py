@@ -245,25 +245,25 @@ class TriggerSequence:
         if standby_samples > return_samples:
             cycle_samples = digital_sequences[0].size + standby_samples
             _temp = np.zeros(cycle_samples * self.piezo_scan_pos[0])
-            _temp[-standby_samples:-standby_samples + return_samples] = self.piezo_steps[1] * np.linspace(0, 1, return_samples)
+            _temp[-standby_samples:-standby_samples + return_samples] = self.piezo_steps[1] * smooth_ramp(0, 1, return_samples)
             _temp[-standby_samples + return_samples:] = self.piezo_steps[1]
             piezo_sequences[1] = _temp + self.piezo_starts[1]
             for i in range(self.piezo_scan_pos[1] - 1):
                 temp = _temp + self.piezo_starts[1] + (i + 1) * self.piezo_steps[1]
                 piezo_sequences[1] = np.concatenate((piezo_sequences[1], temp))
-            piezo_sequences[1][-standby_samples:-standby_samples + return_samples] = np.linspace(
+            piezo_sequences[1][-standby_samples:-standby_samples + return_samples] = smooth_ramp(
                 piezo_sequences[1][-standby_samples], self.piezo_positions[1], return_samples)
             piezo_sequences[1][-standby_samples + return_samples:] = self.piezo_positions[1]
             piezo_sequences[0] = np.zeros(digital_sequences[0].size) + self.piezo_starts[0]
-            _temp = np.concatenate((np.linspace(0, 1, standby_samples), np.ones(digital_sequences[0].size)))
+            _temp = np.concatenate((smooth_ramp(0, 1, standby_samples), np.ones(digital_sequences[0].size)))
             for i in range(self.piezo_scan_pos[0] - 1):
                 temp = _temp * self.piezo_steps[0] + self.piezo_starts[0] + i * self.piezo_steps[0]
                 piezo_sequences[0] = np.concatenate((piezo_sequences[0], temp))
-            piezo_sequences[0] = np.concatenate((piezo_sequences[0], np.linspace(
+            piezo_sequences[0] = np.concatenate((piezo_sequences[0], smooth_ramp(
                 piezo_sequences[0][-1], piezo_sequences[0][0], return_samples)))
             piezo_sequences[0] = np.concatenate((piezo_sequences[0], piezo_sequences[0][-1] * np.ones(standby_samples - return_samples)))
             piezo_sequences[0] = np.tile(piezo_sequences[0], self.piezo_scan_pos[0])
-            piezo_sequences[0][-standby_samples:-standby_samples + return_samples] = np.linspace(
+            piezo_sequences[0][-standby_samples:-standby_samples + return_samples] = smooth_ramp(
                 piezo_sequences[0][-standby_samples], self.piezo_positions[0], return_samples)
             piezo_sequences[0][-standby_samples + return_samples:] = self.piezo_positions[0]
             galvo_sequences[0] = np.concatenate((galvo_sequences[0], self.galvo_starts[0] * np.ones(standby_samples)))
@@ -274,22 +274,22 @@ class TriggerSequence:
                 digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[1])
         else:
             _temp = np.tile(np.zeros(digital_sequences[0].size + return_samples), self.piezo_scan_pos[0])
-            _temp[-return_samples:] = self.piezo_steps[1] * np.linspace(0, 1, return_samples)
+            _temp[-return_samples:] = self.piezo_steps[1] * smooth_ramp(0, 1, return_samples)
             piezo_sequences[1] = _temp + self.piezo_starts[1]
             for i in range(self.piezo_scan_pos[1] - 1):
                 temp = _temp + self.piezo_starts[1] + (i + 1) * self.piezo_steps[1]
                 piezo_sequences[1] = np.concatenate((piezo_sequences[1], temp))
-            piezo_sequences[1][-return_samples:] = np.linspace(piezo_sequences[1][-return_samples],
+            piezo_sequences[1][-return_samples:] = smooth_ramp(piezo_sequences[1][-return_samples],
                                                                self.piezo_positions[1], return_samples)
             piezo_sequences[0] = np.zeros(digital_sequences[0].size) + self.piezo_starts[0]
-            _temp = np.concatenate((np.linspace(0, 1, return_samples), np.ones(digital_sequences[0].size)))
+            _temp = np.concatenate((smooth_ramp(0, 1, return_samples), np.ones(digital_sequences[0].size)))
             for i in range(self.piezo_scan_pos[0] - 1):
                 temp = _temp * self.piezo_steps[0] + self.piezo_starts[0] + i * self.piezo_steps[0]
                 piezo_sequences[0] = np.concatenate((piezo_sequences[0], temp))
             piezo_sequences[0] = np.concatenate(
-                (piezo_sequences[0], np.linspace(piezo_sequences[0][-1], piezo_sequences[0][0], return_samples)))
+                (piezo_sequences[0], smooth_ramp(piezo_sequences[0][-1], piezo_sequences[0][0], return_samples)))
             piezo_sequences[0] = np.tile(piezo_sequences[0], self.piezo_scan_pos[1])
-            piezo_sequences[0][-return_samples:] = np.linspace(piezo_sequences[0][-return_samples],
+            piezo_sequences[0][-return_samples:] = smooth_ramp(piezo_sequences[0][-return_samples],
                                                                self.piezo_positions[0], return_samples)
             galvo_sequences[0] = np.concatenate((galvo_sequences[0], self.galvo_starts[0] * np.ones(return_samples)))
             galvo_sequences[1] = np.concatenate((galvo_sequences[1], self.dot_starts[1] * np.ones(return_samples)))
@@ -298,12 +298,12 @@ class TriggerSequence:
                 digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[0])
                 digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[1])
         for i in range(2):
-            temp = np.linspace(self.piezo_positions[i], piezo_sequences[i][0], return_samples)
+            temp = smooth_ramp(self.piezo_positions[i], piezo_sequences[i][0], return_samples)
             piezo_sequences[i] = np.concatenate((temp, piezo_sequences[i]))
         for i in range(2):
             galvo_sequences[i] = np.tile(galvo_sequences[i], self.piezo_scan_pos[0])
             galvo_sequences[i] = np.tile(galvo_sequences[i], self.piezo_scan_pos[1])
-            galvo_sequences[i][-interval_samples:] = np.linspace(galvo_sequences[i][-1], 0., interval_samples)
+            galvo_sequences[i][-interval_samples:] = smooth_ramp(galvo_sequences[i][-1], 0., interval_samples)
         for i in range(2):
             galvo_sequences[i] = np.concatenate((np.ones(return_samples) * galvo_sequences[i][0], galvo_sequences[i]))
         for i in range(7):
@@ -335,58 +335,58 @@ class TriggerSequence:
         if standby_samples > return_samples:
             cycle_samples = self.digital_ends[cam_ind] + standby_samples
             _temp = np.zeros((cycle_samples * self.piezo_scan_pos[0]))
-            _temp[-standby_samples:-standby_samples + return_samples] = self.piezo_steps[1] * np.linspace(0, 1,
+            _temp[-standby_samples:-standby_samples + return_samples] = self.piezo_steps[1] * smooth_ramp(0, 1,
                                                                                                           return_samples)
             _temp[-standby_samples + return_samples:] = self.piezo_steps[1]
             piezo_sequences[1] = _temp + self.piezo_starts[1]
             for i in range(self.piezo_scan_pos[1] - 1):
                 temp = _temp + self.piezo_starts[1] + (i + 1) * self.piezo_steps[1]
                 piezo_sequences[1] = np.concatenate((piezo_sequences[1], temp))
-            piezo_sequences[1][-standby_samples:-standby_samples + return_samples] = np.linspace(
+            piezo_sequences[1][-standby_samples:-standby_samples + return_samples] = smooth_ramp(
                 piezo_sequences[1][-standby_samples], self.piezo_positions[1], return_samples)
             piezo_sequences[1][-standby_samples + return_samples:] = self.piezo_positions[1]
             piezo_sequences[0] = np.concatenate(
-                (np.zeros(self.digital_ends[cam_ind]), np.linspace(0, self.piezo_steps[0], standby_samples))) + \
+                (np.zeros(self.digital_ends[cam_ind]), smooth_ramp(0, self.piezo_steps[0], standby_samples))) + \
                                  self.piezo_starts[0]
             _temp = self.piezo_starts[0] + self.piezo_steps[0] * np.concatenate(
-                (np.zeros(self.digital_ends[cam_ind]), np.linspace(0, 1, standby_samples)))
+                (np.zeros(self.digital_ends[cam_ind]), smooth_ramp(0, 1, standby_samples)))
             for i in range(self.piezo_scan_pos[0] - 1):
                 temp = _temp + (i + 1) * self.piezo_steps[0]
                 piezo_sequences[0] = np.concatenate((piezo_sequences[0], temp))
-            piezo_sequences[0][-standby_samples:-standby_samples + return_samples] = np.linspace(
+            piezo_sequences[0][-standby_samples:-standby_samples + return_samples] = smooth_ramp(
                 piezo_sequences[0][-standby_samples], piezo_sequences[0][0], return_samples)
             piezo_sequences[0][-standby_samples + return_samples:] = piezo_sequences[0][0]
             piezo_sequences[0] = np.tile(piezo_sequences[0], self.piezo_scan_pos[0])
-            piezo_sequences[0][-standby_samples:-standby_samples + return_samples] = np.linspace(
+            piezo_sequences[0][-standby_samples:-standby_samples + return_samples] = smooth_ramp(
                 piezo_sequences[0][-standby_samples], self.piezo_positions[0], return_samples)
             piezo_sequences[0][-standby_samples + return_samples:] = self.piezo_positions[0]
         else:
             cycle_samples = self.digital_ends[cam_ind] + standby_samples
             _temp = np.zeros((cycle_samples * self.piezo_scan_pos[0] + return_samples - standby_samples))
-            _temp[-return_samples:] = self.piezo_steps[1] * np.linspace(0, 1, return_samples)
+            _temp[-return_samples:] = self.piezo_steps[1] * smooth_ramp(0, 1, return_samples)
             piezo_sequences[1] = _temp + self.piezo_starts[1]
             for i in range(self.piezo_scan_pos[1] - 1):
                 temp = _temp + self.piezo_starts[1] + (i + 1) * self.piezo_steps[1]
                 piezo_sequences[1] = np.concatenate((piezo_sequences[1], temp))
-            piezo_sequences[1][-return_samples:] = np.linspace(piezo_sequences[1][-return_samples],
+            piezo_sequences[1][-return_samples:] = smooth_ramp(piezo_sequences[1][-return_samples],
                                                                self.piezo_positions[1], return_samples)
             piezo_sequences[0] = np.concatenate(
-                (np.zeros(self.digital_ends[cam_ind]), np.linspace(0, self.piezo_steps[0], standby_samples))) + \
+                (np.zeros(self.digital_ends[cam_ind]), smooth_ramp(0, self.piezo_steps[0], standby_samples))) + \
                                  self.piezo_starts[0]
             _temp = self.piezo_starts[0] + self.piezo_steps[0] * np.concatenate(
-                (np.zeros(self.digital_ends[cam_ind]), np.linspace(0, 1, standby_samples)))
+                (np.zeros(self.digital_ends[cam_ind]), smooth_ramp(0, 1, standby_samples)))
             for i in range(self.piezo_scan_pos[0] - 1):
                 temp = _temp + (i + 1) * self.piezo_steps[0]
                 piezo_sequences[0] = np.concatenate((piezo_sequences[0], temp))
             piezo_sequences[0] = np.concatenate(
                 (piezo_sequences[0], piezo_sequences[0][-1] * np.ones(return_samples - standby_samples)))
-            piezo_sequences[0][-return_samples:] = np.linspace(piezo_sequences[0][-return_samples],
+            piezo_sequences[0][-return_samples:] = smooth_ramp(piezo_sequences[0][-return_samples],
                                                                piezo_sequences[0][0], return_samples)
             piezo_sequences[0] = np.tile(piezo_sequences[0], self.piezo_scan_pos[0])
-            piezo_sequences[0][-return_samples:] = np.linspace(piezo_sequences[0][-return_samples],
+            piezo_sequences[0][-return_samples:] = smooth_ramp(piezo_sequences[0][-return_samples],
                                                                self.piezo_positions[0], return_samples)
         for i in range(2):
-            temp = np.linspace(self.piezo_positions[i], piezo_sequences[i][0], return_samples)
+            temp = smooth_ramp(self.piezo_positions[i], piezo_sequences[i][0], return_samples)
             piezo_sequences[i] = np.concatenate((temp, piezo_sequences[i]))
         scan_pos = 1
         for num in self.piezo_scan_pos:
@@ -409,6 +409,14 @@ class TriggerSequence:
             else:
                 digital_sequences[i + 4] = np.zeros(cycle_samples * scan_pos + return_samples)
         return np.asarray(piezo_sequences), np.asarray(digital_sequences), scan_pos
+
+
+def smooth_ramp(start, end, samples, curve_half=0.6):
+    n = int(curve_half * samples)
+    x = np.linspace(0, np.pi / 2, n, endpoint=True)
+    signal_first_half = np.sin(x) * (end - start) / np.sin(np.pi / 2) + start
+    signal_second_half = np.full(samples - n, end)
+    return np.concatenate((signal_first_half, signal_second_half))
 
 
 def safe_divide(numerator, denominator):
