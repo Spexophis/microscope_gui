@@ -19,7 +19,7 @@ class NIDAQ:
             self.duty_cycle = 0.5
             self.piezo_channels = "Dev1/ao0:1"
             self.galvo_channels = "Dev1/ao2:3"
-            self.anolog_channels = "Dev1/ao0:3"
+            self.analog_channels = "Dev1/ao0:3"
             self.digital_channels = "Dev1/port0/line0:6"
             self.clock_channel = "Dev1/ctr0"
             self.clock = None
@@ -294,7 +294,7 @@ class NIDAQ:
             mode = AcquisitionType.CONTINUOUS
         try:
             self.tasks["anolog"] = nidaqmx.Task("anolog")
-            self.tasks["anolog"].ao_channels.add_ao_voltage_chan(self.anolog_channels, min_val=-10., max_val=10.)
+            self.tasks["anolog"].ao_channels.add_ao_voltage_chan(self.analog_channels, min_val=-10., max_val=10.)
             _channels, _samples = anolog_sequences.shape
             self.tasks["anolog"].timing.cfg_samp_clk_timing(self.sample_rate, source="Ctr0InternalOutput",
                                                             active_edge=Edge.RISING, sample_mode=mode,
@@ -303,7 +303,7 @@ class NIDAQ:
             self._active["anolog"] = True
             self.tasks["anolog"].start()
             self._running["anolog"] = True
-            self.logg.info("Channels " + self.anolog_channels + " Write Successfully")
+            self.logg.info("Channels " + self.analog_channels + " Write Successfully")
         except nidaqmx.DaqWarning as e:
             self.logg.warning("DaqWarning caught as exception: %s", e)
             try:
@@ -376,12 +376,12 @@ class NIDAQ:
         num_samples = data.shape[0]
         acquired_data = np.zeros(num_samples)
         with nidaqmx.Task() as output_task:
-            output_task.ao_channels.add_ao_voltage_chan(output_channel)
+            output_task.ao_channels.add_ao_voltage_chan(output_channel, min_val=0., max_val=10.)
             output_task.timing.cfg_samp_clk_timing(rate=self.sample_rate,
                                                    sample_mode=AcquisitionType.FINITE,
                                                    samps_per_chan=num_samples)
             with nidaqmx.Task() as input_task:
-                input_task.ai_channels.add_ai_voltage_chan(input_channel)
+                input_task.ai_channels.add_ai_voltage_chan(input_channel, min_val=-10., max_val=10.)
                 input_task.timing.cfg_samp_clk_timing(rate=self.sample_rate,
                                                       sample_mode=AcquisitionType.FINITE,
                                                       samps_per_chan=num_samples,
