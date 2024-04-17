@@ -3,18 +3,17 @@ import numpy as np
 
 class TriggerSequence:
     class TriggerParameters:
-        def __init__(self):
+        def __init__(self, sample_rate=100000):
             # daq
-            self.sample_rate = 100000  # Hz
-            self.dt = 1 / self.sample_rate
+            self.sample_rate = sample_rate  # Hz
             # camera
             self.cycle_time = 0.05
             self.initial_time = 0.008
             self.standby_time = 0.01
             # piezo scanner
             self.piezo_conv_factors = [10., 10., 10.]
-            self.piezo_steps = [0.032, 0.032, 0.128]
-            self.piezo_ranges = [0.16, 0.16, 0.0]
+            self.piezo_steps = [0.034, 0.034, 0.128]
+            self.piezo_ranges = [0.17, 0.17, 0.0]
             self.piezo_positions = [50., 50., 50.]
             self.piezo_return_time = 0.12
             self.piezo_steps = [step_size / conv_factor for step_size, conv_factor in
@@ -33,14 +32,14 @@ class TriggerSequence:
             self.galvo_ranges = [0.5, 0.5]  # V
             self.galvo_starts = [o_ - r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.galvo_ranges)]
             self.galvo_stops = [o_ + r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.galvo_ranges)]
-            self.galvo_return = 80  # ~640 us
+            self.galvo_return = int(8e-4 * self.sample_rate)   # ~800 us
             # sawtooth wave
             self.frequency = 147  # Hz
             self.samples_period = int(self.sample_rate / self.frequency)
             # dot array
             self.dot_ranges = [0.2, 0.2]  # V
             self.dot_starts = [o_ - r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.dot_ranges)]
-            self.dot_step_s = 30  # samples
+            self.dot_step_s = int(3.01e-4 * self.sample_rate)  # samples
             self.dot_step_v = (self.dot_step_s / self.sample_rate) * (
                     np.abs(self.galvo_stops[0] - self.galvo_starts[0]) / (1 / self.frequency))
             self.dot_pos = np.arange(self.dot_starts[0], self.dot_starts[0] + self.dot_ranges[0] + self.dot_step_v,
@@ -72,6 +71,10 @@ class TriggerSequence:
         import logging
         logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
         return logging
+
+    def update_nidaq_parameters(self, sample_rate=None):
+        if sample_rate is not None:
+            self._parameters = self.TriggerParameters(sample_rate)
 
     def update_piezo_scan_parameters(self, piezo_ranges=None, piezo_steps=None, piezo_positions=None,
                                      piezo_return_time=None):

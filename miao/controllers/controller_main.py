@@ -85,6 +85,8 @@ class MainController(QtCore.QObject):
         self.v.con_view.Signal_video.connect(self.video)
         self.v.con_view.Signal_fft.connect(self.fft)
         self.v.con_view.Signal_plot_profile.connect(self.plot_live)
+        # NIDAQ
+        self.v.con_view.Signal_daq_update.connect(self.update_daq_sample_rate)
         # Main Data Recording
         self.v.con_view.Signal_data_acquire.connect(self.data_acquisition)
         self.v.con_view.Signal_save_file.connect(self.save_data)
@@ -249,6 +251,7 @@ class MainController(QtCore.QObject):
 
     def set_lasers(self):
         try:
+            self.m.laser.set_constant_power(["405", "488_0", "488_1", "488_2"], [0, 0, 0, 0])
             self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0, 0, 0, 0])
             self.m.laser.laser_on("all")
             self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"],
@@ -306,6 +309,12 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"Camera Error: {e}")
 
+    @QtCore.pyqtSlot(int)
+    def update_daq_sample_rate(self, sr: int):
+        self.p.trigger.update_nidaq_parameters(sr*1000)
+        self.update_galvo_scanner()
+        self.m.daq.sample_rate = sr*1000
+
     @QtCore.pyqtSlot()
     def update_galvo_scanner(self):
         galvo_frequency, galvo_positions, galvo_ranges, dot_pos = self.con_controller.get_galvo_scan_parameters()
@@ -343,7 +352,8 @@ class MainController(QtCore.QObject):
         self.set_camera_roi("imaging")
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
         if vd_mod == "Wide Field":
-            self.m.daq.write_digital_sequences(self.generate_live_triggers("imaging"), finite=False)
+            dtr = self.generate_live_triggers("imaging")
+            self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=False)
         elif vd_mod == "Dot Scan":
             self.update_trigger_parameters("imaging")
             gtr, ptr, dtr, pos = self.p.trigger.generate_dotscan_resolft_2d()
@@ -361,7 +371,7 @@ class MainController(QtCore.QObject):
             return
         try:
             self.m.cam_set[self.cameras["imaging"]].start_live()
-            self.m.daq.run_digital_trigger()
+            self.m.daq.run_triggers()
             self.thread_video.start()
         except Exception as e:
             self.logg.error(f"Error starting imaging video: {e}")
@@ -490,7 +500,8 @@ class MainController(QtCore.QObject):
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
-        self.m.daq.write_digital_sequences(self.generate_live_triggers("imaging"), finite=True)
+        dtr = self.generate_live_triggers("imaging")
+        self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
 
     def widefield_zstack(self):
         try:
@@ -515,7 +526,7 @@ class MainController(QtCore.QObject):
                 for i, z in enumerate(zps):
                     pz = self.m.pz.move_position(2, z)
                     pzs.append([i, pz])
-                    self.m.daq.run_digital_trigger()
+                    self.m.daq.run_triggers()
                     time.sleep(0.05)
                     data.append(self.m.cam_set[self.cameras["imaging"]].get_last_image())
                     self.m.daq.stop_triggers(_close=False)
@@ -740,7 +751,8 @@ class MainController(QtCore.QObject):
         self.set_camera_roi("wfs")
         self.set_img_wfs()
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
-        self.m.daq.write_digital_sequences(self.generate_wfs_trigger("wfs"), finite=False)
+        dtr = self.generate_live_triggers("wfs")
+        self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=False)
 
     def _start_img_wfs(self):
         try:
@@ -749,7 +761,7 @@ class MainController(QtCore.QObject):
             self.logg.error(f"Error starting wfs: {e}")
         try:
             self.m.cam_set[self.cameras["wfs"]].start_live()
-            self.m.daq.run_digital_trigger()
+            self.m.daq.run_triggers()
             self.thread_wfs.start()
         except Exception as e:
             self.logg.error(f"Error starting wfs: {e}")
@@ -847,7 +859,8 @@ class MainController(QtCore.QObject):
         self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
         self.set_camera_roi("wfs")
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
-        self.m.daq.write_digital_sequences(self.generate_wfs_trigger("wfs"), finite=True)
+        dtr = self.generate_live_triggers("wfs")
+        self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
 
     def influence_function(self):
         try:
@@ -865,28 +878,28 @@ class MainController(QtCore.QObject):
             values = [0.] * self.dfm.n_actuator
             self.dfm.set_dm(values)
             time.sleep(0.02)
-            self.m.daq.run_digital_trigger()
+            self.m.daq.run_triggers()
             time.sleep(0.04)
             shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
             self.m.daq.stop_triggers(_close=False)
             values[i] = amp
             self.dfm.set_dm(values)
             time.sleep(0.02)
-            self.m.daq.run_digital_trigger()
+            self.m.daq.run_triggers()
             time.sleep(0.04)
             shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
             self.m.daq.stop_triggers(_close=False)
             values = [0.] * self.dfm.n_actuator
             self.dfm.set_dm(values)
             time.sleep(0.02)
-            self.m.daq.run_digital_trigger()
+            self.m.daq.run_triggers()
             time.sleep(0.04)
             shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
             self.m.daq.stop_triggers(_close=False)
             values[i] = - amp
             self.dfm.set_dm(values)
             time.sleep(0.02)
-            self.m.daq.run_digital_trigger()
+            self.m.daq.run_triggers()
             time.sleep(0.04)
             shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
             self.m.daq.stop_triggers(_close=False)
@@ -907,7 +920,7 @@ class MainController(QtCore.QObject):
         values[act_ind] = p_amp
         self.dfm.set_dm(values)
         time.sleep(0.02)
-        self.m.daq.run_digital_trigger()
+        self.m.daq.run_triggers()
         time.sleep(0.02)
         self.m.daq.stop_triggers(_close=False)
         return self.m.cam_set[self.cameras["wfs"]].get_last_image()
@@ -938,11 +951,12 @@ class MainController(QtCore.QObject):
         self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
         self.set_camera_roi("wfs")
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
-        self.m.daq.write_digital_sequences(self.generate_wfs_trigger("wfs"), finite=True)
+        dtr = self.generate_live_triggers("wfs")
+        self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
 
     def close_loop_correction(self):
         self.m.cam_set[self.cameras["wfs"]].start_live()
-        self.m.daq.run_digital_trigger()
+        self.m.daq.run_triggers()
         time.sleep(0.04)
         self.p.shwfsr.meas = self.m.cam_set[self.cameras["wfs"]].get_last_image()
         self.m.daq.stop_triggers(_close=False)
@@ -959,7 +973,7 @@ class MainController(QtCore.QObject):
     def _finish_close_loop_correction(self):
         try:
             # self.p.shwfsr.ref = self.view_controller.get_image_data(4)
-            self.m.daq.run_digital_trigger()
+            self.m.daq.run_triggers()
             self.p.shwfsr.meas = self.m.cam_set[self.cameras["wfs"]].get_last_image()
             self.m.cam_set[self.cameras["wfs"]].stop_live()
             self.m.daq.stop_triggers()
@@ -984,7 +998,8 @@ class MainController(QtCore.QObject):
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
-        self.m.daq.write_digital_sequences(self.generate_live_triggers("imaging"), finite=True)
+        dtr = self.generate_live_triggers("imaging")
+        self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
 
     def sensorless_iteration(self):
         try:
@@ -1007,7 +1022,7 @@ class MainController(QtCore.QObject):
             self.logg.info("Sensorless AO iteration starts")
             self.dfm.set_dm(cmd)
             time.sleep(0.02)
-            self.m.daq.run_digital_trigger()
+            self.m.daq.run_triggers()
             time.sleep(0.04)
             self.m.daq.stop_triggers(_close=False)
             fn = os.path.join(new_folder, 'original.tif')
@@ -1022,7 +1037,7 @@ class MainController(QtCore.QObject):
                     self.dfm.set_dm(self.dfm.cmd_add(self.dfm.get_zernike_cmd(mode, amp), cmd))
                     # self.dfm.set_dm(self.dfm.cmd_add([i * amp for i in self.dfm.z2c[mode]], cmd))
                     time.sleep(0.02)
-                    self.m.daq.run_digital_trigger()
+                    self.m.daq.run_triggers()
                     time.sleep(0.04)
                     self.m.daq.stop_triggers(_close=False)
                     fn = "zm%0.2d_amp%.4f" % (mode, amp)
@@ -1048,7 +1063,7 @@ class MainController(QtCore.QObject):
                     self.logg.error(f"mode {mode} error {e}")
             self.dfm.set_dm(cmd)
             time.sleep(0.02)
-            self.m.daq.run_digital_trigger()
+            self.m.daq.run_triggers()
             time.sleep(0.04)
             self.m.daq.stop_triggers(_close=False)
             fn = os.path.join(new_folder, 'final.tif')
@@ -1086,7 +1101,8 @@ class MainController(QtCore.QObject):
         self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
         self.set_camera_roi("wfs")
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
-        self.m.daq.write_digital_sequences(self.generate_wfs_trigger("wfs"), finite=True)
+        dtr = self.generate_live_triggers("wfs")
+        self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
 
     def shwfs_acquisition(self):
         try:
@@ -1104,7 +1120,7 @@ class MainController(QtCore.QObject):
             cmd = self.dfm.dm_cmd[self.dfm.current_cmd]
             self.dfm.set_dm(cmd)
             time.sleep(0.02)
-            self.m.daq.run_digital_trigger()
+            self.m.daq.run_triggers()
             time.sleep(0.04)
             data.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
             self.m.daq.stop_triggers(_close=False)
@@ -1114,7 +1130,7 @@ class MainController(QtCore.QObject):
                 cmd = self.dfm.cmd_add(self.dfm.get_zernike_cmd(mode, amp), cmd)
             self.dfm.set_dm(cmd)
             time.sleep(0.02)
-            self.m.daq.run_digital_trigger()
+            self.m.daq.run_triggers()
             time.sleep(0.04)
             data.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
             self.m.daq.stop_triggers(_close=False)

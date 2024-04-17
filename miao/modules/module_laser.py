@@ -59,7 +59,6 @@ class CoboltLaser:
         for ind, ln in enumerate(laser):
             if self._h.get(ln, False):
                 self.lasers[ln].constant_power(power[ind])
-                self.logg.info("Set Laser " + ln + "to" + str(power[ind]) + "mW")
 
     def set_constant_current(self, laser, current):
         for ind, ln in enumerate(laser):
