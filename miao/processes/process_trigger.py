@@ -424,7 +424,7 @@ class TriggerSequence:
         return np.asarray(piezo_sequences), np.asarray(digital_sequences), scan_pos
 
 
-def smooth_ramp(start, end, samples, curve_half=0.04):
+def smooth_ramp(start, end, samples, curve_half=0.02):
     n = int(curve_half * samples)
     x = np.linspace(0, np.pi / 2, n, endpoint=True)
     signal_first_half = np.sin(x) * (end - start) / np.sin(np.pi / 2) + start
