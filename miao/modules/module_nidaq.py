@@ -342,7 +342,7 @@ class NIDAQ:
         num_samples = data.shape[0]
         acquired_data = np.zeros(num_samples)
         with nidaqmx.Task() as output_task:
-            output_task.ao_channels.add_ao_voltage_chan(output_channel, min_val=0., max_val=10.)
+            output_task.ao_channels.add_ao_voltage_chan(output_channel, min_val=-10., max_val=10.)
             output_task.timing.cfg_samp_clk_timing(rate=self.sample_rate,
                                                    sample_mode=AcquisitionType.FINITE,
                                                    samps_per_chan=num_samples)

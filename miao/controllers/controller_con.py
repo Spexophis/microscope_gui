@@ -97,7 +97,8 @@ class ConController:
         galvo_positions = [self.v.QDoubleSpinBox_galvo_x.value(), self.v.QDoubleSpinBox_galvo_y.value()]
         galvo_ranges = [self.v.QDoubleSpinBox_galvo_range_x.value(), self.v.QDoubleSpinBox_galvo_range_y.value()]
         dot_pos = [[self.v.QDoubleSpinBox_dot_range_x.value(), self.v.QDoubleSpinBox_dot_range_y.value()],
-                   self.v.QSpinBox_dot_step.value(), self.v.QSpinBox_galvo_dwell.value()]
+                   self.v.QSpinBox_dot_step.value(), self.v.QSpinBox_galvo_dwell.value(),
+                   self.v.QSpinBox_laser_delay.value()]
         return galvo_frequency, galvo_positions, galvo_ranges, dot_pos
 
     def display_dot_step(self, dsv):
