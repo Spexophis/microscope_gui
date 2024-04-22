@@ -181,15 +181,15 @@ class ConWidget(QtWidgets.QWidget):
         mcl_piezo_scroll_layout.addRow(self.QDoubleSpinBox_step_z, self.QDoubleSpinBox_range_z)
         mcl_piezo_scroll_layout.addRow(cw.frame_widget())
         mcl_piezo_scroll_layout.addRow(cw.label_widget(str('Piezo Return / s')), self.QDoubleSpinBox_piezo_return_time)
-        self.QSpinBox_galvo_frequency = cw.spinbox_widget(0, 4000, 1, 147)
+        self.QSpinBox_galvo_frequency = cw.spinbox_widget(0, 4000, 1, 125)
         self.QDoubleSpinBox_galvo_x = cw.doublespinbox_widget(-10, 10, 0.0001, 5, 0)
         self.QDoubleSpinBox_galvo_y = cw.doublespinbox_widget(-10, 10, 0.0001, 5, 0)
         self.QDoubleSpinBox_galvo_range_x = cw.doublespinbox_widget(-10, 10, 0.0001, 5, 0.4)
         self.QDoubleSpinBox_galvo_range_y = cw.doublespinbox_widget(-10, 10, 0.0001, 5, 0.4)
         self.QDoubleSpinBox_dot_range_x = cw.doublespinbox_widget(0, 20, 0.0001, 5, 0.2)
         self.QDoubleSpinBox_dot_range_y = cw.doublespinbox_widget(0, 20, 0.0001, 5, 0.2)
-        self.QSpinBox_dot_step = cw.spinbox_widget(0, 4000, 1, 30)
-        self.QDoubleSpinBox_dot_step = cw.doublespinbox_widget(0, 20, 0.0001, 5, 0.0172)
+        self.QSpinBox_dot_step = cw.spinbox_widget(0, 4000, 1, 88)
+        self.QDoubleSpinBox_dot_step = cw.doublespinbox_widget(0, 20, 0.0001, 5, 0.01720)
         self.QSpinBox_galvo_dwell = cw.spinbox_widget(0, 4000, 1, 1)
         self.QSpinBox_laser_delay = cw.spinbox_widget(0, 4000, 1, 0)
         self.galvo_scroll_area, galvo_scroll_layout = cw.create_scroll_area()
@@ -274,7 +274,7 @@ class ConWidget(QtWidgets.QWidget):
 
     def _create_daq_widgets(self):
         layout_daq = QtWidgets.QHBoxLayout()
-        self.QSpinBox_daq_sample_rate = cw.spinbox_widget(100, 1250, 1, 100)
+        self.QSpinBox_daq_sample_rate = cw.spinbox_widget(100, 1250, 1, 250)
         layout_daq.addWidget(cw.label_widget(str('DAQ Sample Rate / KS/s')))
         layout_daq.addWidget(self.QSpinBox_daq_sample_rate)
         return layout_daq
