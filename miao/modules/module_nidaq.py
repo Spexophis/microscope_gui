@@ -15,7 +15,7 @@ class NIDAQ:
     class NIDAQSettings:
 
         def __init__(self):
-            self.sample_rate = 100000
+            self.sample_rate = 250000
             self.duty_cycle = 0.5
             self.piezo_channels = "Dev1/ao0:1"
             self.galvo_channels = "Dev1/ao2:3"

@@ -3,7 +3,7 @@ import numpy as np
 
 class TriggerSequence:
     class TriggerParameters:
-        def __init__(self, sample_rate=100000):
+        def __init__(self, sample_rate=250000):
             # daq
             self.sample_rate = sample_rate  # Hz
             # camera
