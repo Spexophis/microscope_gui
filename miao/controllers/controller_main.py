@@ -122,6 +122,8 @@ class MainController(QtCore.QObject):
             self.magnifications = [157.5, 1, 1]
             self.pixel_sizes = []
             self.pixel_sizes = [self.m.cam_set[i].ps / mag for i, mag in enumerate(self.magnifications)]
+            self.pixel_sizes[0] = 0.078125
+            self.magnifications[0] = self.m.cam_set[0].ps / self.pixel_sizes[0]
 
             for key in self.m.dm.keys():
                 self.v.ao_view.QComboBox_dms.addItem(key)
