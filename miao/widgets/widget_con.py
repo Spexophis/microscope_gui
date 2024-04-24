@@ -152,7 +152,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QLCDNumber_piezo_position_z = cw.lcdnumber_widget()
         self.QDoubleSpinBox_step_z = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.160)
         self.QDoubleSpinBox_range_z = cw.doublespinbox_widget(0, 50, 0.001, 3, 4.80)
-        self.QDoubleSpinBox_piezo_return_time = cw.doublespinbox_widget(0, 50, 0.01, 2, 0.12)
+        self.QDoubleSpinBox_piezo_return_time = cw.doublespinbox_widget(0, 50, 0.01, 2, 0.06)
         self.mcl_piezo_scroll_area, mcl_piezo_scroll_layout = cw.create_scroll_area()
         mcl_piezo_scroll_layout.addRow(cw.label_widget(str('MCL Piezo')))
         mcl_piezo_scroll_layout.addRow(cw.frame_widget())

@@ -15,7 +15,7 @@ class TriggerSequence:
             self.piezo_steps = [0.034, 0.034, 0.128]
             self.piezo_ranges = [0.17, 0.17, 0.0]
             self.piezo_positions = [50., 50., 50.]
-            self.piezo_return_time = 0.12
+            self.piezo_return_time = 0.06
             self.piezo_steps = [step_size / conv_factor for step_size, conv_factor in
                                 zip(self.piezo_steps, self.piezo_conv_factors)]
             self.piezo_ranges = [move_range / conv_factor for move_range, conv_factor in
