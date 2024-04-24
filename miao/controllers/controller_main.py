@@ -1046,9 +1046,9 @@ class MainController(QtCore.QObject):
                     fn1 = os.path.join(new_folder, fn + '.tif')
                     tf.imwrite(fn1, self.m.cam_set[self.cameras["imaging"]].get_last_image())
                     if mindex == 0:
-                        dt.append(ipr.snr(self.m.cam_set[self.cameras["imaging"]].get_last_image(), lpr, hpr))
-                    if mindex == 1:
                         dt.append(self.m.cam_set[self.cameras["imaging"]].get_last_image().max())
+                    if mindex == 1:
+                        dt.append(ipr.snr(self.m.cam_set[self.cameras["imaging"]].get_last_image(), lpr, hpr))
                     if mindex == 2:
                         dt.append(ipr.hpf(self.m.cam_set[self.cameras["imaging"]].get_last_image(), hpr))
                     results.append((mode, amp, dt[stnm]))
