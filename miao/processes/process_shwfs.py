@@ -25,7 +25,7 @@ class WavefrontSensing:
         self.y_center_offset = 1097
         self.lenslet_spacing = 24  # spacing between each lenslet
         self.hsp = 12  # size of subimage is 2 * hsp
-        self.calfactor = (.0065 / 5.2) * 150  # pixel size * focalLength * pitch
+        self.calfactor = (.00345 / 5.2) * 150  # pixel size * focalLength * pitch
         self.method = 'correlation'
         self.mag = 1
         section = np.ones((2 * self.hsp, 2 * self.hsp))
