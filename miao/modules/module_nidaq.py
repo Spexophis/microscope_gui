@@ -1,3 +1,4 @@
+import time
 import warnings
 
 import nidaqmx
@@ -334,25 +335,35 @@ class NIDAQ:
 
     def measure_do(self, output_channel, input_channel, data):
         num_samples = data.shape[0]
-        try:
-            ai_task = nidaqmx.Task()
-            do_task = nidaqmx.Task()
-            ai_task.ai_channels.add_ai_voltage_chan(input_channel, min_val=-10., max_val=10.)
-            ai_task.timing.cfg_samp_clk_timing(rate=self.sample_rate, source="/Dev1/ai/SampleClock",
-                                               sample_mode=AcquisitionType.FINITE, samps_per_chan=num_samples)
-            do_task.do_channels.add_do_chan(output_channel)
-            do_task.timing.cfg_samp_clk_timing(rate=self.sample_rate, source="/Dev1/ai/SampleClock",
-                                               sample_mode=AcquisitionType.FINITE, samps_per_chan=num_samples)
-            do_task.start()
-            ai_task.start()
-            do_task.wait_until_done()
-            ai_task.wait_until_done()
-            acquired_data = ai_task.read(num_samples)
-        finally:
-            ai_task.stop()
-            ai_task.close()
-            do_task.stop()
-            do_task.close()
+        with nidaqmx.Task() as task_do, nidaqmx.Task() as task_ai, nidaqmx.Task() as task_clock:
+            task_clock.co_channels.add_co_pulse_chan_freq(self.clock_channel, units=FrequencyUnits.HZ,
+                                                          idle_state=Level.LOW, initial_delay=0.0,
+                                                          freq=self.sample_rate, duty_cycle=self.duty_cycle)
+            task_clock.co_pulse_freq_timebase_src = '20MHzTimebase'
+            task_clock.co_pulse_freq_timebase_rate = self.clock_rate
+            task_clock.timing.cfg_implicit_timing(sample_mode=AcquisitionType.CONTINUOUS)
+            # Configure DO as before
+            task_do.do_channels.add_do_chan(output_channel, line_grouping=LineGrouping.CHAN_PER_LINE)
+            task_do.timing.cfg_samp_clk_timing(rate=self.sample_rate, source=self.clock,
+                                               active_edge=Edge.RISING, sample_mode=AcquisitionType.FINITE,
+                                               samps_per_chan=num_samples)
+            task_do.write(data == 1, auto_start=False)
+            task_ai.ai_channels.add_ai_voltage_chan(input_channel)
+            task_ai.timing.cfg_samp_clk_timing(rate=self.sample_rate, source=self.clock,
+                                               active_edge=Edge.RISING, sample_mode=AcquisitionType.FINITE,
+                                               samps_per_chan=num_samples)
+            # Start AI first but it waits for the trigger
+            task_ai.start()
+            # Trigger by writing to DO
+            task_do.start()
+            task_clock.start()
+            task_do.wait_until_done()
+            # Read the analog input response
+            acquired_data = task_ai.read(number_of_samples_per_channel=num_samples, timeout=10)
+            # Stop AI task
+            task_clock.stop()
+            task_do.stop()
+            task_ai.stop()
         return acquired_data
 
     def check_task_status(self, task):
