@@ -308,7 +308,7 @@ class NIDAQ:
                 _task = None
         self._active = {key: False for key in self._active}
 
-    def measure_io(self, output_channel, input_channel, data):
+    def measure_ao(self, output_channel, input_channel, data):
         num_samples = data.shape[0]
         acquired_data = np.zeros(num_samples)
         with nidaqmx.Task() as output_task:
@@ -330,6 +330,29 @@ class NIDAQ:
                 output_task.wait_until_done()
                 input_task.wait_until_done()
                 reader.read_many_sample(data=acquired_data, number_of_samples_per_channel=num_samples)
+        return acquired_data
+
+    def measure_do(self, output_channel, input_channel, data):
+        num_samples = data.shape[0]
+        try:
+            ai_task = nidaqmx.Task()
+            do_task = nidaqmx.Task()
+            ai_task.ai_channels.add_ai_voltage_chan(input_channel, min_val=-10., max_val=10.)
+            ai_task.timing.cfg_samp_clk_timing(rate=self.sample_rate, source="/Dev1/ai/SampleClock",
+                                               sample_mode=AcquisitionType.FINITE, samps_per_chan=num_samples)
+            do_task.do_channels.add_do_chan(output_channel)
+            do_task.timing.cfg_samp_clk_timing(rate=self.sample_rate, source="/Dev1/ai/SampleClock",
+                                               sample_mode=AcquisitionType.FINITE, samps_per_chan=num_samples)
+            do_task.start()
+            ai_task.start()
+            do_task.wait_until_done()
+            ai_task.wait_until_done()
+            acquired_data = ai_task.read(num_samples)
+        finally:
+            ai_task.stop()
+            ai_task.close()
+            do_task.stop()
+            do_task.close()
         return acquired_data
 
     def check_task_status(self, task):
