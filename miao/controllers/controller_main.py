@@ -122,7 +122,7 @@ class MainController(QtCore.QObject):
             self.magnifications = [157.5, 1, 1]
             self.pixel_sizes = []
             self.pixel_sizes = [self.m.cam_set[i].ps / mag for i, mag in enumerate(self.magnifications)]
-            self.pixel_sizes[0] = 0.078125
+            self.pixel_sizes[0] = 0.0785
             self.magnifications[0] = self.m.cam_set[0].ps / self.pixel_sizes[0]
 
             for key in self.m.dm.keys():
@@ -313,9 +313,9 @@ class MainController(QtCore.QObject):
 
     @QtCore.pyqtSlot(int)
     def update_daq_sample_rate(self, sr: int):
-        self.p.trigger.update_nidaq_parameters(sr*1000)
+        self.p.trigger.update_nidaq_parameters(sr * 1000)
         self.update_galvo_scanner()
-        self.m.daq.sample_rate = sr*1000
+        self.m.daq.sample_rate = sr * 1000
 
     @QtCore.pyqtSlot()
     def update_galvo_scanner(self):
@@ -647,6 +647,107 @@ class MainController(QtCore.QObject):
 
     def run_monalisa_scan(self, n: int):
         self.run_task(task=self.monalisa_scan_2d, iteration=n)
+
+    def prepare_pattern_alignment(self):
+        self.lasers = self.con_controller.get_lasers()
+        self.set_lasers()
+        self.cameras["imaging"] = self.con_controller.get_imaging_camera()
+        self.set_camera_roi("imaging")
+        self.m.cam_set[self.cameras["imaging"]].prepare_live()
+        self.update_trigger_parameters("imaging")
+
+    def pattern_alignment(self):
+        try:
+            self.prepare_pattern_alignment()
+        except Exception as e:
+            self.logg.error(f"Error preparing beads scanning: {e}")
+            return
+        try:
+            dtr = self.generate_live_triggers("imaging")
+            positions = self.con_controller.get_piezo_positions()
+            axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
+            num_steps = [int(axis_length / (2 * step_size)) for axis_length, step_size in zip(axis_lengths, step_sizes)]
+            starts = [position - num_step * step_size for position, num_step, step_size in
+                      zip(positions, num_steps, step_sizes)]
+            ends = [position + num_step * step_size for position, num_step, step_size in
+                    zip(positions, num_steps, step_sizes)]
+            scans = [np.arange(start, end, step_size) for start, end, step_size in zip(starts, ends, step_sizes)]
+            # grid pattern minima
+            self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
+            data = []
+            sx, sy = scans[0].shape[0], scans[1].shape[0]
+            mx = np.zeros((sx, sy))
+            self.m.cam_set[self.cameras["imaging"]].start_live()
+            self.m.pz.lock_position(2, positions[2])
+            for i in range(sx):
+                for j in range(sy):
+                    self.m.daq.set_piezo_position(scans[0][i], scans[1][j])
+                    time.sleep(0.04)
+                    self.m.daq.run_triggers()
+                    time.sleep(0.05)
+                    temp = self.m.cam_set[self.cameras["imaging"]].get_last_image()
+                    self.m.daq.stop_triggers(_close=False)
+                    data.append(temp)
+                    mx[i, j] = np.mean(temp)
+            k, l = np.where(mx == mx.min())
+            self.m.daq.set_piezo_position(scans[0][k], scans[1][l])
+            self.con_controller.change_piezo_positions(x=scans[0][k], y=scans[1][l])
+            time.sleep(0.04)
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_grid.tif')
+            tf.imwrite(fd, np.asarray(data), imagej=True,
+                       resolution=(1 / self.pixel_sizes[self.cameras["imaging"]],
+                                   1 / self.pixel_sizes[self.cameras["imaging"]]),
+                       metadata={'unit': 'um'})
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_grid_min.tif')
+            tf.imwrite(fd, mx)
+            # dot array minima
+            galvo_frequency, galvo_positions, galvo_ranges, dot_pos = self.con_controller.get_galvo_scan_parameters()
+            dot_step_v = self.con_controller.get_galvo_step()
+            scan_x = np.linspace(0, dot_pos[1], 10, endpoint=False, dtype=int)
+            scan_y = dot_pos[0][1] + np.linspace(0, self.p.trigger.dot_step_v, 10, endpoint=False, dtype=float)
+            data = []
+            mx = np.zeros((10, 10))
+            for i in range(10):
+                dot_pos[3] = scan_x[i]
+                for j in range(10):
+                    dot_pos[0][1] = scan_y[j]
+                    self.p.trigger.update_galvo_scan_parameters(frequency=galvo_frequency, origins=galvo_positions,
+                                                                ranges=galvo_ranges, foci=dot_pos)
+                    self.p.trigger.dot_step_v = dot_step_v
+                    gtr, ptr, dtr, pos = self.p.trigger.generate_dotscan_resolft_2d()
+                    self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=gtr, digital_sequences=dtr, finite=True)
+                    self.m.daq.run_triggers()
+                    time.sleep(0.2)
+                    temp = self.m.cam_set[self.cameras["imaging"]].get_last_image()
+                    self.m.daq.stop_triggers()
+                    data.append(temp)
+                    mx[i, j] = np.mean(temp)
+            k, l = np.where(mx == mx.max())
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_dot.tif')
+            tf.imwrite(fd, np.asarray(data), imagej=True,
+                       resolution=(1 / self.pixel_sizes[self.cameras["imaging"]],
+                                   1 / self.pixel_sizes[self.cameras["imaging"]]),
+                       metadata={'unit': 'um'})
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_dot_max.tif')
+            tf.imwrite(fd, mx)
+            self.con_controller.change_galvo_scan(x=scan_x[k], y=scan_y[l])
+        except Exception as e:
+            self.logg.error(f"Error running beads scanning: {e}")
+            return
+        self.finish_pattern_alignment()
+
+    def finish_pattern_alignment(self):
+        try:
+            self.m.pz.release_lock()
+            self.m.cam_set[self.cameras["imaging"]].stop_live()
+            self.m.daq.stop_triggers()
+            self.lasers_off()
+            self.logg.info("Beads scanning image acquired")
+        except Exception as e:
+            self.logg.error(f"Error stopping confocal scanning: {e}")
+
+    def run_pattern_alignment(self, n: int):
+        self.run_task(task=self.prepare_pattern_alignment, iteration=n)
 
     @QtCore.pyqtSlot(str)
     def save_data(self, file_name: str):
