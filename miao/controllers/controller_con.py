@@ -33,6 +33,14 @@ class ConController:
         return [self.v.QDoubleSpinBox_stage_x.value(), self.v.QDoubleSpinBox_stage_y.value(),
                 self.v.QDoubleSpinBox_stage_z.value()]
 
+    def change_piezo_positions(self, x=None, y=None, z=None):
+        if x is not None:
+            self.v.QDoubleSpinBox_stage_x.setValue(x)
+        if y is not None:
+            self.v.QDoubleSpinBox_stage_y.setValue(y)
+        if z is not None:
+            self.v.QDoubleSpinBox_stage_z.setValue(z)
+
     def get_galvo_positions(self):
         return [self.v.QDoubleSpinBox_galvo_x.value(), self.v.QDoubleSpinBox_galvo_y.value()]
 
@@ -100,6 +108,12 @@ class ConController:
                    self.v.QSpinBox_dot_step.value(), self.v.QSpinBox_galvo_dwell.value(),
                    self.v.QSpinBox_laser_delay.value()]
         return galvo_frequency, galvo_positions, galvo_ranges, dot_pos
+
+    def change_galvo_scan(self, x=None, y=None):
+        if x is not None:
+            self.v.QSpinBox_laser_delay.setValue(x)
+        if y is not None:
+            self.v.QDoubleSpinBox_dot_range_y.setValue(y)
 
     def display_dot_step(self, dsv):
         self.v.QDoubleSpinBox_dot_step.setValue(dsv)
