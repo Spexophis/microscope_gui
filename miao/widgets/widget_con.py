@@ -19,6 +19,7 @@ class ConWidget(QtWidgets.QWidget):
     Signal_video = QtCore.pyqtSignal(bool, str)
     Signal_fft = QtCore.pyqtSignal(bool)
     Signal_plot_profile = QtCore.pyqtSignal(bool)
+    Signal_alignment = QtCore.pyqtSignal()
     Signal_data_acquire = QtCore.pyqtSignal(str, int)
     Signal_save_file = QtCore.pyqtSignal(str)
 
@@ -303,12 +304,14 @@ class ConWidget(QtWidgets.QWidget):
                                                                           "Monalisa Scan 2D", "Monalisa Scan 3D",
                                                                           "Dot Scan 2D", "Dot Scan 3D"])
         self.QSpinBox_acquisition_number = cw.spinbox_widget(1, 50000, 1, 1)
+        self.QPushButton_alignment = cw.pushbutton_widget('Alignment')
         self.QPushButton_acquire = cw.pushbutton_widget('Acquire')
         self.QPushButton_save = cw.pushbutton_widget('Save')
         layout_acquisition.addWidget(cw.label_widget(str('Acq Modes')), 0, 0, 1, 1)
         layout_acquisition.addWidget(self.QComboBox_acquisition_modes, 1, 0, 1, 1)
         layout_acquisition.addWidget(cw.label_widget(str('Acq Number')), 0, 1, 1, 1)
         layout_acquisition.addWidget(self.QSpinBox_acquisition_number, 1, 1, 1, 1)
+        layout_acquisition.addWidget(self.QPushButton_alignment, 0, 2, 1, 1)
         layout_acquisition.addWidget(self.QPushButton_acquire, 1, 2, 1, 1)
         layout_acquisition.addWidget(self.QPushButton_save, 1, 3, 1, 1)
         return layout_acquisition
@@ -338,6 +341,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_fft.clicked.connect(self.run_fft)
         self.QPushButton_plot_profile.clicked.connect(self.run_plot_profile)
         self.QPushButton_acquire.clicked.connect(self.run_acquisition)
+        self.QPushButton_alignment.clicked.connect(self.run_alignment)
         self.QPushButton_save.clicked.connect(self.save)
         self.QComboBox_live_modes.currentIndexChanged[str].connect(self.update_live_parameter_sets)
         self.QComboBox_acquisition_modes.currentIndexChanged[str].connect(self.update_acquisition_parameter_sets)
@@ -470,6 +474,10 @@ class ConWidget(QtWidgets.QWidget):
         acq_mode = self.QComboBox_acquisition_modes.currentText()
         acq_num = self.QSpinBox_acquisition_number.value()
         self.Signal_data_acquire.emit(acq_mode, acq_num)
+
+    @QtCore.pyqtSlot()
+    def run_alignment(self):
+        self.Signal_alignment.emit()
 
     @QtCore.pyqtSlot()
     def save(self):

@@ -88,6 +88,7 @@ class MainController(QtCore.QObject):
         # NIDAQ
         self.v.con_view.Signal_daq_update.connect(self.update_daq_sample_rate)
         # Main Data Recording
+        self.v.con_view.Signal_alignment.connect(self.run_pattern_alignment)
         self.v.con_view.Signal_data_acquire.connect(self.data_acquisition)
         self.v.con_view.Signal_save_file.connect(self.save_data)
         # DM
@@ -673,6 +674,8 @@ class MainController(QtCore.QObject):
                     zip(positions, num_steps, step_sizes)]
             scans = [np.arange(start, end, step_size) for start, end, step_size in zip(starts, ends, step_sizes)]
             # grid pattern minima
+            p_w = self.con_controller.get_cobolt_laser_power("488_0")
+            self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0, p_w, 0, 0])
             self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
             data = []
             sx, sy = scans[0].shape[0], scans[1].shape[0]
@@ -700,7 +703,9 @@ class MainController(QtCore.QObject):
                        metadata={'unit': 'um'})
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_grid_min.tif')
             tf.imwrite(fd, mx)
-            # dot array minima
+            # dot array maxima
+            p_w = self.con_controller.get_cobolt_laser_power("488_2")
+            self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0, 0, 0, p_w])
             galvo_frequency, galvo_positions, galvo_ranges, dot_pos = self.con_controller.get_galvo_scan_parameters()
             dot_step_v = self.con_controller.get_galvo_step()
             scan_x = np.linspace(0, dot_pos[1], 10, endpoint=False, dtype=int)
@@ -746,8 +751,8 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"Error stopping confocal scanning: {e}")
 
-    def run_pattern_alignment(self, n: int):
-        self.run_task(task=self.prepare_pattern_alignment, iteration=n)
+    def run_pattern_alignment(self):
+        self.run_task(task=self.pattern_alignment)
 
     @QtCore.pyqtSlot(str)
     def save_data(self, file_name: str):
