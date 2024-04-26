@@ -359,6 +359,7 @@ class MainController(QtCore.QObject):
             self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=False)
         elif vd_mod == "Dot Scan":
             self.update_trigger_parameters("imaging")
+            self.p.trigger.update_piezo_scan_parameters(piezo_ranges=[0., 0., 0.])
             gtr, ptr, dtr, pos = self.p.trigger.generate_dotscan_resolft_2d()
             self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=gtr, digital_sequences=dtr, finite=False)
         else:
@@ -661,7 +662,7 @@ class MainController(QtCore.QObject):
         try:
             self.prepare_pattern_alignment()
         except Exception as e:
-            self.logg.error(f"Error preparing beads scanning: {e}")
+            self.logg.error(f"Error preparing alignment scanning: {e}")
             return
         try:
             dtr = self.generate_live_triggers("imaging")
@@ -672,10 +673,11 @@ class MainController(QtCore.QObject):
                       zip(positions, num_steps, step_sizes)]
             ends = [position + num_step * step_size for position, num_step, step_size in
                     zip(positions, num_steps, step_sizes)]
-            scans = [np.arange(start/10, end/10, step_size/10) for start, end, step_size in zip(starts, ends, step_sizes)]
+            scans = [np.arange(start / 10, end / 10, step_size / 10) for start, end, step_size in
+                     zip(starts, ends, step_sizes)]
             # grid pattern minima
             p_w = self.con_controller.get_cobolt_laser_power("488_0")
-            self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0, p_w, 0, 0])
+            self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0., p_w, 0., 0.])
             self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
             data = []
             sx, sy = scans[0].shape[0], scans[1].shape[0]
@@ -692,9 +694,10 @@ class MainController(QtCore.QObject):
                     self.m.daq.stop_triggers(_close=False)
                     data.append(temp)
                     mx[i, j] = np.mean(temp)
+            self.m.daq.stop_triggers()
             k, l = np.where(mx == mx.min())
             self.m.daq.set_piezo_position(scans[0][k], scans[1][l])
-            self.con_controller.change_piezo_positions(x=scans[0][k], y=scans[1][l])
+            self.con_controller.change_piezo_positions(x=scans[0][k] * 10, y=scans[1][l] * 10)
             time.sleep(0.04)
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_grid.tif')
             tf.imwrite(fd, np.asarray(data), imagej=True,
@@ -704,8 +707,9 @@ class MainController(QtCore.QObject):
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_grid_min.tif')
             tf.imwrite(fd, mx)
             # dot array maxima
+            self.p.trigger.update_piezo_scan_parameters(piezo_ranges=[0., 0., 0.])
             p_w = self.con_controller.get_cobolt_laser_power("488_2")
-            self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0, 0, 0, p_w])
+            self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0., 0., 0., p_w])
             galvo_frequency, galvo_positions, galvo_ranges, dot_pos = self.con_controller.get_galvo_scan_parameters()
             dot_step_v = self.con_controller.get_galvo_step()
             scan_x = np.linspace(0, dot_pos[1], 10, endpoint=False, dtype=int)
@@ -720,7 +724,8 @@ class MainController(QtCore.QObject):
                                                                 ranges=galvo_ranges, foci=dot_pos)
                     self.p.trigger.dot_step_v = dot_step_v
                     gtr, ptr, dtr, pos = self.p.trigger.generate_dotscan_resolft_2d()
-                    self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=gtr, digital_sequences=dtr, finite=True)
+                    self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=gtr, digital_sequences=dtr,
+                                              finite=True)
                     self.m.daq.run_triggers()
                     time.sleep(0.2)
                     temp = self.m.cam_set[self.cameras["imaging"]].get_last_image()
@@ -737,7 +742,7 @@ class MainController(QtCore.QObject):
             tf.imwrite(fd, mx)
             self.con_controller.change_galvo_scan(x=scan_x[k], y=scan_y[l])
         except Exception as e:
-            self.logg.error(f"Error running beads scanning: {e}")
+            self.logg.error(f"Error running alignment scanning: {e}")
             return
         self.finish_pattern_alignment()
 
@@ -747,9 +752,9 @@ class MainController(QtCore.QObject):
             self.m.cam_set[self.cameras["imaging"]].stop_live()
             self.m.daq.stop_triggers()
             self.lasers_off()
-            self.logg.info("Beads scanning image acquired")
+            self.logg.info("Alignment scanning image acquired")
         except Exception as e:
-            self.logg.error(f"Error stopping confocal scanning: {e}")
+            self.logg.error(f"Error stopping alignment scanning: {e}")
 
     def run_pattern_alignment(self):
         self.run_task(task=self.pattern_alignment)
