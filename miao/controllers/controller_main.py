@@ -672,7 +672,7 @@ class MainController(QtCore.QObject):
                       zip(positions, num_steps, step_sizes)]
             ends = [position + num_step * step_size for position, num_step, step_size in
                     zip(positions, num_steps, step_sizes)]
-            scans = [np.arange(start, end, step_size) for start, end, step_size in zip(starts, ends, step_sizes)]
+            scans = [np.arange(start/10, end/10, step_size/10) for start, end, step_size in zip(starts, ends, step_sizes)]
             # grid pattern minima
             p_w = self.con_controller.get_cobolt_laser_power("488_0")
             self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0, p_w, 0, 0])
