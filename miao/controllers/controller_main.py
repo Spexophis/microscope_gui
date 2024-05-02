@@ -713,8 +713,8 @@ class MainController(QtCore.QObject):
             self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0., 0., 0., p_w[0]])
             galvo_frequency, galvo_positions, galvo_ranges, dot_pos = self.con_controller.get_galvo_scan_parameters()
             dot_step_v = self.con_controller.get_galvo_step()
-            scan_x = np.linspace(0, dot_pos[1], 10, endpoint=False, dtype=int)
-            scan_y = dot_pos[0][1] + np.linspace(0, self.p.trigger.dot_step_v, 10, endpoint=False, dtype=float)
+            scan_x = np.linspace(0, int(1.5 * dot_pos[1]), 15, endpoint=False, dtype=int)
+            scan_y = dot_pos[0][1] + np.linspace(0, 1.5 * self.p.trigger.dot_step_v, 15, endpoint=False, dtype=float)
             data = []
             mx = np.zeros((10, 10))
             for i in range(10):
