@@ -138,8 +138,7 @@ class MCLMicroDrive:
             velocity = self.velocity_min
         error_number = self._move_relative(axis, distance, velocity)
         if error_number == 0:
-            distance = self.get_position_steps_taken(3)
-            self.position += distance
+            self.position = self.get_position_steps_taken(3)
         else:
             raise RuntimeError('Error while moving axis ' + str(axis) + ': ' + self.error_dictionary[error_number])
 
