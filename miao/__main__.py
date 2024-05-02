@@ -34,20 +34,20 @@ class MicroscopeGUI(QtWidgets.QMainWindow):
         self.info_log = error_log.ErrorLog(self.log_file)
 
         try:
-            self.module = module_main.MainModule(self.config.configs, self.info_log, self.data_folder)
+            self.module = module_main.MainModule(self.config, self.info_log, self.data_folder)
         except Exception as e:
             self.info_log.error_log.error(f"Error: {e}")
         try:
-            self.process = process_main.MainProcess(self.config.configs, self.info_log, self.data_folder)
+            self.process = process_main.MainProcess(self.config, self.info_log, self.data_folder)
         except Exception as e:
             self.info_log.error_log.error(f"Error: {e}")
         try:
-            self.view = widget_main.MainWidget(self.config.configs, self.info_log, self.data_folder)
+            self.view = widget_main.MainWidget(self.config, self.info_log, self.data_folder)
         except Exception as e:
             self.info_log.error_log.error(f"Error: {e}")
         try:
             self.controller = controller_main.MainController(self.view, self.module, self.process,
-                                                             self.config.configs, self.info_log, self.data_folder)
+                                                             self.config, self.info_log, self.data_folder)
         except Exception as e:
             self.info_log.error_log.error(f"Error: {e}")
 
@@ -59,7 +59,7 @@ class MicroscopeGUI(QtWidgets.QMainWindow):
         self.close()
 
 
-cfd = r"C:\Users\ruizhe.lin\Documents\data\config_files\microscope_configurations_20240207.json"
+cfd = r"C:\Users\ruizhe.lin\Documents\data\config_files\microscope_configurations_20240426.json"
 
 
 class AppWrapper:

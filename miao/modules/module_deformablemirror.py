@@ -2,12 +2,11 @@ import csv
 import os
 import struct
 import sys
-
+import time
 import numpy as np
 import pandas as pd
 import tifffile as tf
 
-from miao.tools import tool_improc as ipr
 from miao.tools import tool_zernike as tz
 
 sys.path.append(r'C:\Program Files\Alpao\SDK\Samples\Python3')
@@ -19,11 +18,12 @@ else:
 
 class DeformableMirror:
 
-    def __init__(self, name="ALPAO DM97", logg=None, config=None):
+    def __init__(self, name="ALPAO DM97", logg=None, config=None, path=None):
+        self.dtp = path
         self.logg = logg or self.setup_logging()
         self.config = config or self.load_configs()
         self.dm_name = name
-        self.dm_serial = self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Serial"]
+        self.dm_serial = self.config.configs["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Serial"]
         self.dm, self.n_actuator = self._initialize_dm(self.dm_serial)
         if self.dm is not None:
             self._configure_dm()
@@ -64,19 +64,20 @@ class DeformableMirror:
     def _configure_dm(self):
         try:
             influence_function_images = tf.imread(
-                self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Influence Function Images"])
+                self.config.configs["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Influence Function Images"])
             nct, self.nly, self.nlx = influence_function_images.shape
             self.nls = self.nly * self.nlx
             self.control_matrix_phase = tf.imread(
-                self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Phase Control Matrix"])
+                self.config.configs["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Phase Control Matrix"])
             self.control_matrix_zonal = tf.imread(
-                self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Zonal Control Matrix"])
-            self.initial_flat = self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Initial Flat"]
+                self.config.configs["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Zonal Control Matrix"])
+            self.initial_flat = self.config.configs["Adaptive Optics"]["Deformable Mirrors"][self.dm_name][
+                "Initial Flat"]
         except Exception as e:
             self.logg.error(f"Error Loading DM {self.dm_name} files: {e}")
         try:
             self.control_matrix_modal = tf.imread(
-                self.config["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Modal Control Matrix"])
+                self.config.configs["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Modal Control Matrix"])
         except Exception as e:
             self.logg.error(f"Error Loading DM {self.dm_name} modal control file: {e}")
         if hasattr(self, "initial_flat"):
@@ -100,6 +101,7 @@ class DeformableMirror:
             self.logg.error(f"Missing initial flat, started with Null")
 
     def close(self):
+        self.write_cmd(path=self.dtp, t=time.strftime("%Y%m%d%H%M%S") + '_')
         self.reset_dm()
         self.logg.info(f"DM {self.dm_name} Close")
 

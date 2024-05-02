@@ -32,6 +32,11 @@ class ConWidget(QtWidgets.QWidget):
         self.data_folder = path
         self._setup_ui()
         self._set_signal_connections()
+        self._load_spinbox_values()
+
+    def closeEvent(self, event):
+        self._save_spinbox_values()
+        event.accept()
 
     def _setup_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
@@ -69,7 +74,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QLCDNumber_ccd_tempetature = cw.lcdnumber_widget(0, 3)
         self.QPushButton_emccd_cooler_check = cw.pushbutton_widget('Check', False, True)
         self.QPushButton_emccd_cooler_switch = cw.pushbutton_widget('Cooler OFF', True, True, True)
-        self.QDoubleSpinBox_emccd_exposure_time = cw.doublespinbox_widget(0, 10, 0.005, 3, 0.02)
+        self.QDoubleSpinBox_emccd_exposure_time = cw.doublespinbox_widget(0, 10, 0.005, 3, 0.000)
         self.QSpinBox_emccd_gain = cw.spinbox_widget(0, 300, 1, 0)
         self.QSpinBox_emccd_coordinate_x = cw.spinbox_widget(0, 1024, 1, 1)
         self.QSpinBox_emccd_coordinate_y = cw.spinbox_widget(0, 1024, 1, 1)
@@ -141,14 +146,14 @@ class ConWidget(QtWidgets.QWidget):
         mad_deck_scroll_layout.addRow(self.QPushButton_move_deck)
         mad_deck_scroll_layout.addRow(cw.label_widget(str('Single step')))
         mad_deck_scroll_layout.addRow(self.QPushButton_move_deck_up, self.QPushButton_move_deck_down)
-        self.QDoubleSpinBox_stage_x = cw.doublespinbox_widget(0, 100, 0.02, 2, 50.00)
+        self.QDoubleSpinBox_stage_x = cw.doublespinbox_widget(0, 100, 0.020, 3, 50.000)
         self.QLCDNumber_piezo_position_x = cw.lcdnumber_widget()
-        self.QDoubleSpinBox_step_x = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.034)
-        self.QDoubleSpinBox_range_x = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.850)
-        self.QDoubleSpinBox_stage_y = cw.doublespinbox_widget(0, 100, 0.02, 2, 50.00)
+        self.QDoubleSpinBox_step_x = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.030)
+        self.QDoubleSpinBox_range_x = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.810)
+        self.QDoubleSpinBox_stage_y = cw.doublespinbox_widget(0, 100, 0.020, 3, 50.000)
         self.QLCDNumber_piezo_position_y = cw.lcdnumber_widget()
-        self.QDoubleSpinBox_step_y = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.034)
-        self.QDoubleSpinBox_range_y = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.850)
+        self.QDoubleSpinBox_step_y = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.030)
+        self.QDoubleSpinBox_range_y = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.810)
         self.QDoubleSpinBox_stage_z = cw.doublespinbox_widget(0, 100, 0.04, 2, 50.00)
         self.QLCDNumber_piezo_position_z = cw.lcdnumber_widget()
         self.QDoubleSpinBox_step_z = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.160)
@@ -283,7 +288,7 @@ class ConWidget(QtWidgets.QWidget):
     def _create_video_widgets(self):
         layout_video = QtWidgets.QHBoxLayout()
         self.QComboBox_imaging_camera_selection = cw.combobox_widget(list_items=["EMCCD", "SCMOS", "TIS"])
-        self.QComboBox_live_modes = cw.combobox_widget(list_items=["Wide Field", "Dot Scan"]) #"Line Scan"
+        self.QComboBox_live_modes = cw.combobox_widget(list_items=["Wide Field", "Dot Scan"])  # "Line Scan"
         self.QPushButton_video = cw.pushbutton_widget("Video", checkable=True)
         self.QPushButton_fft = cw.pushbutton_widget("FFT", checkable=True, enable=False)
         self.QComboBox_profile_axis = cw.combobox_widget(list_items=["X", "Y"])
@@ -509,8 +514,8 @@ class ConWidget(QtWidgets.QWidget):
             self.QDoubleSpinBox_ttl_start_tis.setValue(0.008)
             self.QDoubleSpinBox_ttl_stop_tis.setValue(0.032)
         if text == "Dot Scan":
-            self.QDoubleSpinBox_step_x.setValue(0.034)
-            self.QDoubleSpinBox_step_y.setValue(0.034)
+            self.QDoubleSpinBox_step_x.setValue(0.030)
+            self.QDoubleSpinBox_step_y.setValue(0.030)
             self.QDoubleSpinBox_step_z.setValue(0.160)
             self.QDoubleSpinBox_range_x.setValue(0.000)
             self.QDoubleSpinBox_range_y.setValue(0.000)
@@ -533,8 +538,8 @@ class ConWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot(str)
     def update_acquisition_parameter_sets(self, text: str):
         if text == "Wide Field 2D":
-            self.QDoubleSpinBox_step_x.setValue(0.034)
-            self.QDoubleSpinBox_step_y.setValue(0.034)
+            self.QDoubleSpinBox_step_x.setValue(0.030)
+            self.QDoubleSpinBox_step_y.setValue(0.030)
             self.QDoubleSpinBox_step_z.setValue(0.160)
             self.QDoubleSpinBox_range_x.setValue(0.000)
             self.QDoubleSpinBox_range_y.setValue(0.000)
@@ -554,8 +559,8 @@ class ConWidget(QtWidgets.QWidget):
             self.QDoubleSpinBox_ttl_start_tis.setValue(0.008)
             self.QDoubleSpinBox_ttl_stop_tis.setValue(0.032)
         if text == "Wide Field 3D":
-            self.QDoubleSpinBox_step_x.setValue(0.034)
-            self.QDoubleSpinBox_step_y.setValue(0.034)
+            self.QDoubleSpinBox_step_x.setValue(0.030)
+            self.QDoubleSpinBox_step_y.setValue(0.030)
             self.QDoubleSpinBox_step_z.setValue(0.160)
             self.QDoubleSpinBox_range_x.setValue(0.000)
             self.QDoubleSpinBox_range_y.setValue(0.000)
@@ -575,11 +580,11 @@ class ConWidget(QtWidgets.QWidget):
             self.QDoubleSpinBox_ttl_start_tis.setValue(0.008)
             self.QDoubleSpinBox_ttl_stop_tis.setValue(0.032)
         if text == "Dot Scan 2D":
-            self.QDoubleSpinBox_step_x.setValue(0.034)
-            self.QDoubleSpinBox_step_y.setValue(0.034)
+            self.QDoubleSpinBox_step_x.setValue(0.030)
+            self.QDoubleSpinBox_step_y.setValue(0.030)
             self.QDoubleSpinBox_step_z.setValue(0.160)
-            self.QDoubleSpinBox_range_x.setValue(0.850)
-            self.QDoubleSpinBox_range_y.setValue(0.850)
+            self.QDoubleSpinBox_range_x.setValue(0.810)
+            self.QDoubleSpinBox_range_y.setValue(0.810)
             self.QDoubleSpinBox_range_z.setValue(0.000)
             self.QDoubleSpinBox_ttl_start_on_405.setValue(0.008)
             self.QDoubleSpinBox_ttl_stop_on_405.setValue(0.012)
@@ -596,11 +601,11 @@ class ConWidget(QtWidgets.QWidget):
             self.QDoubleSpinBox_ttl_start_tis.setValue(0.040)
             self.QDoubleSpinBox_ttl_stop_tis.setValue(0.064)
         if text == "Dot Scan 3D":
-            self.QDoubleSpinBox_step_x.setValue(0.034)
-            self.QDoubleSpinBox_step_y.setValue(0.034)
+            self.QDoubleSpinBox_step_x.setValue(0.030)
+            self.QDoubleSpinBox_step_y.setValue(0.030)
             self.QDoubleSpinBox_step_z.setValue(0.160)
-            self.QDoubleSpinBox_range_x.setValue(0.850)
-            self.QDoubleSpinBox_range_y.setValue(0.850)
+            self.QDoubleSpinBox_range_x.setValue(0.810)
+            self.QDoubleSpinBox_range_y.setValue(0.810)
             self.QDoubleSpinBox_range_z.setValue(3.200)
             self.QDoubleSpinBox_ttl_start_on_405.setValue(0.008)
             self.QDoubleSpinBox_ttl_stop_on_405.setValue(0.012)
@@ -617,11 +622,11 @@ class ConWidget(QtWidgets.QWidget):
             self.QDoubleSpinBox_ttl_start_tis.setValue(0.040)
             self.QDoubleSpinBox_ttl_stop_tis.setValue(0.064)
         if text == "Monalisa Scan 2D":
-            self.QDoubleSpinBox_step_x.setValue(0.034)
-            self.QDoubleSpinBox_step_y.setValue(0.034)
+            self.QDoubleSpinBox_step_x.setValue(0.030)
+            self.QDoubleSpinBox_step_y.setValue(0.030)
             self.QDoubleSpinBox_step_z.setValue(0.160)
-            self.QDoubleSpinBox_range_x.setValue(0.850)
-            self.QDoubleSpinBox_range_y.setValue(0.850)
+            self.QDoubleSpinBox_range_x.setValue(0.810)
+            self.QDoubleSpinBox_range_y.setValue(0.810)
             self.QDoubleSpinBox_range_z.setValue(0.000)
             self.QDoubleSpinBox_ttl_start_on_405.setValue(0.008)
             self.QDoubleSpinBox_ttl_stop_on_405.setValue(0.012)
@@ -638,9 +643,28 @@ class ConWidget(QtWidgets.QWidget):
             self.QDoubleSpinBox_ttl_start_tis.setValue(0.040)
             self.QDoubleSpinBox_ttl_stop_tis.setValue(0.064)
 
+    def _save_spinbox_values(self):
+        values = {}
+        for name in dir(self):
+            obj = getattr(self, name)
+            if isinstance(obj, (QtWidgets.QSpinBox, QtWidgets.QDoubleSpinBox)):
+                values[name] = obj.value()
+        self.config.write_config(values, self.config.configs["ConWidget Path"])
+
+    def _load_spinbox_values(self):
+        try:
+            values = self.config.load_config(self.config.configs["ConWidget Path"])
+            for name, value in values.items():
+                widget = getattr(self, name, None)
+                if widget is not None:
+                    widget.setValue(value)
+        except FileNotFoundError:
+            pass
+
 
 if __name__ == "__main__":
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
     window = ConWidget(None, None, None)
     window.show()

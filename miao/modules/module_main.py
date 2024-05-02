@@ -31,10 +31,10 @@ class MainModule:
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         self.dm = {}
-        for key in self.config["Adaptive Optics"]["Deformable Mirrors"].keys():
+        for key in self.config.configs["Adaptive Optics"]["Deformable Mirrors"].keys():
             try:
                 self.dm[key] = module_deformablemirror.DeformableMirror(name=key, logg=self.logg.error_log,
-                                                                        config=self.config)
+                                                                        config=self.config, path=self.data_folder)
             except Exception as e:
                 self.logg.error_log.error(f"{e}")
         try:

@@ -32,6 +32,10 @@ class AOWidget(QtWidgets.QWidget):
         self._set_signal_connections()
         self._set_initial_values()
 
+    def closeEvent(self, event):
+        self._save_spinbox_values()
+        event.accept()
+
     def _setup_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
         self._create_docks()
@@ -346,9 +350,28 @@ class AOWidget(QtWidgets.QWidget):
     def save_sensorless_correction(self):
         self.Signal_sensorlessAO_save.emit()
 
+    def _save_spinbox_values(self):
+        values = {}
+        for name in dir(self):
+            obj = getattr(self, name)
+            if isinstance(obj, (QtWidgets.QSpinBox, QtWidgets.QDoubleSpinBox)):
+                values[name] = obj.value()
+        self.config.write_config(values, self.config.configs["AOWidget Path"])
+
+    def _load_spinbox_values(self):
+        try:
+            values = self.config.load_config(self.config.configs["AOWidget Path"])
+            for name, value in values.items():
+                widget = getattr(self, name, None)
+                if widget is not None:
+                    widget.setValue(value)
+        except FileNotFoundError:
+            pass
+
 
 if __name__ == '__main__':
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
     window = AOWidget(None, None, None)
     window.show()

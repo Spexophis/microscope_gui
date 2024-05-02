@@ -11,7 +11,7 @@ class MainWidget(QtWidgets.QMainWindow):
         super().__init__(*args, **kwargs)
 
         self.config = config
-        self.logg = logg
+        self.logg = logg.error_log
         self.data_folder = path
 
         self.con_view = widget_con.ConWidget(config, logg, path)
@@ -38,10 +38,12 @@ class MainWidget(QtWidgets.QMainWindow):
         self.setWindowTitle("Microscope Control")
         self.setStyleSheet("background-color: #242424")
 
-        self.logg.error_log.info("Finish setting up widgets")
+        self.logg.info("Finish setting up widgets")
 
     def closeEvent(self, event, **kwargs):
         self.Signal_quit.emit()
+        self.con_view._save_spinbox_values()
+        self.ao_view._save_spinbox_values()
         super().closeEvent(event)
 
     def get_dialog(self):
