@@ -712,13 +712,13 @@ class MainController(QtCore.QObject):
             p_w = self.con_controller.get_cobolt_laser_power("488_2")
             self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0., 0., 0., p_w[0]])
             galvo_positions, [galvo_ranges, dot_ranges], dot_pos = self.con_controller.get_galvo_scan_parameters()
-            scan_x = np.linspace(0, int(1.5 * dot_pos[1]), 15, endpoint=False, dtype=int)
-            scan_y = dot_ranges[1] + np.linspace(0, 1.5 * self.p.trigger.dot_step_v, 15, endpoint=False, dtype=float)
+            scan_x = np.linspace(0, int(1.1 * dot_pos[1]), 11, endpoint=False, dtype=int)
+            scan_y = dot_ranges[1] + np.linspace(0, 2.2 * self.p.trigger.dot_step_v, 11, endpoint=False, dtype=float)
             data = []
-            mx = np.zeros((10, 10))
-            for i in range(10):
+            mx = np.zeros((11, 11))
+            for i in range(11):
                 dot_pos[3] = scan_x[i]
-                for j in range(10):
+                for j in range(11):
                     dot_ranges[1] = scan_y[j]
                     self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions,
                                                                 ranges=[galvo_ranges, dot_ranges],

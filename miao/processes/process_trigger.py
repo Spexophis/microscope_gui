@@ -144,6 +144,7 @@ class TriggerSequence:
             self.dot_starts = [o_ - r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.dot_ranges)]
             self.dot_pos = np.arange(self.dot_starts[0], self.dot_starts[0] + self.dot_ranges[0] + self.dot_step_v,
                                      self.dot_step_v)
+            self.up_rate = self.dot_step_v / self.dot_step_s
             self.samples_low = self.dot_step_s - self.samples_high
             self.ramp_up = np.arange(self.galvo_starts[0], self.galvo_stops[0], self.up_rate)
             self.ramp_up_samples = self.ramp_up.size
