@@ -320,19 +320,19 @@ class MainController(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def update_galvo_scanner(self):
-        galvo_frequency, galvo_positions, galvo_ranges, dot_pos = self.con_controller.get_galvo_scan_parameters()
-        self.p.trigger.update_galvo_scan_parameters(frequency=galvo_frequency, origins=galvo_positions,
-                                                    ranges=galvo_ranges, foci=dot_pos)
-        self.con_controller.display_dot_step(self.p.trigger.dot_step_v)
+        galvo_positions, [galvo_ranges, dot_ranges], dot_pos = self.con_controller.get_galvo_scan_parameters()
+        self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions, ranges=[galvo_ranges, dot_ranges],
+                                                    foci=dot_pos)
+        self.con_controller.display_frequency(self.p.trigger.frequency)
 
     def update_trigger_parameters(self, cam_key):
         try:
             digital_starts, digital_ends = self.con_controller.get_digital_parameters()
             self.p.trigger.update_digital_parameters(digital_starts, digital_ends)
-            galvo_frequency, galvo_positions, galvo_ranges, dot_pos = self.con_controller.get_galvo_scan_parameters()
-            self.p.trigger.update_galvo_scan_parameters(frequency=galvo_frequency, origins=galvo_positions,
-                                                        ranges=galvo_ranges, foci=dot_pos)
-            self.p.trigger.dot_step_v = self.con_controller.get_galvo_step()
+            galvo_positions, [galvo_ranges, dot_ranges], dot_pos = self.con_controller.get_galvo_scan_parameters()
+            self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions, ranges=[galvo_ranges, dot_ranges],
+                                                        foci=dot_pos)
+            self.con_controller.display_frequency(self.p.trigger.frequency)
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             positions = self.con_controller.get_piezo_positions()
             return_time = self.con_controller.get_piezo_return_time()
@@ -711,19 +711,18 @@ class MainController(QtCore.QObject):
             self.p.trigger.update_piezo_scan_parameters(piezo_ranges=[0., 0., 0.])
             p_w = self.con_controller.get_cobolt_laser_power("488_2")
             self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0., 0., 0., p_w[0]])
-            galvo_frequency, galvo_positions, galvo_ranges, dot_pos = self.con_controller.get_galvo_scan_parameters()
-            dot_step_v = self.con_controller.get_galvo_step()
+            galvo_positions, [galvo_ranges, dot_ranges], dot_pos = self.con_controller.get_galvo_scan_parameters()
             scan_x = np.linspace(0, int(1.5 * dot_pos[1]), 15, endpoint=False, dtype=int)
-            scan_y = dot_pos[0][1] + np.linspace(0, 1.5 * self.p.trigger.dot_step_v, 15, endpoint=False, dtype=float)
+            scan_y = dot_ranges[1] + np.linspace(0, 1.5 * self.p.trigger.dot_step_v, 15, endpoint=False, dtype=float)
             data = []
             mx = np.zeros((10, 10))
             for i in range(10):
                 dot_pos[3] = scan_x[i]
                 for j in range(10):
-                    dot_pos[0][1] = scan_y[j]
-                    self.p.trigger.update_galvo_scan_parameters(frequency=galvo_frequency, origins=galvo_positions,
-                                                                ranges=galvo_ranges, foci=dot_pos)
-                    self.p.trigger.dot_step_v = dot_step_v
+                    dot_ranges[1] = scan_y[j]
+                    self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions,
+                                                                ranges=[galvo_ranges, dot_ranges],
+                                                                foci=dot_pos)
                     gtr, ptr, dtr, pos = self.p.trigger.generate_dotscan_resolft_2d()
                     self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=gtr, digital_sequences=dtr,
                                               finite=True)

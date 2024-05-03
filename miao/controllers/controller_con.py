@@ -101,13 +101,12 @@ class ConController:
         return self.v.QDoubleSpinBox_piezo_return_time.value()
 
     def get_galvo_scan_parameters(self):
-        galvo_frequency = self.v.QSpinBox_galvo_frequency.value()
         galvo_positions = [self.v.QDoubleSpinBox_galvo_x.value(), self.v.QDoubleSpinBox_galvo_y.value()]
-        galvo_ranges = [self.v.QDoubleSpinBox_galvo_range_x.value(), self.v.QDoubleSpinBox_galvo_range_y.value()]
-        dot_pos = [[self.v.QDoubleSpinBox_dot_range_x.value(), self.v.QDoubleSpinBox_dot_range_y.value()],
-                   self.v.QSpinBox_dot_step.value(), self.v.QSpinBox_galvo_dwell.value(),
-                   self.v.QSpinBox_laser_delay.value()]
-        return galvo_frequency, galvo_positions, galvo_ranges, dot_pos
+        galvo_ranges = [[self.v.QDoubleSpinBox_galvo_range_x.value(), self.v.QDoubleSpinBox_galvo_range_y.value()],
+                        [self.v.QDoubleSpinBox_dot_range_x.value(), self.v.QDoubleSpinBox_dot_range_y.value()]]
+        dot_pos = [self.v.QSpinBox_dot_step_s.value(), self.v.QDoubleSpinBox_dot_step.value(),
+                   self.v.QSpinBox_galvo_dwell.value(), self.v.QSpinBox_laser_delay.value()]
+        return galvo_positions, galvo_ranges, dot_pos
 
     def change_galvo_scan(self, x=None, y=None):
         if x is not None:
@@ -115,11 +114,8 @@ class ConController:
         if y is not None:
             self.v.QDoubleSpinBox_dot_range_y.setValue(y)
 
-    def display_dot_step(self, dsv):
-        self.v.QDoubleSpinBox_dot_step.setValue(dsv)
-
-    def get_galvo_step(self):
-        return self.v.QDoubleSpinBox_dot_step.value()
+    def display_frequency(self, dsv):
+        self.v.QLCDNumber_galvo_frequency.display(dsv)
 
     def get_profile_axis(self):
         return self.v.QComboBox_profile_axis.currentText()
