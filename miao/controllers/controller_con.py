@@ -104,7 +104,7 @@ class ConController:
         galvo_positions = [self.v.QDoubleSpinBox_galvo_x.value(), self.v.QDoubleSpinBox_galvo_y.value()]
         galvo_ranges = [[self.v.QDoubleSpinBox_galvo_range_x.value(), self.v.QDoubleSpinBox_galvo_range_y.value()],
                         [self.v.QDoubleSpinBox_dot_range_x.value(), self.v.QDoubleSpinBox_dot_range_y.value()]]
-        dot_pos = [self.v.QSpinBox_dot_step_s.value(), self.v.QDoubleSpinBox_dot_step.value(),
+        dot_pos = [self.v.QSpinBox_dot_step.value(), self.v.QDoubleSpinBox_dot_step.value(),
                    self.v.QSpinBox_galvo_dwell.value(), self.v.QSpinBox_laser_delay.value()]
         return galvo_positions, galvo_ranges, dot_pos
 
