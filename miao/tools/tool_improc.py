@@ -144,18 +144,6 @@ def calculate_focus_measure_with_laplacian(image):
     return focus_measure
 
 
-def autocorrelation_2d_fft(image):
-    # FFT of the image
-    F = fft2(image)
-    # Element-wise multiplication of FFT of the image with its complex conjugate
-    F_conj = np.conj(F)
-    auto_corr_freq = F * F_conj
-    # Inverse FFT to convert back to spatial domain
-    auto_corr = ifft2(auto_corr_freq)
-    # Return the magnitude of the autocorrelation, shifted to center
-    return np.abs(fftshift(auto_corr))
-
-
 def meshgrid(nx_, ny_):
     x_ = np.arange(-nx_ / 2, nx_ / 2)
     y_ = np.arange(-ny_ / 2, ny_ / 2)
@@ -227,11 +215,12 @@ def find_pattern(data, angle=0., spacing=0.268, nps=10, r_ang=0.005, r_sp=0.005,
         plt.xlabel('Spatial Iteration')
         plt.ylabel('Angular Iteration')
         plt.subplot(212)
-        plt.imshow(phs, interpolation='none', cmap='twilight')
+        plt.imshow(phs, extent=(sp_iter.min(), sp_iter.max(), ang_iter.max(), ang_iter.min()),
+                   interpolation='none', cmap='twilight')
         plt.colorbar()
         plt.title('Phase')
-        plt.xlabel('X-axis')
-        plt.ylabel('Y-axis')
+        plt.xlabel('Spatial Iteration')
+        plt.ylabel('Angular Iteration')
         plt.tight_layout()
         plt.show()
     m, n = np.where(mags == mags.max())
