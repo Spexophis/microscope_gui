@@ -104,8 +104,9 @@ class ConController:
         galvo_positions = [self.v.QDoubleSpinBox_galvo_x.value(), self.v.QDoubleSpinBox_galvo_y.value()]
         galvo_ranges = [[self.v.QDoubleSpinBox_galvo_range_x.value(), self.v.QDoubleSpinBox_galvo_range_y.value()],
                         [self.v.QDoubleSpinBox_dot_range_x.value(), self.v.QDoubleSpinBox_dot_range_y.value()]]
-        dot_pos = [self.v.QSpinBox_dot_step.value(), self.v.QDoubleSpinBox_dot_step.value(),
-                   self.v.QSpinBox_galvo_dwell.value(), self.v.QSpinBox_laser_delay.value()]
+        dot_pos = [self.v.QSpinBox_dot_step_x.value(), self.v.QDoubleSpinBox_dot_step_x.value(),
+                   self.v.QSpinBox_galvo_dwell.value(), self.v.QSpinBox_laser_delay.value(),
+                   self.v.QDoubleSpinBox_dot_step_y.value()]
         return galvo_positions, galvo_ranges, dot_pos
 
     def change_galvo_scan(self, x=None, y=None):

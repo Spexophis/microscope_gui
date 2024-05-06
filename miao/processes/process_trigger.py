@@ -38,6 +38,7 @@ class TriggerSequence:
             self.dot_starts = [o_ - r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.dot_ranges)]
             self.dot_step_s = 80  # samples
             self.dot_step_v = 0.0173  # volts
+            self.dot_step_y = 0.0173  # volts
             self.up_rate = self.dot_step_v / self.dot_step_s
             self.dot_pos = np.arange(self.dot_starts[0], self.dot_starts[0] + self.dot_ranges[0] + self.dot_step_v,
                                      self.dot_step_v)
@@ -126,6 +127,7 @@ class TriggerSequence:
             "dot_starts": self.dot_starts,
             "dot_step_v": self.dot_step_v,
             "dot_step_s": self.dot_step_s,
+            "dot_step_y": self.dot_step_y,
             "dot_pos": self.dot_pos,
             "samples_high": self.samples_high,
             "samples_low": self.samples_low,
@@ -138,7 +140,7 @@ class TriggerSequence:
             if ranges is not None:
                 self.galvo_ranges, self.dot_ranges = ranges
             if foci is not None:
-                [self.dot_step_s, self.dot_step_v, self.samples_high, self.laser_delay] = foci
+                [self.dot_step_s, self.dot_step_v, self.samples_high, self.laser_delay, self.dot_step_y] = foci
             self.galvo_starts = [o_ - r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.galvo_ranges)]
             self.galvo_stops = [o_ + r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.galvo_ranges)]
             self.dot_starts = [o_ - r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.dot_ranges)]
@@ -203,7 +205,7 @@ class TriggerSequence:
         slow_axis_galvo = np.zeros_like(fast_axis_galvo)
         indices = np.arange(self.ramp_up_samples + 1, len(fast_axis_galvo), extended_cycle.size)
         slow_axis_galvo[indices] = 1
-        slow_axis_galvo = np.cumsum(slow_axis_galvo) * self.dot_step_v + self.dot_starts[1]
+        slow_axis_galvo = np.cumsum(slow_axis_galvo) * self.dot_step_y + self.dot_starts[1]
         slow_axis_galvo[-self.ramp_down_samples:] = np.linspace(slow_axis_galvo[-self.ramp_down_samples],
                                                                 self.dot_starts[1], self.ramp_down_samples)
         _sqr = np.pad(np.ones(self.samples_high), (self.laser_delay, self.samples_low - self.laser_delay), 'constant',
@@ -334,8 +336,8 @@ class TriggerSequence:
                        "Piezo steps: {} \n"
                        "Piezo ranges: {} \n"
                        "Piezo positions: {}".format([self.galvo_starts, self.galvo_stops],
-                                                    [self.dot_starts, self.dot_step_v, self.dot_ranges,
-                                                     self.dot_pos.size],
+                                                    [self.dot_starts, [self.dot_step_v, self.dot_step_y],
+                                                     self.dot_ranges, self.dot_pos.size],
                                                     self.piezo_starts, self.piezo_steps, self.piezo_ranges, scan_pos))
         return np.asarray(galvo_sequences), np.asarray(piezo_sequences), np.asarray(digital_sequences), scan_pos
 
