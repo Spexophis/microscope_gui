@@ -687,7 +687,7 @@ class MainController(QtCore.QObject):
             for i in range(sx):
                 for j in range(sy):
                     self.m.daq.set_piezo_position(scans[0][i], scans[1][j])
-                    time.sleep(0.05)
+                    time.sleep(0.08)
                     self.m.daq.run_triggers()
                     time.sleep(0.04)
                     temp = self.m.cam_set[self.cameras["imaging"]].get_last_image()
@@ -695,11 +695,6 @@ class MainController(QtCore.QObject):
                     data.append(temp)
                     mx[i, j] = np.mean(temp)
             self.m.daq.stop_triggers()
-            k_, l_ = np.where(mx == mx.min())
-            self.m.daq.set_piezo_position(scans[0][k_], scans[1][l_])
-            self.con_controller.change_piezo_positions(x=scans[0][k_] * 10, y=scans[1][l_] * 10)
-            self.logg.info("x = {} \ny = {} \nx = {} \ny = {}".format(scans[0][k_], scans[1][l_], scans[0][k_] * 10,
-                                                                      scans[1][l_] * 10))
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_grid.tif')
             tf.imwrite(fd, np.asarray(data), imagej=True,
                        resolution=(1 / self.pixel_sizes[self.cameras["imaging"]],
@@ -707,18 +702,23 @@ class MainController(QtCore.QObject):
                        metadata={'unit': 'um'})
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_grid_min.tif')
             tf.imwrite(fd, mx)
+            k_, l_ = np.where(mx == mx.min())
+            self.m.daq.set_piezo_position(scans[0][k_], scans[1][l_])
+            self.con_controller.change_piezo_positions(x=scans[0][k_] * 10, y=scans[1][l_] * 10)
+            self.logg.info("x = {} \ny = {} \nx = {} \ny = {}".format(scans[0][k_], scans[1][l_], scans[0][k_] * 10,
+                                                                      scans[1][l_] * 10))
             # dot array maxima
             self.p.trigger.update_piezo_scan_parameters(piezo_ranges=[0., 0., 0.])
             p_w = self.con_controller.get_cobolt_laser_power("488_2")
             self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0., 0., 0., p_w[0]])
             galvo_positions, [galvo_ranges, dot_ranges], dot_pos = self.con_controller.get_galvo_scan_parameters()
-            scan_x = np.linspace(0, int(1.1 * dot_pos[1]), 11, endpoint=False, dtype=int)
-            scan_y = dot_ranges[1] + np.linspace(0, 2.2 * self.p.trigger.dot_step_v, 11, endpoint=False, dtype=float)
+            scan_x = np.linspace(0, 1.25 * self.p.trigger.dot_step_s, 10, endpoint=False, dtype=int)
+            scan_y = dot_ranges[1] + np.linspace(0, 2.5 * self.p.trigger.dot_step_y, 10, endpoint=False, dtype=float)
             data = []
-            mx = np.zeros((11, 11))
-            for i in range(11):
+            mx = np.zeros((10, 10))
+            for i in range(10):
                 dot_pos[3] = scan_x[i]
-                for j in range(11):
+                for j in range(10):
                     dot_ranges[1] = scan_y[j]
                     self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions,
                                                                 ranges=[galvo_ranges, dot_ranges],
@@ -732,9 +732,6 @@ class MainController(QtCore.QObject):
                     self.m.daq.stop_triggers()
                     data.append(temp)
                     mx[i, j] = np.mean(temp)
-            k_, l_ = np.where(mx == mx.max())
-            self.con_controller.change_galvo_scan(x=scan_x[k_][0], y=scan_y[l_][0])
-            self.logg.info("gx = {} \ngy = {}".format(scan_x[k_], scan_y[l_]))
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_dot.tif')
             tf.imwrite(fd, np.asarray(data), imagej=True,
                        resolution=(1 / self.pixel_sizes[self.cameras["imaging"]],
@@ -742,9 +739,11 @@ class MainController(QtCore.QObject):
                        metadata={'unit': 'um'})
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_dot_max.tif')
             tf.imwrite(fd, mx)
+            k_, l_ = np.where(mx == mx.max())
+            self.con_controller.change_galvo_scan(x=scan_x[k_][0], y=scan_y[l_][0])
+            self.logg.info("gx = {} \ngy = {}".format(scan_x[k_], scan_y[l_]))
         except Exception as e:
             self.logg.error(f"Error running alignment scanning: {e}")
-            return
         self.finish_pattern_alignment()
 
     def finish_pattern_alignment(self):
