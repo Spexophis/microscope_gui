@@ -115,6 +115,10 @@ class ViewWidget(QtWidgets.QWidget):
         self.canvas.axes.plot(data)
         self.canvas.draw()
 
+    def add_plot(self, data):
+        self.canvas.axes.plot(data)
+        self.canvas.draw()
+
     def update_plot(self, data):
         self.canvas.axes.cla()
         self.canvas.axes.plot(data)

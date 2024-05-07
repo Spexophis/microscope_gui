@@ -197,8 +197,6 @@ class ConWidget(QtWidgets.QWidget):
         self.QDoubleSpinBox_dot_step_x = cw.doublespinbox_widget(0, 20, 0.0001, 5, 0.01720)
         self.QSpinBox_dot_step_x = cw.spinbox_widget(0, 4000, 1, 88)
         self.QDoubleSpinBox_dot_step_y = cw.doublespinbox_widget(0, 20, 0.0001, 5, 0.01720)
-        self.QSpinBox_galvo_dwell = cw.spinbox_widget(0, 4000, 1, 1)
-        self.QSpinBox_laser_delay = cw.spinbox_widget(0, 4000, 1, 0)
         self.galvo_scroll_area, galvo_scroll_layout = cw.create_scroll_area()
         galvo_scroll_layout.addRow(cw.label_widget(str('Galvo Scanner')))
         galvo_scroll_layout.addRow(cw.frame_widget())
@@ -209,8 +207,6 @@ class ConWidget(QtWidgets.QWidget):
         galvo_scroll_layout.addRow(cw.label_widget(str('Dot Range / V')), self.QDoubleSpinBox_dot_range_x)
         galvo_scroll_layout.addRow(cw.label_widget(str('Dot Step / volt')), self.QDoubleSpinBox_dot_step_x)
         galvo_scroll_layout.addRow(cw.label_widget(str('Dot Step / sample')), self.QSpinBox_dot_step_x)
-        galvo_scroll_layout.addRow(cw.label_widget(str('Dot Dwell / sample')), self.QSpinBox_galvo_dwell)
-        galvo_scroll_layout.addRow(cw.label_widget(str('Offset / sample')), self.QSpinBox_laser_delay)
         galvo_scroll_layout.addRow(cw.frame_widget())
         galvo_scroll_layout.addRow(cw.label_widget(str('Y / v')), self.QDoubleSpinBox_galvo_y)
         galvo_scroll_layout.addRow(cw.label_widget(str('Range / V')), self.QDoubleSpinBox_galvo_range_y)
@@ -283,8 +279,10 @@ class ConWidget(QtWidgets.QWidget):
     def _create_daq_widgets(self):
         layout_daq = QtWidgets.QHBoxLayout()
         self.QSpinBox_daq_sample_rate = cw.spinbox_widget(100, 1250, 1, 250)
+        self.QPushButton_plot_trigger = cw.pushbutton_widget("Plot Triggers")
         layout_daq.addWidget(cw.label_widget(str('DAQ Sample Rate / KS/s')))
         layout_daq.addWidget(self.QSpinBox_daq_sample_rate)
+        layout_daq.addWidget(self.QPushButton_plot_trigger)
         return layout_daq
 
     def _create_video_widgets(self):
@@ -295,14 +293,12 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_fft = cw.pushbutton_widget("FFT", checkable=True, enable=False)
         self.QComboBox_profile_axis = cw.combobox_widget(list_items=["X", "Y"])
         self.QPushButton_plot_profile = cw.pushbutton_widget("Plot Profile", checkable=True, enable=False)
-        self.QPushButton_plot_trigger = cw.pushbutton_widget("Plot Triggers")
         layout_video.addWidget(self.QComboBox_imaging_camera_selection)
         layout_video.addWidget(self.QComboBox_live_modes)
         layout_video.addWidget(self.QPushButton_video)
         layout_video.addWidget(self.QPushButton_fft)
         layout_video.addWidget(self.QComboBox_profile_axis)
         layout_video.addWidget(self.QPushButton_plot_profile)
-        layout_video.addWidget(self.QPushButton_plot_trigger)
         return layout_video
 
     def _create_acquisition_widgets(self):

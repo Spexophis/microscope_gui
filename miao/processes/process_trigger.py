@@ -51,7 +51,6 @@ class TriggerSequence:
             # square wave
             self.samples_high = 1
             self.samples_low = self.dot_step_s - self.samples_high
-            self.laser_delay = 0
             self.samples_delay = int(np.abs(self.dot_starts[0] - self.galvo_starts[0]) / self.up_rate)
             self.samples_offset = self.ramp_up_samples - self.samples_delay - self.dot_step_s * self.dot_pos.size
             # digital triggers
@@ -129,7 +128,6 @@ class TriggerSequence:
             "dot_step_s": self.dot_step_s,
             "dot_step_y": self.dot_step_y,
             "dot_pos": self.dot_pos,
-            "samples_high": self.samples_high,
             "samples_low": self.samples_low,
             "samples_delay": self.samples_delay,
             "samples_offset": self.samples_offset
@@ -140,7 +138,7 @@ class TriggerSequence:
             if ranges is not None:
                 self.galvo_ranges, self.dot_ranges = ranges
             if foci is not None:
-                [self.dot_step_s, self.dot_step_v, self.samples_high, self.laser_delay, self.dot_step_y] = foci
+                [self.dot_step_s, self.dot_step_v, self.dot_step_y] = foci
             self.galvo_starts = [o_ - r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.galvo_ranges)]
             self.galvo_stops = [o_ + r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.galvo_ranges)]
             self.dot_starts = [o_ - r_ / 2 for (o_, r_) in zip(self.galvo_origins, self.dot_ranges)]
@@ -208,8 +206,7 @@ class TriggerSequence:
         slow_axis_galvo = np.cumsum(slow_axis_galvo) * self.dot_step_y + self.dot_starts[1]
         slow_axis_galvo[-self.ramp_down_samples:] = np.linspace(slow_axis_galvo[-self.ramp_down_samples],
                                                                 self.dot_starts[1], self.ramp_down_samples)
-        _sqr = np.pad(np.ones(self.samples_high), (self.laser_delay, self.samples_low - self.laser_delay), 'constant',
-                      constant_values=(0, 0))
+        _sqr = np.pad(np.ones(self.samples_high), (0, self.samples_low), 'constant', constant_values=(0, 0))
         square_wave = np.pad(np.tile(_sqr, self.dot_pos.size),
                              (self.samples_delay, self.samples_offset + self.ramp_down_samples), 'constant',
                              constant_values=(0, 0))
@@ -358,8 +355,7 @@ class TriggerSequence:
         slow_axis_galvo = np.cumsum(slow_axis_galvo) * self.dot_step_v + self.dot_starts[1]
         slow_axis_galvo[-ramp_down_samples:] = np.linspace(slow_axis_galvo[-ramp_down_samples], self.dot_starts[1],
                                                            ramp_down_samples)
-        _sqr = np.pad(np.ones(self.samples_high), (self.laser_delay, self.samples_low - self.laser_delay), 'constant',
-                      constant_values=(0, 0))
+        _sqr = np.pad(np.ones(self.samples_high), (0, self.samples_low), 'constant', constant_values=(0, 0))
         square_wave = np.pad(np.tile(_sqr, self.dot_pos.size),
                              (self.samples_delay, self.samples_offset + ramp_down_samples), 'constant',
                              constant_values=(0, 0))
