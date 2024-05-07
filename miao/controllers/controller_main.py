@@ -541,6 +541,7 @@ class MainController(QtCore.QObject):
                            metadata={'unit': 'um',
                                      'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
         except Exception as e:
+            self.finish_widefield_zstack()
             self.logg.error(f"Error running widefield zstack: {e}")
             return
         self.finish_widefield_zstack()
@@ -587,6 +588,7 @@ class MainController(QtCore.QObject):
                 1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
                        metadata={'unit': 'um', 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
         except Exception as e:
+            self.finish_dot_scanning()
             self.logg.error(f"Error running dot scanning: {e}")
             return
         self.finish_dot_scanning()
@@ -633,6 +635,7 @@ class MainController(QtCore.QObject):
                 1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
                        metadata={'unit': 'um', 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
         except Exception as e:
+            self.finish_monalisa_scan()
             self.logg.error(f"Error running beads scanning: {e}")
             return
         self.finish_monalisa_scan()
@@ -743,7 +746,9 @@ class MainController(QtCore.QObject):
             self.con_controller.change_galvo_scan(x=scan_x[k_][0], y=scan_y[l_][0])
             self.logg.info("gx = {} \ngy = {}".format(scan_x[k_], scan_y[l_]))
         except Exception as e:
+            self.finish_pattern_alignment()
             self.logg.error(f"Error running alignment scanning: {e}")
+            return
         self.finish_pattern_alignment()
 
     def finish_pattern_alignment(self):
