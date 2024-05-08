@@ -19,6 +19,7 @@ class ConWidget(QtWidgets.QWidget):
     Signal_video = QtCore.pyqtSignal(bool, str)
     Signal_fft = QtCore.pyqtSignal(bool)
     Signal_plot_profile = QtCore.pyqtSignal(bool)
+    Signal_add_profile = QtCore.pyqtSignal()
     Signal_alignment = QtCore.pyqtSignal()
     Signal_data_acquire = QtCore.pyqtSignal(str, int)
     Signal_save_file = QtCore.pyqtSignal(str)
@@ -292,13 +293,15 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_video = cw.pushbutton_widget("Video", checkable=True)
         self.QPushButton_fft = cw.pushbutton_widget("FFT", checkable=True, enable=False)
         self.QComboBox_profile_axis = cw.combobox_widget(list_items=["X", "Y"])
-        self.QPushButton_plot_profile = cw.pushbutton_widget("Plot Profile", checkable=True, enable=False)
+        self.QPushButton_plot_profile = cw.pushbutton_widget("Live Profile", checkable=True, enable=False)
+        self.QPushButton_add_profile = cw.pushbutton_widget("Plot Profile")
         layout_video.addWidget(self.QComboBox_imaging_camera_selection)
         layout_video.addWidget(self.QComboBox_live_modes)
         layout_video.addWidget(self.QPushButton_video)
         layout_video.addWidget(self.QPushButton_fft)
         layout_video.addWidget(self.QComboBox_profile_axis)
         layout_video.addWidget(self.QPushButton_plot_profile)
+        layout_video.addWidget(self.QPushButton_add_profile)
         return layout_video
 
     def _create_acquisition_widgets(self):
@@ -343,6 +346,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_video.clicked.connect(self.run_video)
         self.QPushButton_fft.clicked.connect(self.run_fft)
         self.QPushButton_plot_profile.clicked.connect(self.run_plot_profile)
+        self.QPushButton_add_profile.clicked.connect(self.run_add_profile)
         self.QPushButton_acquire.clicked.connect(self.run_acquisition)
         self.QPushButton_alignment.clicked.connect(self.run_alignment)
         self.QPushButton_save.clicked.connect(self.save)
@@ -471,6 +475,10 @@ class ConWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot(bool)
     def run_plot_profile(self, checked: bool):
         self.Signal_plot_profile.emit(checked)
+
+    @QtCore.pyqtSlot()
+    def run_add_profile(self):
+        self.Signal_add_profile.emit()
 
     @QtCore.pyqtSlot()
     def run_acquisition(self):

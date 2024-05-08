@@ -85,6 +85,7 @@ class MainController(QtCore.QObject):
         self.v.con_view.Signal_video.connect(self.video)
         self.v.con_view.Signal_fft.connect(self.fft)
         self.v.con_view.Signal_plot_profile.connect(self.plot_live)
+        self.v.con_view.Signal_add_profile.connect(self.plot_add)
         # NIDAQ
         self.v.con_view.Signal_daq_update.connect(self.update_daq_sample_rate)
         # Main Data Recording
@@ -471,7 +472,16 @@ class MainController(QtCore.QObject):
         try:
             ax = self.con_controller.get_profile_axis()
             self.view_controller.plot_update(
-                ipr.get_profile(self.view_controller.get_image_data(layer=self.cameras["imaging"]), ax))
+                ipr.get_profile(self.view_controller.get_image_data(layer=self.cameras["imaging"]), ax, norm=True))
+        except Exception as e:
+            self.logg.error(f"Error plotting profile: {e}")
+
+    @QtCore.pyqtSlot()
+    def plot_add(self):
+        try:
+            ax = self.con_controller.get_profile_axis()
+            self.view_controller.plot(
+                ipr.get_profile(self.view_controller.get_image_data(layer=self.cameras["imaging"]), ax, norm=True))
         except Exception as e:
             self.logg.error(f"Error plotting profile: {e}")
 

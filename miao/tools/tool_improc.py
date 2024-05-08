@@ -101,15 +101,19 @@ def peak_find(x, y):
         return p
 
 
-def get_profile(data, ax):
+def get_profile(data, ax, norm=False):
     data = data - data.min()
     data = data / data.max()
-    if ax == 'X':
-        return data.mean(0)
-    elif ax == 'Y':
-        return data.mean(1)
+    if ax == 'Y':
+        m = data.mean(0)
+    elif ax == 'X':
+        m = data.mean(1)
     else:
         raise ValueError("invalid axis")
+    if norm:
+        return m / m.max()
+    else:
+        return m
 
 
 def pseudo_inverse(A, n=32):
