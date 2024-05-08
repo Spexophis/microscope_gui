@@ -338,9 +338,12 @@ class MainController(QtCore.QObject):
             positions = self.con_controller.get_piezo_positions()
             return_time = self.con_controller.get_piezo_return_time()
             self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, positions, return_time)
-            self.p.trigger.update_camera_parameters(self.m.cam_set[self.cameras[cam_key]].t_clean,
-                                                    self.m.cam_set[self.cameras[cam_key]].t_readout,
-                                                    self.m.cam_set[self.cameras[cam_key]].t_kinetic)
+            _t_clean = max(self.m.cam_set[self.cameras[cam_key]].t_clean, self.con_controller.get_ccd_clean())
+            self.p.trigger.update_camera_parameters(initial_time=_t_clean,
+                                                    standby_time=self.m.cam_set[self.cameras[cam_key]].t_readout,
+                                                    cycle_time=self.m.cam_set[self.cameras[cam_key]].t_kinetic)
+            self.con_controller.display_camera_timings(clean=_t_clean,
+                                                       standby=self.m.cam_set[self.cameras[cam_key]].t_kinetic)
             self.logg.info(f"Trigger Updated")
         except Exception as e:
             self.logg.error(f"Trigger Error: {e}")
@@ -358,11 +361,13 @@ class MainController(QtCore.QObject):
         if vd_mod == "Wide Field":
             dtr = self.generate_live_triggers("imaging")
             self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=False)
+            self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
         elif vd_mod == "Dot Scan":
             self.update_trigger_parameters("imaging")
             self.p.trigger.update_piezo_scan_parameters(piezo_ranges=[0., 0., 0.])
             gtr, ptr, dtr, pos = self.p.trigger.generate_dotscan_resolft_2d()
             self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=gtr, digital_sequences=dtr, finite=False)
+            self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
         else:
             self.m.cam_set[self.cameras["imaging"]].stop_live()
             self.lasers_off()
@@ -516,6 +521,7 @@ class MainController(QtCore.QObject):
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
         dtr = self.generate_live_triggers("imaging")
         self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
+        self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
 
     def widefield_zstack(self):
         try:
@@ -579,6 +585,7 @@ class MainController(QtCore.QObject):
         self.m.cam_set[self.cameras["imaging"]].acq_num = pos
         self.m.cam_set[self.cameras["imaging"]].prepare_data_acquisition()
         self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=gtr, digital_sequences=dtr)
+        self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
 
     def dot_scanning(self):
         try:
@@ -626,6 +633,7 @@ class MainController(QtCore.QObject):
         self.m.cam_set[self.cameras["imaging"]].acq_num = pos
         self.m.cam_set[self.cameras["imaging"]].prepare_data_acquisition()
         self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=None, digital_sequences=dtr)
+        self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
 
     def monalisa_scan_2d(self):
         try:
@@ -692,6 +700,7 @@ class MainController(QtCore.QObject):
             p_w = self.con_controller.get_cobolt_laser_power("488_0")
             self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0., p_w[0], 0., 0.])
             self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
+            self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
             data = []
             sx, sy = scans[0].shape[0], scans[1].shape[0]
             mx = np.zeros((sx, sy))
@@ -715,6 +724,7 @@ class MainController(QtCore.QObject):
                        metadata={'unit': 'um'})
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_grid_min.tif')
             tf.imwrite(fd, mx)
+            self.v.view_view.plot_image(data=mx, axis_arrays=scans, axis_labels=None)
             k_, l_ = np.where(mx == mx.min())
             self.m.daq.set_piezo_position(scans[0][k_], scans[1][l_])
             self.con_controller.change_piezo_positions(x=scans[0][k_] * 10, y=scans[1][l_] * 10)
@@ -739,6 +749,7 @@ class MainController(QtCore.QObject):
                     gtr, ptr, dtr, pos = self.p.trigger.generate_dotscan_resolft_2d()
                     self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=gtr, digital_sequences=dtr,
                                               finite=True)
+                    self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
                     self.m.daq.run_triggers()
                     time.sleep(0.2)
                     temp = self.m.cam_set[self.cameras["imaging"]].get_last_image()
@@ -752,6 +763,7 @@ class MainController(QtCore.QObject):
                        metadata={'unit': 'um'})
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_dot_max.tif')
             tf.imwrite(fd, mx)
+            self.v.view_view.plot_image(data=mx, axis_arrays=[scan_x, scan_y], axis_labels=None)
             k_, l_ = np.where(mx == mx.max())
             self.con_controller.change_galvo_scan(x=scan_x[k_][0], y=scan_y[l_][0])
             self.logg.info("gx = {} \ngy = {}".format(scan_x[k_], scan_y[l_]))

@@ -111,6 +111,19 @@ class ViewWidget(QtWidgets.QWidget):
     def get_image(self, name):
         return self.napari_layers[name].data
 
+    def plot_image(self, data, axis_arrays=None, axis_labels=None):
+        if axis_arrays is not None:
+            self.canvas.axes.imshow(X=data, vmin=data.min(), vmax=data.max(),
+                                    extent=(axis_arrays[0].min(), axis_arrays[0].max(),
+                                            axis_arrays[1].max(), axis_arrays[1].min()),
+                                    interpolation='none')
+        else:
+            self.canvas.axes.imshow(X=data, vmin=data.min(), vmax=data.max(), interpolation='none')
+        if axis_labels is not None:
+            plt.xlabel(axis_labels[0])
+            plt.ylabel(axis_labels[1])
+        self.canvas.draw()
+
     def plot(self, data):
         self.canvas.axes.plot(data)
         self.canvas.axes.grid(True)
@@ -129,6 +142,7 @@ class ViewWidget(QtWidgets.QWidget):
 
 if __name__ == "__main__":
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
     window = ViewWidget()
     window.show()

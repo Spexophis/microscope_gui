@@ -10,6 +10,8 @@ class TriggerSequence:
             self.cycle_time = 0.05
             self.initial_time = 0.008
             self.standby_time = 0.01
+            self.exposure_samples = 0
+            self.exposure_time = self.exposure_samples / self.sample_rate
             # piezo scanner
             self.piezo_conv_factors = [10., 10., 10.]
             self.piezo_steps = [0.034, 0.034, 0.128]
@@ -186,6 +188,8 @@ class TriggerSequence:
         self.digital_ends = [(_end + offset) for _end in self.digital_ends]
         cycle_samples = self.digital_ends[cam_ind] + standby_samples
         digital_trigger = np.zeros((len(self.digital_starts), cycle_samples), dtype=int)
+        self.exposure_samples = self.digital_ends[cam_ind] - self.digital_starts[cam_ind]
+        self.exposure_time = self.exposure_samples / self.sample_rate
         digital_trigger[cam_ind, self.digital_starts[cam_ind]:self.digital_ends[cam_ind]] = 1
         for laser in lasers:
             digital_trigger[laser, self.digital_starts[laser]:self.digital_ends[laser]] = 1
@@ -244,7 +248,9 @@ class TriggerSequence:
                 (digital_sequences[i], np.zeros(laser_trigger.size + interval_samples)))
         digital_sequences[3] = np.concatenate(
             (digital_sequences[3], np.concatenate((np.zeros(interval_samples), laser_trigger))))
-        temp = np.pad(np.ones(laser_trigger.size - 2 * self.samples_delay + self.dot_step_s),
+        self.exposure_samples = laser_trigger.size - 2 * self.samples_delay + self.dot_step_s
+        self.exposure_time = self.exposure_samples / self.sample_rate
+        temp = np.pad(np.ones(self.exposure_samples),
                       (interval_samples + self.samples_delay, self.samples_delay - self.dot_step_s), 'constant',
                       constant_values=(0, 0))
         for i in range(3):
@@ -494,6 +500,8 @@ class TriggerSequence:
             digital_sequences[i] = temp
         for i in range(3):
             if i == camera:
+                self.exposure_samples = self.digital_ends[i + 4] - self.digital_starts[i + 4]
+                self.exposure_time = self.exposure_samples / self.sample_rate
                 temp = np.zeros(cycle_samples)
                 temp[self.digital_starts[i + 4]:self.digital_ends[i + 4]] = 1
                 temp = np.tile(temp, self.piezo_scan_pos[0])
