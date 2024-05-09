@@ -7,7 +7,7 @@ from scipy.ndimage import maximum_filter, minimum_filter, label, find_objects
 class BeadScanReconstruction:
 
     def __init__(self):
-        self.dx = 13 / (63 * 2.5)  # micron
+        self.dx = 0.0785  # micron
         self.na = 1.4
         self.wl = 0.505
         self.d = int(np.ceil((self.wl / (2 * self.na)) / self.dx))
