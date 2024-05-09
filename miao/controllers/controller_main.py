@@ -671,6 +671,70 @@ class MainController(QtCore.QObject):
     def run_monalisa_scan(self, n: int):
         self.run_task(task=self.monalisa_scan_2d, iteration=n)
 
+    def prepare_focal_array_scan(self):
+        self.lasers = self.con_controller.get_lasers()
+        self.set_lasers()
+        self.cameras["imaging"] = self.con_controller.get_imaging_camera()
+        self.set_camera_roi("imaging")
+        self.m.cam_set[self.cameras["imaging"]].prepare_live()
+        self.update_trigger_parameters("imaging")
+
+    def focal_array_scan(self):
+        try:
+            self.prepare_focal_array_scan()
+        except Exception as e:
+            self.logg.error(f"Error preparing alignment scanning: {e}")
+            return
+        try:
+            positions = self.con_controller.get_piezo_positions()
+            self.p.trigger.update_piezo_scan_parameters(piezo_ranges=[0., 0., 0.])
+            p_w = self.con_controller.get_cobolt_laser_power("488_2")
+            self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0., 0., 0., p_w[0]])
+            galvo_positions, [galvo_ranges, dot_ranges], dot_pos = self.con_controller.get_galvo_scan_parameters()
+            scan_x = dot_ranges[0] + np.linspace(0, 2. * self.p.trigger.dot_step_v, 16, endpoint=False, dtype=float)
+            scan_y = dot_ranges[1] + np.linspace(0, 2. * self.p.trigger.dot_step_y, 16, endpoint=False, dtype=float)
+            data = []
+            self.m.pz.lock_position(2, positions[2])
+            self.m.cam_set[self.cameras["imaging"]].start_live()
+            for i in range(16):
+                dot_ranges[0] = scan_x[i]
+                for j in range(16):
+                    dot_ranges[1] = scan_y[j]
+                    self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions,
+                                                                ranges=[galvo_ranges, dot_ranges],
+                                                                foci=dot_pos)
+                    gtr, ptr, dtr, pos = self.p.trigger.generate_dotscan_resolft_2d()
+                    self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=gtr, digital_sequences=dtr,
+                                              finite=True)
+                    self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
+                    self.m.daq.run_triggers()
+                    time.sleep(0.16)
+                    data.append(self.m.cam_set[self.cameras["imaging"]].get_last_image())
+                    self.m.daq.stop_triggers()
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_focal_array_scan.tif')
+            tf.imwrite(fd, np.asarray(data), imagej=True,
+                       resolution=(1 / self.pixel_sizes[self.cameras["imaging"]],
+                                   1 / self.pixel_sizes[self.cameras["imaging"]]),
+                       metadata={'unit': 'um'})
+        except Exception as e:
+            self.finish_pattern_alignment()
+            self.logg.error(f"Error running alignment scanning: {e}")
+            return
+        self.finish_focal_array_scan()
+
+    def finish_focal_array_scan(self):
+        try:
+            self.m.pz.release_lock()
+            self.m.cam_set[self.cameras["imaging"]].stop_live()
+            self.m.daq.stop_triggers()
+            self.lasers_off()
+            self.logg.info("Alignment scanning image acquired")
+        except Exception as e:
+            self.logg.error(f"Error stopping alignment scanning: {e}")
+
+    def run_focal_array_scan(self):
+        self.run_task(task=self.focal_array_scan)
+
     def prepare_pattern_alignment(self):
         self.lasers = self.con_controller.get_lasers()
         self.set_lasers()
