@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.fft import fft2, ifft2, fftshift
+from scipy.optimize import curve_fit
 import cv2
 from skimage import filters
 import matplotlib.pyplot as plt
@@ -99,6 +100,19 @@ def peak_find(x, y):
         raise ValueError("maximum exceeding range")
     else:
         return p
+
+
+def valley_find(x, y):
+    x = np.asarray(x)
+    y = np.asarray(y)
+    a, b, c = np.polyfit(x, y, 2)
+    v = -1 * b / a / 2.0
+    if a < 0:
+        raise ValueError("no minimum")
+    elif (v >= x.max()) or (v <= x.min()):
+        raise ValueError("minimum exceeding range")
+    else:
+        return v
 
 
 def get_profile(data, ax, norm=False):
