@@ -451,10 +451,12 @@ class DataList:
     def __init__(self, max_length):
         self.data_list = deque(maxlen=max_length)
         self.ind_list = deque(maxlen=max_length)
+        self.callback = None
 
     def add_element(self, elements, start_ind, end_ind):
         self.data_list.extend(elements)
         self.ind_list.extend(list(range(start_ind, end_ind + 1)))
+        self.emit_update()
 
     def get_elements(self):
         return np.array(self.data_list) if self.data_list else None
@@ -464,3 +466,10 @@ class DataList:
 
     def is_empty(self):
         return len(self.data_list) == 0
+
+    def on_update(self, callback):
+        self.callback = callback
+
+    def emit_update(self):
+        if self.callback is not None:
+            self.callback(self)

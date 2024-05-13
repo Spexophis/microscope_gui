@@ -8,16 +8,16 @@ class TriggerSequence:
             self.sample_rate = sample_rate  # Hz
             # camera
             self.cycle_time = 0.05
-            self.initial_time = 0.008
-            self.standby_time = 0.01
-            self.exposure_samples = 0
+            self.initial_time = 0.24
+            self.standby_time = 0.05
+            self.exposure_samples = 0.
             self.exposure_time = self.exposure_samples / self.sample_rate
             # piezo scanner
             self.piezo_conv_factors = [10., 10., 10.]
-            self.piezo_steps = [0.034, 0.034, 0.128]
-            self.piezo_ranges = [0.17, 0.17, 0.0]
+            self.piezo_steps = [0.03, 0.03, 0.128]
+            self.piezo_ranges = [0.09, 0.09, 0.0]
             self.piezo_positions = [50., 50., 50.]
-            self.piezo_return_time = 0.06
+            self.piezo_return_time = 0.08
             self.piezo_steps = [step_size / conv_factor for step_size, conv_factor in
                                 zip(self.piezo_steps, self.piezo_conv_factors)]
             self.piezo_ranges = [move_range / conv_factor for move_range, conv_factor in
@@ -27,7 +27,7 @@ class TriggerSequence:
             self.piezo_starts = [i - j for i, j in zip(self.piezo_positions, [k / 2 for k in self.piezo_ranges])]
             self.piezo_scan_pos = [1 + int(np.ceil(safe_divide(scan_range, scan_step))) for scan_range, scan_step in
                                    zip(self.piezo_ranges, self.piezo_steps)]
-            self.piezo_scan_positions = [np.arange(start, start + range_ + step, step) for start, range_, step in
+            self.piezo_scan_positions = [np.arange(start, start + range_, step) for start, range_, step in
                                          zip(self.piezo_starts, self.piezo_ranges, self.piezo_steps)]
             # galvo scanner
             self.galvo_origins = [0.0, 0.0]  # V
@@ -106,7 +106,7 @@ class TriggerSequence:
             self.piezo_starts = [i - j for i, j in zip(self.piezo_positions, [k / 2 for k in self.piezo_ranges])]
             self.piezo_scan_pos = [1 + int(np.ceil(safe_divide(scan_range, scan_step))) for scan_range, scan_step in
                                    zip(self.piezo_ranges, self.piezo_steps)]
-            self.piezo_scan_positions = [np.arange(start, start + range_ + step, step) for start, range_, step in
+            self.piezo_scan_positions = [np.arange(start, start + range_, step) for start, range_, step in
                                          zip(self.piezo_starts, self.piezo_ranges, self.piezo_steps)]
             if any(np.any(np.logical_or(pos < 0., pos > 10.)) for pos in self.piezo_scan_positions):
                 self.logg.error("Invalid parameter combination.")

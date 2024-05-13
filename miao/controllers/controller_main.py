@@ -760,6 +760,7 @@ class MainController(QtCore.QObject):
                     zip(positions, num_steps, step_sizes)]
             scans = [np.arange(start / 10, end / 10, step_size / 10) for start, end, step_size in
                      zip(starts, ends, step_sizes)]
+            self.m.daq.set_piezo_position(scans[0][0], scans[1][0])
             # grid pattern minima
             p_w = self.con_controller.get_cobolt_laser_power("488_0")
             self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0., p_w[0], 0., 0.])
@@ -794,6 +795,16 @@ class MainController(QtCore.QObject):
             self.logg.info("x = {} \ny = {} \nx = {} \ny = {}".format(scans[0][k_], scans[1][l_], scans[0][k_] * 10,
                                                                       scans[1][l_] * 10))
             # double check
+            positions = self.con_controller.get_piezo_positions()
+            axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
+            num_steps = [int(0.4 * axis_length / (step_size * 0.4)) for axis_length, step_size in
+                         zip(axis_lengths, step_sizes)]
+            starts = [position - num_step * (step_size * 0.4) for position, num_step, step_size in
+                      zip(positions, num_steps, step_sizes)]
+            ends = [position + num_step * (step_size * 0.4) for position, num_step, step_size in
+                    zip(positions, num_steps, step_sizes)]
+            scans = [np.arange(start / 10, end / 10, (step_size * 0.4) / 10) for start, end, step_size in
+                     zip(starts, ends, step_sizes)]
             data = []
             mx = np.zeros((sx, sy))
             for i in range(sx):
@@ -858,8 +869,11 @@ class MainController(QtCore.QObject):
             self.con_controller.change_galvo_scan(x=scan_x[k_][0], y=scan_y[l_][0])
             self.logg.info("gx = {} \ngy = {}".format(scan_x[k_], scan_y[l_]))
             # double check
-            scan_x = dot_ranges[0] + np.linspace(0, 1.2 * self.p.trigger.dot_step_v, 10, endpoint=False, dtype=float)
-            scan_y = dot_ranges[1] + np.linspace(0, 1.2 * self.p.trigger.dot_step_y, 10, endpoint=False, dtype=float)
+            galvo_positions, [galvo_ranges, dot_ranges], dot_pos = self.con_controller.get_galvo_scan_parameters()
+            scan_x = dot_ranges[0] + np.linspace(-0.6 * self.p.trigger.dot_step_v, 0.6 * self.p.trigger.dot_step_v, 10,
+                                                 endpoint=False, dtype=float)
+            scan_y = dot_ranges[1] + np.linspace(-0.6 * self.p.trigger.dot_step_v, 0.6 * self.p.trigger.dot_step_y, 10,
+                                                 endpoint=False, dtype=float)
             data = []
             mx = np.zeros((10, 10))
             for i in range(10):
@@ -1457,10 +1471,12 @@ class TaskWorker(QtCore.QObject):
 class LoopWorker(QtCore.QObject):
     signal_loop = QtCore.pyqtSignal()
 
-    def __init__(self, loop=None, callback=None, dt=0, parent=None):
+    def __init__(self, loop=None, callback=False, dt=0, parent=None):
         super().__init__(parent)
         self.loop = loop if loop is not None else self._do_nothing
         self.callback = callback
+        if self.callback:
+            self.signal_loop_callback = QtCore.pyqtSignal()
         self.dt = dt
         self._stop = False
         self.timer = QtCore.QTimer(self)
@@ -1477,8 +1493,8 @@ class LoopWorker(QtCore.QObject):
         self._stop = True
         if self.timer.isActive():
             self.timer.stop()
-        if self.callback is not None:
-            self.callback()
+        if self.callback:
+            self.signal_loop_callback.emit()
 
     @QtCore.pyqtSlot()
     def _do(self):
