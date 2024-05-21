@@ -586,15 +586,15 @@ class MainController(QtCore.QObject):
         try:
             positions = self.con_controller.get_piezo_positions()
             center_pos, axis_length, step_size = positions[2], 0.96, 0.16
-            start = center_pos - axis_length / 2
-            end = center_pos + axis_length / 2
+            start = center_pos - axis_length
+            end = center_pos + axis_length
             zps = np.arange(start, end + step_size, step_size)
             data = []
             pzs = []
             self.m.cam_set[self.cameras["imaging"]].start_live()
             for i, z in enumerate(zps):
-                _ = self.m.pz.move_position(2, z)
-                time.sleep(0.02)
+                self.set_piezo_position_z(z)
+                time.sleep(0.1)
                 self.m.daq.run_triggers()
                 time.sleep(0.04)
                 temp = self.m.cam_set[self.cameras["imaging"]].get_last_image()
@@ -606,7 +606,7 @@ class MainController(QtCore.QObject):
                 1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
                        metadata={'unit': 'um',
                                  'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
-            fp = ipr.peak_find(zps, pzs)
+            fp = ipr.valley_find(zps, pzs)
             self.set_piezo_position_z(fp)
         except Exception as e:
             self.finish_widefield_zstack()
@@ -808,12 +808,9 @@ class MainController(QtCore.QObject):
             dtr = self.generate_live_triggers("imaging")
             positions = self.con_controller.get_piezo_positions()
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
-            num_steps = [int(0.5 * axis_length / step_size) for axis_length, step_size in zip(axis_lengths, step_sizes)]
-            starts = [position - num_step * step_size for position, num_step, step_size in
-                      zip(positions, num_steps, step_sizes)]
-            ends = [position + num_step * step_size for position, num_step, step_size in
-                    zip(positions, num_steps, step_sizes)]
-            scans = [np.arange(start / 10, end / 10, step_size / 10) for start, end, step_size in
+            starts = [position - 0.5 * axis_length for position, axis_length in zip(positions, axis_lengths)]
+            ends = [position + 0.5 * axis_length for position, axis_length in zip(positions, axis_lengths)]
+            scans = [np.arange(start / 10, end / 10 + step_size / 10, step_size / 10) for start, end, step_size in
                      zip(starts, ends, step_sizes)]
             self.m.daq.set_piezo_position(scans[0][0], scans[1][0])
             # grid pattern minima
@@ -852,14 +849,10 @@ class MainController(QtCore.QObject):
             # double check
             positions = self.con_controller.get_piezo_positions()
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
-            num_steps = [int(0.4 * axis_length / (step_size * 0.4)) for axis_length, step_size in
-                         zip(axis_lengths, step_sizes)]
-            starts = [position - num_step * (step_size * 0.4) for position, num_step, step_size in
-                      zip(positions, num_steps, step_sizes)]
-            ends = [position + num_step * (step_size * 0.4) for position, num_step, step_size in
-                    zip(positions, num_steps, step_sizes)]
-            scans = [np.arange(start / 10, end / 10, (step_size * 0.4) / 10) for start, end, step_size in
-                     zip(starts, ends, step_sizes)]
+            starts = [position - 0.4 * axis_length for position, axis_length in zip(positions, axis_lengths)]
+            ends = [position + 0.4 * axis_length for position, axis_length in zip(positions, axis_lengths)]
+            scans = [np.arange(start / 10, end / 10 + 0.8 * step_size / 10, 0.8 * step_size / 10) for
+                     start, end, step_size in zip(starts, ends, step_sizes)]
             data = []
             mx = np.zeros((sx, sy))
             for i in range(sx):
