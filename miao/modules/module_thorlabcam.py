@@ -1,22 +1,33 @@
+import os
+import threading
+from collections import deque
+
 import numpy as np
-import ctypes as ct
+from thorlabs_tsi_sdk.tl_camera import TLCameraSDK, ROI
 
-uc480_dll = r"C:\Program Files\Thorlabs\Scientific Imaging\ThorCam\uc480_64.dll"
+path_to_files = r"C:\Program Files\Thorlabs\Scientific Imaging\Scientific Camera Support\Scientific Camera Interfaces\SDK\Python Toolkit"
 
 
-class ThorCam:
+class ThorCMOS:
     def __init__(self, logg=None):
         self.logg = logg or self.setup_logging()
-        self.uc480 = self._init_dll()
-        if self.uc480 is not None:
+        try:
+            self._configure_path()
+        except Exception as e:
+            self.logg.error(f"Failed to load ThorCMOS DLLs {e}")
+            return
+        self.sdk, serial = self._init_sdk()
+        if self.sdk is not None:
             try:
-                self.handle = self._init_cam()
+                self.camera = self._init_cam(serial)
             except Exception as e:
-                self.handle = None
+                self.camera = None
                 self.logg.error(f"{e}")
                 return
-        if self.handle is not None:
+        if self.camera is not None:
             self._config_cam()
+        self.data = None
+        self.acq_thread = None
 
     @staticmethod
     def setup_logging():
@@ -24,121 +35,138 @@ class ThorCam:
         logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
         return logging
 
-    def _init_dll(self):
+    @staticmethod
+    def _configure_path():
+        relative_path_to_dlls = '.' + os.sep + 'dlls' + os.sep
+        relative_path_to_dlls += '64_lib'
+        absolute_path_to_dlls = os.path.abspath(path_to_files + os.sep + relative_path_to_dlls)
+        os.environ['PATH'] = absolute_path_to_dlls + os.pathsep + os.environ['PATH']
         try:
-            dll = ct.windll.LoadLibrary(uc480_dll)
-            return dll
-        except Exception as e:
-            self.logg.error(f"ThorCam drivers not available {e}")
-            return None
+            os.add_dll_directory(absolute_path_to_dlls)
+        except AttributeError:
+            raise
 
-    def _init_cam(self):
-        is_init_camera = self.uc480.is_InitCamera
-        is_init_camera.argtypes = [ct.POINTER(ct.c_int)]
-        h = ct.c_int(0)
-        i = is_init_camera(ct.byref(h))
-        if i == 0:
-            self.logg.info(f"ThorCam initiated successfully")
-            return h
+    def _init_sdk(self):
+        sdk = TLCameraSDK()
+        available_cameras = sdk.discover_available_cameras()
+        if len(available_cameras) < 1:
+            self.logg.error(f"No ThorCMOS found")
+            return None
         else:
-            raise RuntimeError(f"Opening the ThorCam failed with error code {i}")
+            self.logg.info(f"Found {len(available_cameras)} ThorCMOS {available_cameras[0]}")
+            return sdk, available_cameras[0]
+
+    def _init_cam(self, serial):
+        try:
+            camera = self.sdk.open_camera(serial)
+            self.logg.info(f"ThorCMOS initiated successfully")
+            return camera
+        except Exception as e:
+            raise RuntimeError(f"Opening the ThorCMOS failed with error code {e}")
 
     def _config_cam(self):
-        try:
-            self.roi_shape = self.set_roi_shape((1024, 1024))
-        except Exception as e:
-            self.logg.error(f"{e}")
-            return
-        try:
-            self.roi_pos = self.set_roi_pos((0, 0))
-        except Exception as e:
-            self.logg.error(f"{e}")
-            return
-        self.meminfo = None
-        self.meminfo = self.initialize_memory()
-        pixel_clock = ct.c_uint(5)  # set pixel clock to 5 MHz
-        is_pixel_clock = self.uc480.is_PixelClock
-        is_pixel_clock.argtypes = [ct.c_int, ct.c_uint, ct.POINTER(ct.c_uint), ct.c_uint]
-        is_pixel_clock(self.handle, 6, ct.byref(pixel_clock), ct.sizeof(pixel_clock))  # 6 for setting pixel clock
-        self.uc480.is_SetColorMode(self.handle, 6)  # 6 is for monochrome 8 bit. See uc480.h for definitions
-        self.frame_rate = self.set_frame_rate(4)
-        self.exposure = self.set_exposure(32)
+        self.camera.frames_per_trigger_zero_for_unlimited = 1
+        # self.camera.image_poll_timeout_ms = 0  # 1 second polling timeout
+        self.camera.operation_mode = 0  # BULB
+        self.camera.trigger_polarity = 0  # ACTIVE_HIGH, rising edge
 
     def close(self):
-        if self.handle is not None:
-            self.stop_live()
-            i = self.uc480.is_ExitCamera(self.handle)
-            if i == 0:
-                self.logg.info("ThorCam closed successfully.")
-            else:
-                self.logg.error("Closing ThorCam failed with error code " + str(i))
-        else:
-            return
+        if self.camera.is_armed:
+            self.camera.disarm()
+        self.camera.dispose()
+        self.sdk.dispose()
 
-    def set_roi_shape(self, set_roi_shape):
-        class IS_SIZE_2D(ct.Structure):
-            _fields_ = [('s32Width', ct.c_int), ('s32Height', ct.c_int)]
-
-        aoi_size = IS_SIZE_2D(set_roi_shape[0], set_roi_shape[1])  # Width and Height
-
-        is_aoi = self.uc480.is_AOI
-        is_aoi.argtypes = [ct.c_int, ct.c_uint, ct.POINTER(IS_SIZE_2D), ct.c_uint]
-        i = is_aoi(self.handle, 5, ct.byref(aoi_size), 8)  # 5 for setting size, 3 for setting position
-        if i == 0:
-            self.logg.info(f"ThorCam ROI size set successfully.")
-            is_aoi(self.handle, 6, ct.byref(aoi_size), 8)  # 6 for getting size, 4 for getting position
-            return [aoi_size.s32Width, aoi_size.s32Height]
-        else:
-            raise RuntimeError(f"Set ThorCam ROI size failed with error code {i}")
-
-    def set_roi_pos(self, set_roi_pos):
-        class IS_POINT_2D(ct.Structure):
-            _fields_ = [('s32X', ct.c_int), ('s32Y', ct.c_int)]
-
-        aoi_pos = IS_POINT_2D(set_roi_pos[0], set_roi_pos[1])  # Width and Height
-
-        is_aoi = self.uc480.is_AOI
-        is_aoi.argtypes = [ct.c_int, ct.c_uint, ct.POINTER(IS_POINT_2D), ct.c_uint]
-        i = is_aoi(self.handle, 3, ct.byref(aoi_pos), 8)  # 5 for setting size, 3 for setting position
-        if i == 0:
-            self.logg.info(f"ThorCam ROI position set successfully.")
-            is_aoi(self.handle, 4, ct.byref(aoi_pos), 8)  # 6 for getting size, 4 for getting position
-            return [aoi_pos.s32X, aoi_pos.s32Y]
-        else:
-            raise RuntimeError(f"Set ThorCam ROI size failed with error code {i}")
-
-    def initialize_memory(self):
-        if self.meminfo is not None:
-            self.uc480.is_FreeImageMem(self.handle, self.meminfo[0], self.meminfo[1])
-        dim_x = self.roi_shape[0]
-        dim_y = self.roi_shape[1]
-        image_size = dim_x * dim_y
-        memid = ct.c_int(0)
-        c_buf = (ct.c_ubyte * image_size)(0)
-        self.uc480.is_SetAllocatedImageMem(self.handle, dim_x, dim_y, 8, c_buf, ct.byref(memid))
-        self.uc480.is_SetImageMem(self.handle, c_buf, memid)
-        return [c_buf, memid]
+    def set_roi(self, upper_left_x_pixels, upper_left_y_pixels, lower_right_x_pixels, lower_right_y_pixels):
+        self.camera.roi = (upper_left_x_pixels, upper_left_y_pixels, lower_right_x_pixels, lower_right_y_pixels)
 
     def set_frame_rate(self, frame_rate):
-        is_set_frame_rate = self.uc480.is_SetFrameRate
-        set_frame_rate = ct.c_double(0)
-        is_set_frame_rate.argtypes = [ct.c_int, ct.c_double, ct.POINTER(ct.c_double)]
-        is_set_frame_rate(self.handle, frame_rate, ct.byref(set_frame_rate))
-        return set_frame_rate.value
+        self.camera.frame_rate_control_value = frame_rate
+        self.camera.is_frame_rate_control_enabled = True
 
     def set_exposure(self, exposure):
-        """ exposure in ms """
-        exposure_c = ct.c_double(exposure)
-        is_exposure = self.uc480.is_Exposure
-        is_exposure.argtypes = [ct.c_int, ct.c_uint, ct.POINTER(ct.c_double), ct.c_uint]
-        is_exposure(self.handle, 12, exposure_c, 8)  # 12 is for setting exposure
-        return exposure_c.value
+        self.camera.exposure_time_us = exposure
+
+    def send_software_trigger(self):
+        self.camera.issue_software_trigger()
+
+    def prepare_live(self):
+        self.data = DataList(8)
+        self.acq_thread = AcquisitionThread(self)
 
     def start_live(self):
-        self.uc480.is_CaptureVideo(self.handle, 1)
+        self.camera.arm(4)
+        self.acq_thread.start()
 
     def stop_live(self):
-        self.uc480.is_StopLiveVideo(self.handle, 1)
+        self.camera.disarm()
+        self.acq_thread.stop()
+        self.acq_thread = None
+
+    def prepare_acquisition(self, n):
+        self.data = DataList(n)
+        self.acq_thread = AcquisitionThread(self)
+
+    def start_acquisition(self):
+        self.camera.arm(4)
+        self.acq_thread.start()
+
+    def stop_acquisition(self):
+        self.camera.disarm()
+        self.acq_thread.stop()
+        self.acq_thread = None
 
     def get_image(self):
-        return np.frombuffer(self.meminfo[0], ct.c_ubyte).reshape(self.roi_shape[1], self.roi_shape[0])
+        frame = self.camera.get_pending_frame_or_null()
+        if frame is not None:
+            image_buffer_copy = np.copy(frame.image_buffer)
+            numpy_shaped_image = image_buffer_copy.reshape(self.camera.image_height_pixels,
+                                                           self.camera.image_width_pixels)
+            self.data.add_element([numpy_shaped_image], [frame.frame_count])
+
+
+class AcquisitionThread(threading.Thread):
+    running = False
+    lock = threading.Lock()
+
+    def __init__(self, cam):
+        threading.Thread.__init__(self)
+        self.cam = cam
+
+    def run(self):
+        self.running = True
+        while self.running:
+            with self.lock:
+                self.cam.get_image()
+
+    def stop(self):
+        self.running = False
+        self.join()
+
+
+class DataList:
+
+    def __init__(self, max_length):
+        self.data_list = deque(maxlen=max_length)
+        self.ind_list = deque(maxlen=max_length)
+        self.callback = None
+
+    def add_element(self, elements, ind):
+        self.data_list.extend(elements)
+        self.ind_list.extend(ind)
+        self.emit_update()
+
+    def get_elements(self):
+        return np.array(self.data_list) if self.data_list else None
+
+    def get_last_element(self):
+        return self.data_list[-1].copy() if self.data_list else None
+
+    def is_empty(self):
+        return len(self.data_list) == 0
+
+    def on_update(self, callback):
+        self.callback = callback
+
+    def emit_update(self):
+        if self.callback is not None:
+            self.callback(self)
