@@ -607,7 +607,8 @@ class MainController(QtCore.QObject):
                        metadata={'unit': 'um',
                                  'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
             fp = ipr.peak_find(zps, pzs)
-            self.set_piezo_position_z(fp)
+            self.view_controller.plot_update(pzs, x=zps)
+            self.v.con_view.QDoubleSpinBox_stage_z.setValue(fp)
         except Exception as e:
             self.finish_widefield_zstack()
             self.logg.error(f"Error running widefield zstack: {e}")

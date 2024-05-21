@@ -124,14 +124,20 @@ class ViewWidget(QtWidgets.QWidget):
             plt.ylabel(axis_labels[1])
         self.canvas.draw()
 
-    def plot(self, data):
-        self.canvas.axes.plot(data)
+    def plot(self, data, x=None):
+        if x is not None:
+            self.canvas.axes.plot(x, data)
+        else:
+            self.canvas.axes.plot(data)
         self.canvas.axes.grid(True)
         self.canvas.draw()
 
-    def update_plot(self, data):
+    def update_plot(self, data, x=None):
         self.canvas.axes.cla()
-        self.canvas.axes.plot(data)
+        if x is not None:
+            self.canvas.axes.plot(x, data)
+        else:
+            self.canvas.axes.plot(data)
         self.canvas.axes.grid(True)
         self.canvas.draw()
 

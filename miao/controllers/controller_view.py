@@ -21,11 +21,11 @@ class ViewController:
     def get_image_data(self, layer=1):
         return self.v.get_image(self.v.img_layers[layer])
 
-    def plot(self, data):
-        self.v.plot(data)
+    def plot(self, data, x=None):
+        self.v.plot(data, x)
 
-    def plot_update(self, data):
-        self.v.update_plot(data)
+    def plot_update(self, data, x=None):
+        self.v.update_plot(data, x)
 
     def display_metrics(self, m1, m2, m3):
         self.v.QLCDNumber_img_laplacian_cv2.display(m1)
