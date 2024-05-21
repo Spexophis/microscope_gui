@@ -71,6 +71,10 @@ class MainModule:
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
+            self.thorcam.close()
+        except Exception as e:
+            self.logg.error_log.error(f"{e}")
+        try:
             self.tiscam.close()
         except Exception as e:
             self.logg.error_log.error(f"{e}")
