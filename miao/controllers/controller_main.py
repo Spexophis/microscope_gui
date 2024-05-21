@@ -68,6 +68,8 @@ class MainController(QtCore.QObject):
         self.v.view_view.Signal_image_metrics.connect(self.compute_image_metrics)
         # MCL Piezo
         self.v.con_view.Signal_piezo_move.connect(self.set_piezo_positions)
+        self.v.con_view.Signal_focus_finding.connect(self.run_focus_finding)
+        self.v.con_view.Signal_focus_locking.connect(self.run_focus_locking)
         # MCL Mad Deck
         self.v.con_view.Signal_deck_read_position.connect(self.deck_read_position)
         self.v.con_view.Signal_deck_zero_position.connect(self.deck_zero_position)
@@ -513,6 +515,19 @@ class MainController(QtCore.QObject):
         else:
             self.logg.error(f"Invalid video mode")
 
+    @QtCore.pyqtSlot(bool)
+    def run_focus_locking(self, sw: bool):
+        if sw:
+            self.lock_focus()
+        else:
+            self.lock_focus_release()
+
+    def lock_focus(self):
+        pass
+
+    def lock_focus_release(self):
+        pass
+
     def prepare_widefield_zstack(self):
         self.lasers = self.con_controller.get_lasers()
         self.set_lasers()
@@ -562,6 +577,43 @@ class MainController(QtCore.QObject):
             return
         self.finish_widefield_zstack()
 
+    def focus_finding(self):
+        try:
+            self.prepare_widefield_zstack()
+        except Exception as e:
+            self.logg.error(f"Error starting widefield zstack: {e}")
+            return
+        try:
+            positions = self.con_controller.get_piezo_positions()
+            center_pos, axis_length, step_size = positions[2], 0.96, 0.16
+            start = center_pos - axis_length / 2
+            end = center_pos + axis_length / 2
+            zps = np.arange(start, end + step_size, step_size)
+            data = []
+            pzs = []
+            self.m.cam_set[self.cameras["imaging"]].start_live()
+            for i, z in enumerate(zps):
+                _ = self.m.pz.move_position(2, z)
+                time.sleep(0.02)
+                self.m.daq.run_triggers()
+                time.sleep(0.04)
+                temp = self.m.cam_set[self.cameras["imaging"]].get_last_image()
+                data.append(temp)
+                self.m.daq.stop_triggers(_close=False)
+                pzs.append(ipr.calculate_focus_measure_with_laplacian(temp))
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_widefield_zstack.tif')
+            tf.imwrite(fd, np.asarray(data), imagej=True, resolution=(
+                1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
+                       metadata={'unit': 'um',
+                                 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
+            fp = ipr.peak_find(zps, pzs)
+            self.set_piezo_position_z(fp)
+        except Exception as e:
+            self.finish_widefield_zstack()
+            self.logg.error(f"Error running widefield zstack: {e}")
+            return
+        self.finish_widefield_zstack()
+
     def finish_widefield_zstack(self):
         try:
             self.reset_piezo_positions()
@@ -574,6 +626,9 @@ class MainController(QtCore.QObject):
 
     def run_widefield_zstack(self, n: int):
         self.run_task(task=self.widefield_zstack, iteration=n)
+
+    def run_focus_finding(self):
+        self.run_task(task=self.focus_finding)
 
     def prepare_dot_scanning(self):
         self.lasers = self.con_controller.get_lasers()

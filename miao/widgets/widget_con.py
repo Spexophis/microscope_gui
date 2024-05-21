@@ -16,6 +16,8 @@ class ConWidget(QtWidgets.QWidget):
     Signal_set_laser = QtCore.pyqtSignal(list, bool, float)
     Signal_daq_update = QtCore.pyqtSignal(int)
     Signal_plot_trigger = QtCore.pyqtSignal()
+    Signal_focus_finding = QtCore.pyqtSignal()
+    Signal_focus_locking = QtCore.pyqtSignal(bool)
     Signal_video = QtCore.pyqtSignal(bool, str)
     Signal_fft = QtCore.pyqtSignal(bool)
     Signal_plot_profile = QtCore.pyqtSignal(bool)
@@ -164,6 +166,8 @@ class ConWidget(QtWidgets.QWidget):
         self.QDoubleSpinBox_step_z = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.160)
         self.QDoubleSpinBox_range_z = cw.doublespinbox_widget(0, 50, 0.001, 3, 4.80)
         self.QDoubleSpinBox_piezo_return_time = cw.doublespinbox_widget(0, 50, 0.01, 2, 0.06)
+        self.QPushButton_focus_finding = cw.pushbutton_widget('Find Focus')
+        self.QPushButton_focus_locking = cw.pushbutton_widget('Lock Focus', checkable=True)
         self.mcl_piezo_scroll_area, mcl_piezo_scroll_layout = cw.create_scroll_area()
         mcl_piezo_scroll_layout.addRow(cw.label_widget(str('MCL Piezo')))
         mcl_piezo_scroll_layout.addRow(cw.frame_widget())
@@ -192,6 +196,8 @@ class ConWidget(QtWidgets.QWidget):
         mcl_piezo_scroll_layout.addRow(self.QDoubleSpinBox_step_z, self.QDoubleSpinBox_range_z)
         mcl_piezo_scroll_layout.addRow(cw.frame_widget())
         mcl_piezo_scroll_layout.addRow(cw.label_widget(str('Piezo Return / s')), self.QDoubleSpinBox_piezo_return_time)
+        mcl_piezo_scroll_layout.addRow(cw.frame_widget())
+        mcl_piezo_scroll_layout.addRow(self.QPushButton_focus_finding, self.QPushButton_focus_locking)
         self.QLCDNumber_galvo_frequency = cw.lcdnumber_widget(0, 3)
         self.QDoubleSpinBox_galvo_x = cw.doublespinbox_widget(-10, 10, 0.0001, 5, 0)
         self.QDoubleSpinBox_galvo_y = cw.doublespinbox_widget(-10, 10, 0.0001, 5, 0)
@@ -347,6 +353,8 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_laser_405.clicked.connect(self.set_laser_405)
         self.QSpinBox_daq_sample_rate.valueChanged.connect(self.update_daq)
         self.QPushButton_plot_trigger.clicked.connect(self.plot_trigger_sequence)
+        self.QPushButton_focus_finding.clicked.connect(self.run_focus_finding)
+        self.QPushButton_focus_locking.clicked.connect(self.run_focus_locking)
         self.QPushButton_video.clicked.connect(self.run_video)
         self.QPushButton_fft.clicked.connect(self.run_fft)
         self.QPushButton_plot_profile.clicked.connect(self.run_plot_profile)
@@ -450,6 +458,17 @@ class ConWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def plot_trigger_sequence(self):
         self.Signal_plot_trigger.emit()
+
+    @QtCore.pyqtSlot()
+    def run_focus_finding(self):
+        self.Signal_focus_finding.emit()
+
+    @QtCore.pyqtSlot()
+    def run_focus_locking(self):
+        if self.QPushButton_focus_locking.isChecked():
+            self.Signal_focus_locking.emit(True)
+        else:
+            self.Signal_focus_locking.emit(False)
 
     @QtCore.pyqtSlot()
     def run_video(self):
