@@ -585,7 +585,7 @@ class MainController(QtCore.QObject):
             return
         try:
             positions = self.con_controller.get_piezo_positions()
-            center_pos, axis_length, step_size = positions[2], 0.96, 0.16
+            center_pos, axis_length, step_size = positions[2], 0.64, 0.16
             start = center_pos - axis_length
             end = center_pos + axis_length
             zps = np.arange(start, end + step_size, step_size)
@@ -600,13 +600,13 @@ class MainController(QtCore.QObject):
                 temp = self.m.cam_set[self.cameras["imaging"]].get_last_image()
                 data.append(temp)
                 self.m.daq.stop_triggers(_close=False)
-                pzs.append(ipr.calculate_focus_measure_with_laplacian(temp))
+                pzs.append(ipr.calculate_focus_measure_with_sobel(temp - temp.min()))
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_widefield_zstack.tif')
             tf.imwrite(fd, np.asarray(data), imagej=True, resolution=(
                 1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
                        metadata={'unit': 'um',
                                  'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
-            fp = ipr.valley_find(zps, pzs)
+            fp = ipr.peak_find(zps, pzs)
             self.set_piezo_position_z(fp)
         except Exception as e:
             self.finish_widefield_zstack()
