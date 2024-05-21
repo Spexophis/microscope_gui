@@ -1,6 +1,7 @@
 from miao.modules import module_andorixon
 from miao.modules import module_deformablemirror
 from miao.modules import module_hamamatsu
+from miao.modules import module_thorlabcam
 from miao.modules import module_laser
 from miao.modules import module_mcldeck
 from miao.modules import module_mclpiezo
@@ -26,8 +27,13 @@ class MainModule:
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
+            self.thorcam = module_thorlabcam.ThorCMOS(logg=self.logg.error_log)
+            self.cam_set[2] = self.thorcam
+        except Exception as e:
+            self.logg.error_log.error(f"{e}")
+        try:
             self.tiscam = module_tis.TISCamera(logg=self.logg.error_log)
-            self.cam_set[2] = self.tiscam
+            self.cam_set[3] = self.tiscam
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         self.dm = {}

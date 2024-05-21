@@ -67,8 +67,8 @@ class ThorCMOS:
     def _config_cam(self):
         self.camera.frames_per_trigger_zero_for_unlimited = 1
         # self.camera.image_poll_timeout_ms = 0  # 1 second polling timeout
-        self.camera.operation_mode = 0  # BULB
-        self.camera.trigger_polarity = 0  # ACTIVE_HIGH, rising edge
+        self.set_acquisition_mode(2)
+        self.set_trigger_polarity(0)
 
     def close(self):
         if self.camera.is_armed:
@@ -85,6 +85,21 @@ class ThorCMOS:
 
     def set_exposure(self, exposure):
         self.camera.exposure_time_us = exposure
+
+    def set_acquisition_mode(self, md):
+        """
+        0: SOFTWARE TRIGGER;
+        1: HARDWARE TRIGGER;
+        2: BULB (TRIGGER EXPOSURE)
+        """
+        self.camera.operation_mode = md
+
+    def set_trigger_polarity(self, tp):
+        """
+        0: ACTIVE_HIGH (rising edge);
+        1: ACTIVE_LOW (falling edge)
+        """
+        self.camera.trigger_polarity = tp
 
     def send_software_trigger(self):
         self.camera.issue_software_trigger()
