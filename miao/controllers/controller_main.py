@@ -512,6 +512,8 @@ class MainController(QtCore.QObject):
             self.run_monalisa_scan(acq_num)
         elif acq_mod == "Dot Scan 2D":
             self.run_dot_scanning(acq_num)
+        elif acq_mod == "Focal Array Scan 2D":
+            self.run_focal_array_scan()
         else:
             self.logg.error(f"Invalid video mode")
 
@@ -744,11 +746,9 @@ class MainController(QtCore.QObject):
         try:
             positions = self.con_controller.get_piezo_positions()
             self.p.trigger.update_piezo_scan_parameters(piezo_ranges=[0., 0., 0.])
-            p_w = self.con_controller.get_cobolt_laser_power("488_2")
-            self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0., 0., 0., p_w[0]])
             galvo_positions, [galvo_ranges, dot_ranges], dot_pos = self.con_controller.get_galvo_scan_parameters()
-            scan_x = dot_ranges[0] + np.linspace(0, 2. * self.p.trigger.dot_step_v, 16, endpoint=False, dtype=float)
-            scan_y = dot_ranges[1] + np.linspace(0, 2. * self.p.trigger.dot_step_y, 16, endpoint=False, dtype=float)
+            scan_x = dot_ranges[0] + np.linspace(0, 2. * self.p.trigger.dot_step_v, 20, endpoint=False, dtype=float)
+            scan_y = dot_ranges[1] + np.linspace(0, 2. * self.p.trigger.dot_step_y, 20, endpoint=False, dtype=float)
             data = []
             self.m.pz.lock_position(2, positions[2])
             self.m.cam_set[self.cameras["imaging"]].start_live()

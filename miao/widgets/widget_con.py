@@ -318,7 +318,8 @@ class ConWidget(QtWidgets.QWidget):
         layout_acquisition = QtWidgets.QGridLayout()
         self.QComboBox_acquisition_modes = cw.combobox_widget(list_items=["Wide Field 2D", "Wide Field 3D",
                                                                           "Monalisa Scan 2D", "Monalisa Scan 3D",
-                                                                          "Dot Scan 2D", "Dot Scan 3D"])
+                                                                          "Dot Scan 2D", "Dot Scan 3D",
+                                                                          "Focal Array Scan 2D"])
         self.QSpinBox_acquisition_number = cw.spinbox_widget(1, 50000, 1, 1)
         self.QPushButton_alignment = cw.pushbutton_widget('Alignment')
         self.QPushButton_acquire = cw.pushbutton_widget('Acquire')
