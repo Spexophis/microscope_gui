@@ -118,7 +118,7 @@ class AOWidget(QtWidgets.QWidget):
     def _create_shwfs_widgets(self):
         layout_shwfs = QtWidgets.QHBoxLayout()
         self.QLabel_image_shwfs = cw.label_widget(str('Camera'))
-        self.QComboBox_wfs_camera_selection = cw.combobox_widget(list_items=["EMCCD", "SCMOS", "TIS"])
+        self.QComboBox_wfs_camera_selection = cw.combobox_widget(list_items=["EMCCD", "SCMOS", "Thorlabs"])
         self.QPushButton_img_shwfs_base = cw.pushbutton_widget('SetBase', enable=True)
         self.QPushButton_run_img_wfs = cw.pushbutton_widget('RunWFS', checkable=True)
         self.QPushButton_run_img_wfr = cw.pushbutton_widget('RunWFR', enable=True)

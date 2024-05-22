@@ -29,7 +29,7 @@ class MainController(QtCore.QObject):
         self._set_signal_connections()
         self._initial_setup()
         self.lasers = []
-        self.cameras = {"imaging": 0, "wfs": 1}
+        self.cameras = {"imaging": 0, "wfs": 1, "focus_lock": 3}
         # dedicated thread pool for tasks
         self.task_worker = None
         self.task_thread = QtCore.QThread()
@@ -43,21 +43,28 @@ class MainController(QtCore.QObject):
         self.thread_video.started.connect(self.videoWorker.start)
         self.thread_video.finished.connect(self.videoWorker.stop)
         # image process thread
-        self.fftWorker = LoopWorker(dt=200)
+        self.fftWorker = LoopWorker(dt=250)
         self.fftWorker.signal_loop.connect(self.imshow_fft)
         self.thread_fft = QtCore.QThread()
         self.fftWorker.moveToThread(self.thread_fft)
         self.thread_fft.started.connect(self.fftWorker.start)
         self.thread_fft.finished.connect(self.fftWorker.stop)
+        # image process thread
+        self.flocWorker = LoopWorker(dt=250)
+        self.flocWorker.signal_loop.connect(self.focus_locking)
+        self.thread_floc = QtCore.QThread()
+        self.flocWorker.moveToThread(self.thread_floc)
+        self.thread_floc.started.connect(self.flocWorker.start)
+        self.thread_floc.finished.connect(self.flocWorker.stop)
         # plot thread
-        self.plotWorker = LoopWorker(dt=200)
+        self.plotWorker = LoopWorker(dt=250)
         self.plotWorker.signal_loop.connect(self.profile_plot)
         self.thread_plot = QtCore.QThread()
         self.plotWorker.moveToThread(self.thread_plot)
         self.thread_plot.started.connect(self.plotWorker.start)
         self.thread_plot.finished.connect(self.plotWorker.stop)
         # wavefront sensor thread
-        self.wfsWorker = LoopWorker(dt=100)
+        self.wfsWorker = LoopWorker(dt=125)
         self.wfsWorker.signal_loop.connect(self.imshow_img_wfs)
         self.thread_wfs = QtCore.QThread()
         self.wfsWorker.moveToThread(self.thread_wfs)
@@ -300,18 +307,19 @@ class MainController(QtCore.QObject):
     def set_camera_roi(self, key="imaging"):
         try:
             if self.cameras[key] == 0:
-                x, y, n, b = self.con_controller.get_emccd_roi()
-                self.m.cam_set[0].bin_h, self.m.cam_set[0].bin_h = b, b
-                self.m.cam_set[0].start_h, self.m.cam_set[0].end_h = x, x + n - 1
-                self.m.cam_set[0].start_v, self.m.cam_set[0].end_v = y, y + n - 1
+                x, y, nx, ny, bx, by = self.con_controller.get_emccd_roi()
+                self.m.cam_set[0].bin_h, self.m.cam_set[0].bin_v = bx, by
+                self.m.cam_set[0].start_h, self.m.cam_set[0].end_h = x, x + nx - 1
+                self.m.cam_set[0].start_v, self.m.cam_set[0].end_v = y, y + ny - 1
                 self.m.cam_set[0].set_roi()
                 self.m.cam_set[0].gain = self.con_controller.get_emccd_gain()
                 self.m.cam_set[0].set_gain()
             if self.cameras[key] == 1:
-                x, y, n, b = self.con_controller.get_scmos_roi()
-                self.m.cam_set[1].set_roi(b, b, x, x + n - 1, y, y + n - 1)
+                x, y, nx, ny, bx, by = self.con_controller.get_scmos_roi()
+                self.m.cam_set[1].set_roi(bx, by, x, x + nx - 1, y, y + ny - 1)
             if self.cameras[key] == 2:
-                pass
+                x, y, nx, ny, bx, by = self.con_controller.get_thorcam_roi()
+                self.m.cam_set[2].set_roi(x, y, x + nx - 1, y + ny - 1)
         except Exception as e:
             self.logg.error(f"Camera Error: {e}")
 
@@ -522,13 +530,35 @@ class MainController(QtCore.QObject):
         if sw:
             self.lock_focus()
         else:
-            self.lock_focus_release()
+            self.release_focus()
+
+    def prepare_focus_locking(self):
+        self.m.cam_set[self.cameras["focus_lock"]].prepare_live()
 
     def lock_focus(self):
-        pass
+        try:
+            self.prepare_focus_locking()
+        except Exception as e:
+            self.logg.error(f"Error preparing focus locking: {e}")
+            return
+        try:
+            self.m.cam_set[self.cameras["focus_lock"]].start_live()
+            self.thread_floc.start()
+        except Exception as e:
+            self.logg.error(f"Error starting focus locking: {e}")
 
-    def lock_focus_release(self):
-        pass
+    def release_focus(self):
+        try:
+            self.thread_floc.quit()
+            self.thread_floc.wait()
+            self.m.cam_set[self.cameras["focus_lock"]].stop_live()
+        except Exception as e:
+            self.logg.error(f"Error stopping imaging video: {e}")
+
+    def focus_locking(self):
+        self.p.pid_ctrl.SetPoint = self.v.con_view.QDoubleSpinBox_stage_z.value()
+        current_position = self.v.con_view.QDoubleSpinBox_stage_z.value()
+        self.p.pid_ctrl.update(current_position)
 
     def prepare_widefield_zstack(self):
         self.lasers = self.con_controller.get_lasers()

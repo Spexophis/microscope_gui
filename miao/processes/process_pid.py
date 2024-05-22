@@ -1,8 +1,10 @@
 import time
+from collections import deque
 
 
 class PID:
-    """PID Controller
+    """
+    PID Controller
     Originally from IvPID. Author: Caner Durmusoglu
     """
 
@@ -13,10 +15,6 @@ class PID:
         self.sample_time = 0.00
         self.current_time = current_time if current_time is not None else time.time()
         self.last_time = self.current_time
-        self.clear()
-
-    def clear(self):
-        """Clears PID computations and coefficients"""
         self.SetPoint = 0.0
         self.PTerm = 0.0
         self.ITerm = 0.0
@@ -25,6 +23,18 @@ class PID:
         self.int_error = 0.0  # Windup Guard
         self.windup_guard = 20.0
         self.output = 0.0
+        self.ctd = CtrlData(128)
+
+    def reset_pid(self):
+        """Reset PID computations and coefficients"""
+        self.PTerm = 0.0
+        self.ITerm = 0.0
+        self.DTerm = 0.0
+        self.last_error = 0.0
+        self.int_error = 0.0  # Windup Guard
+        self.windup_guard = 20.0
+        self.output = 0.0
+        self.ctd.reset()
 
     def update(self, feedback_value, current_time=None):
         """Calculates PID value for given reference feedback"""
@@ -32,20 +42,16 @@ class PID:
         self.current_time = current_time if current_time is not None else time.time()
         delta_time = self.current_time - self.last_time
         delta_error = error - self.last_error
-
         if delta_time >= self.sample_time:
             self.PTerm = self.Kp * error
             self.ITerm += error * delta_time
-
             # Anti-windup: Clamp ITerm to windup_guard
             self.ITerm = max(min(self.ITerm, self.windup_guard), -self.windup_guard)
-
             self.DTerm = delta_error / delta_time if delta_time > 0 else 0.0
-
             self.last_time = self.current_time
             self.last_error = error
-
-            self.output = self.PTerm + (self.Ki * self.ITerm) + (self.Kd * self.DTerm)
+            output = self.PTerm + (self.Ki * self.ITerm) + (self.Kd * self.DTerm)
+            self.ctd.add_elements(output, feedback_value)
 
     @property
     def kp(self):
@@ -88,6 +94,30 @@ class PID:
         self._sample_time = value
 
 
+class CtrlData:
+
+    def __init__(self, max_length):
+        self.ctrl_list = deque(maxlen=max_length + 1)
+        self.ctrl_list.extend([0.])
+        self.data_list = deque(maxlen=max_length)
+
+    def add_elements(self, ctrl, data):
+        self.ctrl_list.extend([ctrl])
+        self.data_list.extend([data])
+
+    def get_elements(self):
+        return np.array(self.ctrl_list.copy()) if self.ctrl_list else None, np.array(
+            self.data_list.copy()) if self.data_list else None
+
+    def get_last_elements(self):
+        return self.ctrl_list[-1].copy() if self.ctrl_list else None, self.data_list[
+            -1].copy() if self.data_list else None
+
+    def reset(self):
+        self.ctrl_list.clear()
+        self.data_list.clear()
+
+
 if __name__ == '__main__':
 
     import matplotlib.pyplot as plt
@@ -101,6 +131,7 @@ if __name__ == '__main__':
         def update(self, ctrl_sig):
             # Simple linear model with noise: the system's value changes based on the control signal
             self.value += np.random.normal(ctrl_sig, 0.01)
+
 
     # Initialize the system and PID controller
     system = SimulatedSystem(initial_value=np.random.normal(50., 0.01))
@@ -118,14 +149,13 @@ if __name__ == '__main__':
         current_position = system.value
         pid.update(current_position)
 
-        control_signal = pid.output
-        system.update(control_signal)
+        system.update(pid.ctd.ctrl_list[-1])
 
         # Store values for plotting
         time_values.append(t)
         position_values.append(current_position)
         position_signal.append(system.value)
-        control_values.append(control_signal)
+        control_values.append(pid.ctd.ctrl_list[-1])
 
         # Simulate a time delay (for real-time systems)
         time.sleep(0.1)

@@ -195,6 +195,22 @@ class TriggerSequence:
             digital_trigger[laser, self.digital_starts[laser]:self.digital_ends[laser]] = 1
         return digital_trigger
 
+    def generate_digital_triggers_(self, lasers, camera):
+        initial_samples = int(np.ceil(self.initial_time * self.sample_rate))
+        standby_samples = int(np.ceil(self.standby_time * self.sample_rate))
+        cam_ind = camera + 4
+        offset = max(0, initial_samples - self.digital_starts[cam_ind])
+        self.digital_starts = [(_start + offset) for _start in self.digital_starts]
+        self.digital_ends = [(_end + offset) for _end in self.digital_ends]
+        cycle_samples = self.digital_ends[cam_ind] + standby_samples
+        digital_trigger = np.zeros((len(self.lasers) + 1, cycle_samples), dtype=int)
+        self.exposure_samples = self.digital_ends[cam_ind] - self.digital_starts[cam_ind]
+        self.exposure_time = self.exposure_samples / self.sample_rate
+        digital_trigger[-1, self.digital_starts[cam_ind]:self.digital_ends[cam_ind]] = 1
+        for ln, laser in enumerate(lasers):
+            digital_trigger[ln, self.digital_starts[laser]:self.digital_ends[laser]] = 1
+        return digital_trigger
+
     def generate_dotscan_resolft_2d(self, camera=0):
         interval_samples = self.galvo_return
         initial_samples = int(np.ceil(self.initial_time * self.sample_rate))

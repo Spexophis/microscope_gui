@@ -5,7 +5,8 @@ class ConController:
 
     def get_emccd_roi(self):
         return [self.v.QSpinBox_emccd_coordinate_x.value(), self.v.QSpinBox_emccd_coordinate_y.value(),
-                self.v.QSpinBox_emccd_coordinate_n.value(), self.v.QSpinBox_emccd_coordinate_bin.value()]
+                self.v.QSpinBox_emccd_coordinate_nx.value(), self.v.QSpinBox_emccd_coordinate_ny.value(),
+                self.v.QSpinBox_emccd_coordinate_binx.value(), self.v.QSpinBox_emccd_coordinate_biny.value()]
 
     def get_emccd_gain(self):
         return self.v.QSpinBox_emccd_gain.value()
@@ -21,13 +22,22 @@ class ConController:
 
     def get_scmos_roi(self):
         return [self.v.QSpinBox_scmos_coordinate_x.value(), self.v.QSpinBox_scmos_coordinate_y.value(),
-                self.v.QSpinBox_scmos_coordinate_n.value(), self.v.QSpinBox_scmos_coordinate_bin.value()]
+                self.v.QSpinBox_scmos_coordinate_nx.value(), self.v.QSpinBox_scmos_coordinate_ny.value(),
+                self.v.QSpinBox_scmos_coordinate_binx.value(), self.v.QSpinBox_scmos_coordinate_biny.value()]
 
     def get_scmos_expo(self):
         return self.v.QDoubleSpinBox_scmos_exposure_time.value()
 
     def set_scmos_expo(self, t):
         self.v.QDoubleSpinBox_scmos_exposure_time.setValue(t)
+
+    def get_thorcam_roi(self):
+        return [self.v.QSpinBox_thorcam_coordinate_x.value(), self.v.QSpinBox_thorcam_coordinate_y.value(),
+                self.v.QSpinBox_thorcam_coordinate_nx.value(), self.v.QSpinBox_thorcam_coordinate_ny.value(),
+                self.v.QSpinBox_thorcam_coordinate_binx.value(), self.v.QSpinBox_thorcam_coordinate_biny.value()]
+
+    def get_tis_expo(self):
+        return self.v.QDoubleSpinBox_tis_exposure_time.value()
 
     def get_deck_movement(self):
         return [self.v.QDoubleSpinBox_deck_movement.value(), self.v.QDoubleSpinBox_deck_velocity.value()]
@@ -83,14 +93,14 @@ class ConController:
                           self.v.QDoubleSpinBox_ttl_start_read_488_2.value(),
                           self.v.QDoubleSpinBox_ttl_start_emccd.value(),
                           self.v.QDoubleSpinBox_ttl_start_scmos.value(),
-                          self.v.QDoubleSpinBox_ttl_start_tis.value()]
+                          self.v.QDoubleSpinBox_ttl_start_thorcam.value()]
         digital_ends = [self.v.QDoubleSpinBox_ttl_stop_on_405.value(),
                         self.v.QDoubleSpinBox_ttl_stop_off_488_0.value(),
                         self.v.QDoubleSpinBox_ttl_stop_off_488_1.value(),
                         self.v.QDoubleSpinBox_ttl_stop_read_488_2.value(),
                         self.v.QDoubleSpinBox_ttl_stop_emccd.value(),
                         self.v.QDoubleSpinBox_ttl_stop_scmos.value(),
-                        self.v.QDoubleSpinBox_ttl_stop_tis.value()]
+                        self.v.QDoubleSpinBox_ttl_stop_thorcam.value()]
         return digital_starts, digital_ends
 
     def get_piezo_scan_parameters(self):

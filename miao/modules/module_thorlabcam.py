@@ -3,7 +3,7 @@ import threading
 from collections import deque
 
 import numpy as np
-from thorlabs_tsi_sdk.tl_camera import TLCameraSDK, ROI
+from thorlabs_tsi_sdk.tl_camera import TLCameraSDK
 
 path_to_files = r"C:\Program Files\Thorlabs\Scientific Imaging\Scientific Camera Support\Scientific Camera Interfaces\SDK\Python Toolkit"
 
@@ -92,6 +92,8 @@ class ThorCMOS:
             raise RuntimeError(f"Opening the ThorCMOS failed with error code {e}")
 
     def _config_cam(self):
+        self.camera.frame_rate_control_value = 50
+        self.camera.is_frame_rate_control_enabled = True
         self.camera.frames_per_trigger_zero_for_unlimited = 1
         # self.camera.image_poll_timeout_ms = 0  # 1 second polling timeout
         self.set_acquisition_mode(2)
@@ -164,6 +166,12 @@ class ThorCMOS:
             numpy_shaped_image = image_buffer_copy.reshape(self.camera.image_height_pixels,
                                                            self.camera.image_width_pixels)
             self.data.add_element([numpy_shaped_image], [frame.frame_count])
+
+    def get_last_image(self):
+        if self.data is not None:
+            return self.data.get_last_element()
+        else:
+            return None
 
 
 class AcquisitionThread(threading.Thread):
