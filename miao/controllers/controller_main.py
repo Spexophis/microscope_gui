@@ -49,7 +49,7 @@ class MainController(QtCore.QObject):
         self.fftWorker.moveToThread(self.thread_fft)
         self.thread_fft.started.connect(self.fftWorker.start)
         self.thread_fft.finished.connect(self.fftWorker.stop)
-        # image process thread
+        # focus lock thread
         self.flocWorker = LoopWorker(dt=250)
         self.flocWorker.signal_loop.connect(self.focus_locking)
         self.thread_floc = QtCore.QThread()
