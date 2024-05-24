@@ -151,7 +151,7 @@ class ConWidget(QtWidgets.QWidget):
         thorcam_scroll_layout.addRow(cw.label_widget(str('From / s')), cw.label_widget(str('To / s')))
         thorcam_scroll_layout.addRow(self.QDoubleSpinBox_ttl_start_thorcam, self.QDoubleSpinBox_ttl_stop_thorcam)
 
-        self.QDoubleSpinBox_tis_exposure_time = cw.doublespinbox_widget(0, 10, 0.005, 3, 0.01)
+        self.QDoubleSpinBox_tis_exposure_time = cw.doublespinbox_widget(2e-05, 4, 0.0002, 5, 0.0004)
         self.QDoubleSpinBox_ttl_start_tis = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.008)
         self.QDoubleSpinBox_ttl_stop_tis = cw.doublespinbox_widget(0, 50, 0.001, 3, 0.032)
         self.tis_scroll_area, tis_scroll_layout = cw.create_scroll_area()

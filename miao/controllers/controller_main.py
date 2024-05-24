@@ -533,6 +533,7 @@ class MainController(QtCore.QObject):
             self.release_focus()
 
     def prepare_focus_locking(self):
+        self.m.cam_set[self.cameras["focus_lock"]].set_exposure(self.con_controller.get_tis_expo())
         self.m.cam_set[self.cameras["focus_lock"]].prepare_live()
 
     def lock_focus(self):
@@ -556,9 +557,10 @@ class MainController(QtCore.QObject):
             self.logg.error(f"Error stopping imaging video: {e}")
 
     def focus_locking(self):
-        self.p.pid_ctrl.SetPoint = self.v.con_view.QDoubleSpinBox_stage_z.value()
         current_position = self.v.con_view.QDoubleSpinBox_stage_z.value()
-        self.p.pid_ctrl.update(current_position)
+        new_position = self.p.foc_ctrl.caculate_focus(current_position,
+                                                      self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
+        self.v.con_view.QDoubleSpinBox_stage_z.setValue(new_position)
 
     def prepare_widefield_zstack(self):
         self.lasers = self.con_controller.get_lasers()
@@ -609,44 +611,6 @@ class MainController(QtCore.QObject):
             return
         self.finish_widefield_zstack()
 
-    def focus_finding(self):
-        try:
-            self.prepare_widefield_zstack()
-        except Exception as e:
-            self.logg.error(f"Error starting widefield zstack: {e}")
-            return
-        try:
-            positions = self.con_controller.get_piezo_positions()
-            center_pos, axis_length, step_size = positions[2], 0.64, 0.16
-            start = center_pos - axis_length
-            end = center_pos + axis_length
-            zps = np.arange(start, end + step_size, step_size)
-            data = []
-            pzs = []
-            self.m.cam_set[self.cameras["imaging"]].start_live()
-            for i, z in enumerate(zps):
-                self.set_piezo_position_z(z)
-                time.sleep(0.1)
-                self.m.daq.run_triggers()
-                time.sleep(0.04)
-                temp = self.m.cam_set[self.cameras["imaging"]].get_last_image()
-                data.append(temp)
-                self.m.daq.stop_triggers(_close=False)
-                pzs.append(ipr.calculate_focus_measure_with_sobel(temp - temp.min()))
-            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_widefield_zstack.tif')
-            tf.imwrite(fd, np.asarray(data), imagej=True, resolution=(
-                1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
-                       metadata={'unit': 'um',
-                                 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
-            fp = ipr.peak_find(zps, pzs)
-            self.view_controller.plot_update(pzs, x=zps)
-            self.v.con_view.QDoubleSpinBox_stage_z.setValue(fp)
-        except Exception as e:
-            self.finish_widefield_zstack()
-            self.logg.error(f"Error running widefield zstack: {e}")
-            return
-        self.finish_widefield_zstack()
-
     def finish_widefield_zstack(self):
         try:
             self.reset_piezo_positions()
@@ -659,6 +623,72 @@ class MainController(QtCore.QObject):
 
     def run_widefield_zstack(self, n: int):
         self.run_task(task=self.widefield_zstack, iteration=n)
+
+    def prepare_focus_finding(self):
+        self.lasers = self.con_controller.get_lasers()
+        self.set_lasers()
+        self.cameras["imaging"] = self.con_controller.get_imaging_camera()
+        self.set_camera_roi("imaging")
+        self.m.cam_set[self.cameras["imaging"]].prepare_live()
+        dtr = self.generate_live_triggers("imaging")
+        self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
+        self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
+        self.m.cam_set[self.cameras["focus_lock"]].set_exposure(self.con_controller.get_tis_expo())
+        self.m.cam_set[self.cameras["focus_lock"]].prepare_live()
+
+    def focus_finding(self):
+        try:
+            self.prepare_focus_finding()
+        except Exception as e:
+            self.logg.error(f"Error starting widefield zstack: {e}")
+            return
+        try:
+            positions = self.con_controller.get_piezo_positions()
+            center_pos, axis_length, step_size = positions[2], 0.64, 0.16
+            start = center_pos - axis_length
+            end = center_pos + axis_length
+            zps = np.arange(start, end + step_size, step_size)
+            data = []
+            data_calib = []
+            pzs = []
+            self.m.cam_set[self.cameras["imaging"]].start_live()
+            self.m.cam_set[self.cameras["focus_lock"]].start_live()
+            for i, z in enumerate(zps):
+                self.set_piezo_position_z(z)
+                time.sleep(0.1)
+                self.m.daq.run_triggers()
+                time.sleep(0.04)
+                temp = self.m.cam_set[self.cameras["imaging"]].get_last_image()
+                data.append(temp)
+                self.m.daq.stop_triggers(_close=False)
+                data_calib.append(self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
+                pzs.append(ipr.calculate_focus_measure_with_sobel(temp - temp.min()))
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_widefield_zstack.tif')
+            tf.imwrite(fd, np.asarray(data), imagej=True, resolution=(
+                1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
+                       metadata={'unit': 'um',
+                                 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
+            fp = ipr.peak_find(zps, pzs)
+            self.view_controller.plot_update(pzs, x=zps)
+            self.v.con_view.QDoubleSpinBox_stage_z.setValue(fp)
+            self.p.foc_ctrl.calibrate(zps, data_calib)
+            self.p.foc_ctrl.set_focus(fp, self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
+        except Exception as e:
+            self.finish_focus_finding()
+            self.logg.error(f"Error running widefield zstack: {e}")
+            return
+        self.finish_focus_finding()
+
+    def finish_focus_finding(self):
+        try:
+            self.reset_piezo_positions()
+            self.m.cam_set[self.cameras["imaging"]].stop_live()
+            self.m.cam_set[self.cameras["focus_lock"]].stop_live()
+            self.lasers_off()
+            self.m.daq.stop_triggers()
+            self.logg.info("Widefield image stack acquired")
+        except Exception as e:
+            self.logg.error(f"Error stopping widefield zstack: {e}")
 
     def run_focus_finding(self):
         self.run_task(task=self.focus_finding)

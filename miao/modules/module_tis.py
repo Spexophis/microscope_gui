@@ -171,7 +171,7 @@ class TISCamera:
             self.logg.info("SUCCESS: Set Frame Ready Callback")
         else:
             self.logg.error("FAIL: Set Frame Ready Callback")
-        self.set_trigger_mode()
+        self.set_trigger_mode(sw=False)
 
     def prepare_live(self):
         if ic.IC_PrepareLive(self.hGrabber, 0):

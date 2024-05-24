@@ -120,8 +120,8 @@ class WavefrontSensing:
                     gradx[iy, ix] = (self.CorrCenter[1] - px) * self.calfactor
                     grady[iy, ix] = (self.CorrCenter[0] - py) * self.calfactor
                 elif mtd == 'centerofmass':
-                    sy, sx = self._center_of_mass(secbase)
-                    py, px = self._center_of_mass(sec)
+                    sy, sx = ipr.find_center_of_mass(secbase)
+                    py, px = ipr.find_center_of_mass(sec)
                     gradx[iy, ix] = (px - sx) * self.calfactor
                     grady[iy, ix] = (py - sy) * self.calfactor
         return gradx, grady
@@ -207,20 +207,6 @@ class WavefrontSensing:
             gradx = self.CorrCenter[0]
             grady = self.CorrCenter[1]
         return grady, gradx
-
-    @staticmethod
-    def _center_of_mass(image):
-        height, width = image.shape
-        # row_indices, col_indices = np.indices((height, width))
-        # total_mass = np.sum(image)
-        # row_mass = np.sum(row_indices * image) / total_mass
-        # col_mass = np.sum(col_indices * image) / total_mass
-        row_indices = np.arange(0, height)[:, np.newaxis]
-        col_indices = np.arange(0, width)
-        total_mass = np.sum(image)
-        row_mass = np.sum(image * row_indices) / total_mass
-        col_mass = np.sum(image * col_indices) / total_mass
-        return row_mass, col_mass
 
     @staticmethod
     def _sub_back(img, factor):

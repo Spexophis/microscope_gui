@@ -28,6 +28,60 @@ def fourier_transform(data):
     return np.log(np.abs(fftshift(fft2(data))))
 
 
+def find_center_of_mass(image):
+    height, width = image.shape
+    # row_indices, col_indices = np.indices((height, width))
+    # total_mass = np.sum(image)
+    # row_mass = np.sum(row_indices * image) / total_mass
+    # col_mass = np.sum(col_indices * image) / total_mass
+    row_indices = np.arange(0, height)[:, np.newaxis]
+    col_indices = np.arange(0, width)
+    total_mass = np.sum(image)
+    row_mass = np.sum(image * row_indices) / total_mass
+    col_mass = np.sum(image * col_indices) / total_mass
+    return row_mass, col_mass
+
+
+def gaussian_beam(r, bg, I0, r0, w0):
+    return bg + I0 * np.exp(-2 * ((r - r0) / w0) ** 2)
+
+
+def fit_gaussian(image, verbose=False, plot=False, bounds=None):
+    y_px, x_px = image.shape
+    x, y = range(x_px), range(y_px)
+    x_max = np.max(image, axis=0)
+    y_max = np.max(image, axis=1)
+    if bounds is None:
+        bg_min, bg_max = 0, 10 * np.min(image)  # background
+        I0_min, I0_max = np.min(image), 2 * np.max(image)  # peak intensity
+        mean_min, mean_max = 0, max(x_px, y_px)  # mean
+        w0_min, w0_max = 0, max(x_px, y_px)  # beam 1/e^2 radius
+        bounds = ((bg_min, I0_min, mean_min, w0_min),
+                  (bg_max, I0_max, mean_max, w0_max))
+    xp = curve_fit(gaussian_beam, x, x_max, bounds=bounds)[0]  # x parameters
+    yp = curve_fit(gaussian_beam, y, y_max, bounds=bounds)[0]  # y parameters
+    xp = np.append(xp, (2 * np.log(2)) ** 0.5 * xp[3])  # add x FWHM
+    yp = np.append(yp, (2 * np.log(2)) ** 0.5 * yp[3])  # add y FWHM
+    if verbose:
+        print('x: bg=%0.2f, I0=%0.2f, r0=%0.2f, w0=%0.2f, FWHM=%0.2f' % tuple(xp))
+        print('y: bg=%0.2f, I0=%0.2f, r0=%0.2f, w0=%0.2f, FWHM=%0.2f' % tuple(yp))
+    if plot:
+        x_crv = gaussian_beam(x, *xp[:-1])
+        y_crv = gaussian_beam(y, *yp[:-1])
+        fig, ax = plt.subplots()
+        ax.set_title('Gaussian fit')
+        ax.set_ylabel('intensity')
+        ax.set_xlabel('pixels')
+        ax.plot(x, x_max, color='g', label='x_max', linestyle='--')
+        ax.plot(x, x_crv, color='g', label='x_curve: (FWHM=%0.1f)' % xp[4])
+        ax.plot(y, y_max, color='b', label='y_max', linestyle='--')
+        ax.plot(y, y_crv, color='b', label='y_curve: (FWHM=%0.1f)' % yp[4])
+        ax.legend(loc="upper right")
+        fig.savefig('guassian_fit', dpi=150)
+        fig.show()
+    return xp, yp
+
+
 def disc_array(shape=(128, 128), radi=64.0, origin=None, dtp=np.float64):
     _nx = shape[0]
     _ny = shape[1]
