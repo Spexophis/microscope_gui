@@ -50,7 +50,7 @@ class MainController(QtCore.QObject):
         self.thread_fft.started.connect(self.fftWorker.start)
         self.thread_fft.finished.connect(self.fftWorker.stop)
         # focus lock thread
-        self.flocWorker = LoopWorker(dt=250)
+        self.flocWorker = LoopWorker(dt=500)
         self.flocWorker.signal_loop.connect(self.focus_locking)
         self.thread_floc = QtCore.QThread()
         self.flocWorker.moveToThread(self.thread_floc)
@@ -130,7 +130,7 @@ class MainController(QtCore.QObject):
 
             self.update_galvo_scanner()
 
-            self.magnifications = [157.5, 1, 1]
+            self.magnifications = [157.5, 1., 1., 1.]
             self.pixel_sizes = []
             self.pixel_sizes = [self.m.cam_set[i].ps / mag for i, mag in enumerate(self.magnifications)]
             self.pixel_sizes[0] = 0.0785
@@ -320,6 +320,11 @@ class MainController(QtCore.QObject):
             if self.cameras[key] == 2:
                 x, y, nx, ny, bx, by = self.con_controller.get_thorcam_roi()
                 self.m.cam_set[2].set_roi(x, y, x + nx - 1, y + ny - 1)
+            if self.cameras[key] == 3:
+                expo = self.con_controller.get_tis_expo()
+                self.m.cam_set[3].set_exposure(expo)
+                # x, y, nx, ny, bx, by = self.con_controller.get_thorcam_roi()
+                # self.m.cam_set[3].set_roi(x, y, x + nx - 1, y + ny - 1)
         except Exception as e:
             self.logg.error(f"Camera Error: {e}")
 
@@ -533,6 +538,12 @@ class MainController(QtCore.QObject):
             self.release_focus()
 
     def prepare_focus_locking(self):
+        p = self.con_controller.get_pid_parameters()
+        self.p.foc_ctrl.update_pid(p)
+        z = self.con_controller.get_piezo_positions()
+        self.p.foc_ctrl.set_focus(z[2])
+        z = self.m.pz.read_position(2)
+        self.p.foc_ctrl.initiate(z)
         self.m.cam_set[self.cameras["focus_lock"]].set_exposure(self.con_controller.get_tis_expo())
         self.m.cam_set[self.cameras["focus_lock"]].prepare_live()
 
@@ -557,10 +568,9 @@ class MainController(QtCore.QObject):
             self.logg.error(f"Error stopping imaging video: {e}")
 
     def focus_locking(self):
-        current_position = self.v.con_view.QDoubleSpinBox_stage_z.value()
-        new_position = self.p.foc_ctrl.caculate_focus(current_position,
-                                                      self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
-        self.v.con_view.QDoubleSpinBox_stage_z.setValue(new_position)
+        self.p.foc_ctrl.update(self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
+        self.v.con_view.QDoubleSpinBox_stage_z.setValue(self.p.foc_ctrl.ctd.data_list[-1])
+        self.view_controller.plot_update(self.p.foc_ctrl.ctd.data_list)
 
     def prepare_widefield_zstack(self):
         self.lasers = self.con_controller.get_lasers()
@@ -640,7 +650,7 @@ class MainController(QtCore.QObject):
         try:
             self.prepare_focus_finding()
         except Exception as e:
-            self.logg.error(f"Error starting widefield zstack: {e}")
+            self.logg.error(f"Error starting focus finding: {e}")
             return
         try:
             positions = self.con_controller.get_piezo_positions()
@@ -673,11 +683,14 @@ class MainController(QtCore.QObject):
             self.v.con_view.QDoubleSpinBox_stage_z.setValue(fp)
             time.sleep(0.06)
             data_calib.append(self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
-            self.p.foc_ctrl.calibrate(np.append(zps, fp), data_calib)
-            self.p.foc_ctrl.set_focus(fp)
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_focus_calibration_stack.tif')
+            tf.imwrite(fd, np.asarray(data_calib), imagej=True, resolution=(
+                1 / self.pixel_sizes[self.cameras["focus_lock"]], 1 / self.pixel_sizes[self.cameras["focus_lock"]]),
+                       metadata={'unit': 'um'})
+            self.p.foc_ctrl.calibrate(np.append(zps, fp), np.asarray(data_calib))
         except Exception as e:
             self.finish_focus_finding()
-            self.logg.error(f"Error running widefield zstack: {e}")
+            self.logg.error(f"Error running focus finding: {e}")
             return
         self.finish_focus_finding()
 
@@ -688,9 +701,9 @@ class MainController(QtCore.QObject):
             self.m.cam_set[self.cameras["focus_lock"]].stop_live()
             self.lasers_off()
             self.m.daq.stop_triggers()
-            self.logg.info("Widefield image stack acquired")
+            self.logg.info("Focus finding stack acquired")
         except Exception as e:
-            self.logg.error(f"Error stopping widefield zstack: {e}")
+            self.logg.error(f"Error stopping focus finding: {e}")
 
     def run_focus_finding(self):
         self.run_task(task=self.focus_finding)
@@ -715,7 +728,7 @@ class MainController(QtCore.QObject):
             return
         try:
             positions = self.con_controller.get_piezo_positions()
-            self.m.pz.lock_position(2, positions[2])
+            # self.m.pz.lock_position(2, positions[2])
             self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
             time.sleep(0.02)
             self.m.daq.run_triggers()
@@ -732,7 +745,7 @@ class MainController(QtCore.QObject):
 
     def finish_dot_scanning(self):
         try:
-            self.m.pz.release_lock()
+            # self.m.pz.release_lock()
             self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
             self.m.daq.stop_triggers()
             self.lasers_off()
@@ -763,7 +776,7 @@ class MainController(QtCore.QObject):
             return
         try:
             positions = self.con_controller.get_piezo_positions()
-            self.m.pz.lock_position(2, positions[2])
+            # self.m.pz.lock_position(2, positions[2])
             self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
             time.sleep(0.02)
             self.m.daq.run_triggers()
@@ -780,7 +793,7 @@ class MainController(QtCore.QObject):
 
     def finish_monalisa_scan(self):
         try:
-            self.m.pz.release_lock()
+            # self.m.pz.release_lock()
             self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
             self.m.daq.stop_triggers()
             self.lasers_off()
@@ -812,7 +825,7 @@ class MainController(QtCore.QObject):
             scan_x = dot_ranges[0] + np.linspace(0, 2. * self.p.trigger.dot_step_v, 20, endpoint=False, dtype=float)
             scan_y = dot_ranges[1] + np.linspace(0, 2. * self.p.trigger.dot_step_y, 20, endpoint=False, dtype=float)
             data = []
-            self.m.pz.lock_position(2, positions[2])
+            # self.m.pz.lock_position(2, positions[2])
             self.m.cam_set[self.cameras["imaging"]].start_live()
             for i in range(16):
                 dot_ranges[0] = scan_x[i]
@@ -842,7 +855,7 @@ class MainController(QtCore.QObject):
 
     def finish_focal_array_scan(self):
         try:
-            self.m.pz.release_lock()
+            # self.m.pz.release_lock()
             self.m.cam_set[self.cameras["imaging"]].stop_live()
             self.m.daq.stop_triggers()
             self.lasers_off()
@@ -885,7 +898,7 @@ class MainController(QtCore.QObject):
             sx, sy = scans[0].shape[0], scans[1].shape[0]
             mx = np.zeros((sx, sy))
             self.m.cam_set[self.cameras["imaging"]].start_live()
-            self.m.pz.lock_position(2, positions[2])
+            # self.m.pz.lock_position(2, positions[2])
             for i in range(sx):
                 for j in range(sy):
                     self.m.daq.set_piezo_position(scans[0][i], scans[1][j])
@@ -1023,7 +1036,7 @@ class MainController(QtCore.QObject):
 
     def finish_pattern_alignment(self):
         try:
-            self.m.pz.release_lock()
+            # self.m.pz.release_lock()
             self.m.cam_set[self.cameras["imaging"]].stop_live()
             self.m.daq.stop_triggers()
             self.lasers_off()

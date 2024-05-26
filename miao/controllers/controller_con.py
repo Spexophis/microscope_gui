@@ -54,6 +54,11 @@ class ConController:
         if z is not None:
             self.v.QDoubleSpinBox_stage_z.setValue(z)
 
+    def get_pid_parameters(self):
+        return (self.v.QDoubleSpinBox_pid_kp.value(),
+                self.v.QDoubleSpinBox_pid_ki.value(),
+                self.v.QDoubleSpinBox_pid_kd.value())
+
     def get_galvo_positions(self):
         return [self.v.QDoubleSpinBox_galvo_x.value(), self.v.QDoubleSpinBox_galvo_y.value()]
 

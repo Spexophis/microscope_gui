@@ -32,7 +32,7 @@ class FocusLocker:
         z = self.calculate_new_position(img)
         cz = self.pid.update(z)
         zp = self.ctd.data_list[-1] + cz
-        self.ctd.add_elements(cz, zp)
+        self.ctd.add_elements(cz[0], zp[0])
 
     def calibrate(self, zs, img_stack):
         nz, nx, ny = img_stack.shape
