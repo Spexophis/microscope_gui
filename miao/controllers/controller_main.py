@@ -50,7 +50,7 @@ class MainController(QtCore.QObject):
         self.thread_fft.started.connect(self.fftWorker.start)
         self.thread_fft.finished.connect(self.fftWorker.stop)
         # focus lock thread
-        self.flocWorker = LoopWorker(dt=500)
+        self.flocWorker = LoopWorker(dt=2000)
         self.flocWorker.signal_loop.connect(self.focus_locking)
         self.thread_floc = QtCore.QThread()
         self.flocWorker.moveToThread(self.thread_floc)
@@ -570,7 +570,7 @@ class MainController(QtCore.QObject):
     def focus_locking(self):
         self.p.foc_ctrl.update(self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
         self.v.con_view.QDoubleSpinBox_stage_z.setValue(self.p.foc_ctrl.ctd.data_list[-1])
-        self.view_controller.plot_update(self.p.foc_ctrl.ctd.data_list)
+        self.view_controller.plot_update(self.p.foc_ctrl.ctd.data_list, s=self.p.foc_ctrl.pid.set_point)
 
     def prepare_widefield_zstack(self):
         self.lasers = self.con_controller.get_lasers()
