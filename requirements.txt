@@ -42,6 +42,7 @@ ipykernel==6.29.0
 ipython==8.20.0
 jedi==0.19.1
 Jinja2==3.1.3
+joblib==1.4.2
 jsonschema==4.21.1
 jsonschema-specifications==2023.12.1
 jupyter_client==8.6.0
@@ -54,8 +55,9 @@ markdown-it-py==3.0.0
 MarkupSafe==2.1.4
 matplotlib==3.8.2
 matplotlib-inline==0.1.6
+mcculw==1.0.0
 mdurl==0.1.2
--e git+https://github.com/Spexophis/microscope_gui.git@ce7a174ab9564da6361653ad6810e57742a9b976#egg=miao
+-e git+https://github.com/Spexophis/microscope_gui.git@9ed0972a1167ec57d5586714e9843f42b9946531#egg=miao
 mypy-extensions==1.0.0
 napari==0.4.18
 napari-console==0.0.9
@@ -112,6 +114,7 @@ requests==2.31.0
 rich==13.7.0
 rpds-py==0.17.1
 scikit-image==0.22.0
+scikit-learn==1.5.0
 scipy==1.12.0
 six==1.16.0
 snowballstemmer==2.2.0
@@ -124,6 +127,8 @@ sphinxcontrib-qthelp==1.0.7
 sphinxcontrib-serializinghtml==1.1.10
 stack-data==0.6.3
 superqt==0.6.1
+thorlabs-tsi-sdk @ file:///C:/Users/ruizhe.lin/Desktop/Scientific%20Camera%20Interfaces/SDK/Python%20Toolkit/thorlabs_tsi_camera_python_sdk_package.zip#sha256=ed355820fd6bbeb198009de41640a5242a9b5c929e437a54dd528e64d5b5149d
+threadpoolctl==3.5.0
 tifffile==2024.1.30
 tomli==2.0.1
 tomli_w==1.0.0

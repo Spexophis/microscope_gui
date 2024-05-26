@@ -671,8 +671,10 @@ class MainController(QtCore.QObject):
             fp = ipr.peak_find(zps, pzs)
             self.view_controller.plot_update(pzs, x=zps)
             self.v.con_view.QDoubleSpinBox_stage_z.setValue(fp)
-            self.p.foc_ctrl.calibrate(zps, data_calib)
-            self.p.foc_ctrl.set_focus(fp, self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
+            time.sleep(0.06)
+            data_calib.append(self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
+            self.p.foc_ctrl.calibrate(np.append(zps, fp), data_calib)
+            self.p.foc_ctrl.set_focus(fp)
         except Exception as e:
             self.finish_focus_finding()
             self.logg.error(f"Error running widefield zstack: {e}")

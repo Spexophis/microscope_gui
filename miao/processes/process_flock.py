@@ -36,21 +36,20 @@ class FocusLocker:
 
     def calibrate(self, zs, img_stack):
         nz, nx, ny = img_stack.shape
-        cm = np.zeros(nz)
+        cm = np.zeros((nz, 2))
         for i in range(nz):
             cm[i] = self.compute_com(img_stack[i])
-        cm = cm.reshape(-1, 1)
+        cm = cm.reshape(-1, 2)
         self.model.fit(cm, zs)
 
     def calculate_new_position(self, img):
         cm = self.compute_com(img)
-        new_z = np.array(cm).reshape(-1, 1)
+        new_z = np.array(cm).reshape(-1, 2)
         return self.model.predict(new_z)
 
     def compute_com(self, img):
         img = self.background_filter(img)
-        cmx, cmy = ndimage.center_of_mass(img)
-        return cmx ** 2 + cmy ** 2
+        return ndimage.center_of_mass(img)
 
     @staticmethod
     def crop_image(image, crop_size=(1024, 1024)):
