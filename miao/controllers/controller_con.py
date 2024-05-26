@@ -39,6 +39,11 @@ class ConController:
     def get_tis_expo(self):
         return self.v.QDoubleSpinBox_tis_exposure_time.value()
 
+    def get_tis_roi(self):
+        return [self.v.QSpinBox_tis_coordinate_x.value(), self.v.QSpinBox_tis_coordinate_y.value(),
+                self.v.QSpinBox_tis_coordinate_nx.value(), self.v.QSpinBox_tis_coordinate_ny.value(),
+                self.v.QSpinBox_tis_coordinate_binx.value(), self.v.QSpinBox_tis_coordinate_biny.value()]
+
     def get_deck_movement(self):
         return [self.v.QDoubleSpinBox_deck_movement.value(), self.v.QDoubleSpinBox_deck_velocity.value()]
 
