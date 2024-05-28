@@ -86,7 +86,7 @@ class TISCamera:
     def __init__(self, logg=None):
         self.logg = logg or self.setup_logging()
         self._settings = self.CameraSettings()
-        self.data = CallbackData(16)
+        self.data = CallbackData(8)
         self.frame_ready = ic.FRAMEREADYCALLBACK(frame_ready_callback)
         self.hGrabber = self._initialize_grabber()
         if self.hGrabber is not None:
