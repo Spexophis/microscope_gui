@@ -323,8 +323,8 @@ class MainController(QtCore.QObject):
             if self.cameras[key] == 3:
                 expo = self.con_controller.get_tis_expo()
                 self.m.cam_set[3].set_exposure(expo)
-                x, y, nx, ny, bx, by = self.con_controller.get_tis_roi()
-                self.m.cam_set[3].set_roi(x, y, nx, ny)
+                # x, y, nx, ny, bx, by = self.con_controller.get_tis_roi()
+                # self.m.cam_set[3].set_roi(x, y, nx, ny)
         except Exception as e:
             self.logg.error(f"Camera Error: {e}")
 
