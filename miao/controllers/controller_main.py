@@ -323,8 +323,8 @@ class MainController(QtCore.QObject):
             if self.cameras[key] == 3:
                 expo = self.con_controller.get_tis_expo()
                 self.m.cam_set[3].set_exposure(expo)
-                # x, y, nx, ny, bx, by = self.con_controller.get_thorcam_roi()
-                # self.m.cam_set[3].set_roi(x, y, x + nx - 1, y + ny - 1)
+                x, y, nx, ny, bx, by = self.con_controller.get_tis_roi()
+                self.m.cam_set[3].set_roi(x, y, nx, ny)
         except Exception as e:
             self.logg.error(f"Camera Error: {e}")
 
@@ -383,6 +383,8 @@ class MainController(QtCore.QObject):
             gtr, ptr, dtr, pos = self.p.trigger.generate_dotscan_resolft_2d()
             self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=gtr, digital_sequences=dtr, finite=False)
             self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
+        elif vd_mod == "Focus Lock":
+            self.logg.info(f"Focus Lock live")
         else:
             self.m.cam_set[self.cameras["imaging"]].stop_live()
             self.lasers_off()
@@ -396,7 +398,8 @@ class MainController(QtCore.QObject):
             return
         try:
             self.m.cam_set[self.cameras["imaging"]].start_live()
-            self.m.daq.run_triggers()
+            if self.cameras["imaging"] != self.cameras["focus_lock"]:
+                self.m.daq.run_triggers()
             self.thread_video.start()
         except Exception as e:
             self.logg.error(f"Error starting imaging video: {e}")

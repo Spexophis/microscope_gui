@@ -16,7 +16,6 @@ class CallbackData(ctypes.Structure):
     def __init__(self, max_length):
         super().__init__()
         self.image_data = deque(maxlen=max_length)
-        # self.frame_number = deque(maxlen=max_length)
         self.image_counter = 0
 
     def add_element(self, element):
@@ -164,11 +163,6 @@ class TISCamera:
             self.logg.info("SUCCESS: Set Gain zero")
         else:
             self.logg.error("FAIL: Set Gain zero")
-        if self.filters["DeNoise"] is not None:
-            if ic.IC_FrameFilterSetParameterInt(self.filters["DeNoise"], tis.T("DeNoise Level"), 16) == tis.IC_SUCCESS:
-                self.logg.info("SUCCESS: Set DeNoise Filter to 16")
-            else:
-                self.logg.error("FAIL: Set DeNoise Filter to 16")
         if ic.IC_SetPropertyValue(self.hGrabber, tis.T("Denoise"), tis.T("Value"), ctypes.c_int(16)) == tis.IC_SUCCESS:
             self.logg.info("SUCCESS: Set Denoise to 16")
         else:
@@ -221,6 +215,13 @@ class TISCamera:
                 self.logg.info(f"SUCCESS: Set ROI Height to {height}")
             else:
                 self.logg.error(f"FAIL: Set ROI Height to {height}")
+
+    def set_denoise(self):
+        if self.filters["DeNoise"] is not None:
+            if ic.IC_FrameFilterSetParameterInt(self.filters["DeNoise"], tis.T("DeNoise Level"), 16) == tis.IC_SUCCESS:
+                self.logg.info("SUCCESS: Set DeNoise Filter to 16")
+            else:
+                self.logg.error("FAIL: Set DeNoise Filter to 16")
 
     def prepare_live(self):
         if ic.IC_PrepareLive(self.hGrabber, 0):
