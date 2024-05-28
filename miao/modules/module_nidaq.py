@@ -220,45 +220,6 @@ class NIDAQ:
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
 
-    def write_piezo_scan(self, piezo_sequences):
-        try:
-            self.tasks["piezo"] = nidaqmx.Task("piezo")
-            self.tasks["piezo"].ao_channels.add_ao_voltage_chan(self.piezo_channels, min_val=0., max_val=10.)
-            _channels, _samples = piezo_sequences.shape
-            self.tasks["piezo"].timing.cfg_samp_clk_timing(rate=self.sample_rate, source=self.clock,
-                                                           active_edge=Edge.RISING, sample_mode=self.mode,
-                                                           samps_per_chan=_samples)
-            self.tasks["piezo"].write(piezo_sequences, auto_start=False)
-            self._active["piezo"] = True
-
-            self.logg.info("Channels " + self.piezo_channels + " Write Successfully")
-        except nidaqmx.DaqWarning as e:
-            self.logg.warning("DaqWarning caught as exception: %s", e)
-            try:
-                assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE, "Unexpected error code: {}".format(
-                    e.error_code)
-            except AssertionError as ae:
-                self.logg.error("Assertion Error: %s", ae)
-
-    def write_galvo_scan(self, galvo_sequences):
-        try:
-            self.tasks["galvo"] = nidaqmx.Task("galvo")
-            self.tasks["galvo"].ao_channels.add_ao_voltage_chan(self.galvo_channels, min_val=-10., max_val=10.)
-            _channels, _samples = galvo_sequences.shape
-            self.tasks["galvo"].timing.cfg_samp_clk_timing(rate=self.sample_rate, source=self.clock,
-                                                           active_edge=Edge.RISING, sample_mode=self.mode,
-                                                           samps_per_chan=_samples)
-            self.tasks["galvo"].write(galvo_sequences, auto_start=False)
-            self._active["galvo"] = True
-            self.logg.info("Channels " + self.galvo_channels + " Write Successfully")
-        except nidaqmx.DaqWarning as e:
-            self.logg.warning("DaqWarning caught as exception: %s", e)
-            try:
-                assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE, "Unexpected error code: {}".format(
-                    e.error_code)
-            except AssertionError as ae:
-                self.logg.error("Assertion Error: %s", ae)
-
     def write_analog_sequences(self, analog_sequences=None):
         try:
             self.tasks["analog"] = nidaqmx.Task("analog")
