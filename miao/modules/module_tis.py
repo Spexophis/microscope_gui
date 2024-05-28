@@ -172,6 +172,7 @@ class TISCamera:
         else:
             self.logg.error("FAIL: Set Frame Ready Callback")
         self.set_trigger_mode(sw=False)
+        self.set_denoise(4)
 
     def _create_frame_filters(self, grabber):
         filter_handles = {"DeNoise": None, "ROI": None}
@@ -199,29 +200,34 @@ class TISCamera:
 
     def set_roi(self, left, top, width, height):
         if self.filters["ROI"] is not None:
-            if ic.IC_FrameFilterSetParameterInt(self.filters["ROI"], tis.T("Left"), left) == tis.IC_SUCCESS:
-                self.logg.info(f"SUCCESS: Set ROI Left to {left}")
-            else:
-                self.logg.error(f"FAIL: Set ROI Left to {left}")
-            if ic.IC_FrameFilterSetParameterInt(self.filters["ROI"], tis.T("Top"), top) == tis.IC_SUCCESS:
-                self.logg.info(f"SUCCESS: Set ROI Top to {top}")
-            else:
-                self.logg.error(f"FAIL: Set ROI Top to {top}")
-            if ic.IC_FrameFilterSetParameterInt(self.filters["ROI"], tis.T("Width"), width) == tis.IC_SUCCESS:
-                self.logg.info(f"SUCCESS: Set ROI Width to {width}")
-            else:
-                self.logg.error(f"FAIL: Set ROI Width to {width}")
-            if ic.IC_FrameFilterSetParameterInt(self.filters["ROI"], tis.T("Height"), height) == tis.IC_SUCCESS:
-                self.logg.info(f"SUCCESS: Set ROI Height to {height}")
-            else:
-                self.logg.error(f"FAIL: Set ROI Height to {height}")
+            if 0 <= left < 2448:
+                if ic.IC_FrameFilterSetParameterInt(self.filters["ROI"], tis.T("Left"), left) == tis.IC_SUCCESS:
+                    self.logg.info(f"SUCCESS: Set ROI Left to {left}")
+                else:
+                    self.logg.error(f"FAIL: Set ROI Left to {left}")
+            if 0 <= top < 2048:
+                if ic.IC_FrameFilterSetParameterInt(self.filters["ROI"], tis.T("Top"), top) == tis.IC_SUCCESS:
+                    self.logg.info(f"SUCCESS: Set ROI Top to {top}")
+                else:
+                    self.logg.error(f"FAIL: Set ROI Top to {top}")
+            if left + width <= 2448:
+                if ic.IC_FrameFilterSetParameterInt(self.filters["ROI"], tis.T("Width"), width) == tis.IC_SUCCESS:
+                    self.logg.info(f"SUCCESS: Set ROI Width to {width}")
+                else:
+                    self.logg.error(f"FAIL: Set ROI Width to {width}")
+            if top + height <= 2048:
+                if ic.IC_FrameFilterSetParameterInt(self.filters["ROI"], tis.T("Height"), height) == tis.IC_SUCCESS:
+                    self.logg.info(f"SUCCESS: Set ROI Height to {height}")
+                else:
+                    self.logg.error(f"FAIL: Set ROI Height to {height}")
 
-    def set_denoise(self):
+    def set_denoise(self, level):
         if self.filters["DeNoise"] is not None:
-            if ic.IC_FrameFilterSetParameterInt(self.filters["DeNoise"], tis.T("DeNoise Level"), 16) == tis.IC_SUCCESS:
-                self.logg.info("SUCCESS: Set DeNoise Filter to 16")
+            if ic.IC_FrameFilterSetParameterInt(self.filters["DeNoise"], tis.T("DeNoise Level"),
+                                                level) == tis.IC_SUCCESS:
+                self.logg.info(f"SUCCESS: Set DeNoise Filter to {level}")
             else:
-                self.logg.error("FAIL: Set DeNoise Filter to 16")
+                self.logg.error(f"FAIL: Set DeNoise Filter to {level}")
 
     def prepare_live(self):
         if ic.IC_PrepareLive(self.hGrabber, 0):
