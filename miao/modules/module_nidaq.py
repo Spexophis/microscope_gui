@@ -18,11 +18,26 @@ class NIDAQ:
         def __init__(self):
             self.sample_rate = 250000
             self.duty_cycle = 0.5
-            self.piezo_x_channel = "Dev1/ao0"
-            self.piezo_y_channel = "Dev1/ao1"
-            self.galvo_channels = "Dev1/ao2:3"
-            self.analog_channels = "Dev1/ao0:3"
-            self.digital_channels = "Dev1/port0/line0:6"
+            self.analog_output_channels = {"piezo_x": "Dev1/ao0",
+                                           "piezo_y": "Dev1/ao1",
+                                           "piezo_z": "Dev1/ao2",
+                                           "galvanometer_x": "Dev2/ao0",
+                                           "galvanometer_y": "Dev2/ao1",
+                                           "galvanometer_s": "Dev2/ao2"}
+            self.digital_output_channels = {"laser_405": "Dev1/port0/line0",
+                                            "laser_488_0": "Dev1/port0/line1",
+                                            "laser_488_1": "Dev1/port0/line2",
+                                            "laser_488_2": "Dev1/port0/line3",
+                                            "andor ccd": "Dev1/port0/line4",
+                                            "hamamatsu scmos": "Dev1/port0/line5",
+                                            "thorlabs cmos": "Dev1/port0/line6",
+                                            "tis cmos": "Dev1/port0/line7"}
+            self.analog_input_channels = {"piezo_x": "Dev1/ai0",
+                                          "piezo_y": "Dev1/ai1",
+                                          "piezo_z": "Dev1/ai2",
+                                          "galvanometer_x": "Dev2/ai0",
+                                          "galvanometer_y": "Dev2/ai1",
+                                          "galvanometer_s": "Dev2/ai2"}
             self.clock_channel = "Dev1/ctr0"
             self.clock_rate = 2000000
             self.clock = "Ctr0InternalOutput"
