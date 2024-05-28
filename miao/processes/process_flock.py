@@ -9,6 +9,7 @@ from sklearn.linear_model import LinearRegression
 class FocusLocker:
 
     def __init__(self, pid_p=(0.5, 0.5, 0.0)):
+        self.threshold = 0.04
         self.model = LinearRegression()
         kp, ki, kd = pid_p
         self.pid = PID(P=kp, I=ki, D=kd)
@@ -30,9 +31,13 @@ class FocusLocker:
 
     def update(self, img):
         z = self.calculate_new_position(img)
-        cz = self.pid.update(z)
-        zp = self.ctd.data_list[-1] + cz
-        self.ctd.add_elements(cz[0], zp[0])
+        if np.abs(z - self.ctd.data_list[-1]) > self.threshold:
+            cz = self.pid.update(z)
+            zp = self.ctd.data_list[-1] + cz
+            self.ctd.add_elements(cz[0], zp[0])
+            return True
+        else:
+            return False
 
     def calibrate(self, zs, img_stack):
         nz, nx, ny = img_stack.shape

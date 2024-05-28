@@ -125,6 +125,7 @@ class TISCamera:
             if ic.IC_OpenDevByUniqueName(grabber, tis.T(unique_name)) == tis.IC_SUCCESS:
                 self.logg.info("SUCCESS: TIS Camera ON")
                 if ic.IC_IsDevValid(grabber):
+                    self.filters = self._create_frame_filters(grabber)
                     self.logg.info("hGrabber initialized")
                     return grabber
                 else:
@@ -163,6 +164,11 @@ class TISCamera:
             self.logg.info("SUCCESS: Set Gain zero")
         else:
             self.logg.error("FAIL: Set Gain zero")
+        if self.filters["DeNoise"] is not None:
+            if ic.IC_FrameFilterSetParameterInt(self.filters["DeNoise"], tis.T("DeNoise Level"), 16) == tis.IC_SUCCESS:
+                self.logg.info("SUCCESS: Set DeNoise Filter to 16")
+            else:
+                self.logg.error("FAIL: Set DeNoise Filter to 16")
         if ic.IC_SetPropertyValue(self.hGrabber, tis.T("Denoise"), tis.T("Value"), ctypes.c_int(16)) == tis.IC_SUCCESS:
             self.logg.info("SUCCESS: Set Denoise to 16")
         else:
@@ -172,6 +178,49 @@ class TISCamera:
         else:
             self.logg.error("FAIL: Set Frame Ready Callback")
         self.set_trigger_mode(sw=False)
+
+    def _create_frame_filters(self, grabber):
+        filter_handles = {"DeNoise": None, "ROI": None}
+        filter_handle = tis.HFRAMEFILTER()
+        if ic.IC_CreateFrameFilter(tis.T("DeNoise"), filter_handle) == tis.IC_SUCCESS:
+            self.logg.info("DeNoise filter loaded.")
+            if ic.IC_AddFrameFilterToDevice(grabber, filter_handle) == tis.IC_SUCCESS:
+                self.logg.info("SUCCESS: Add DeNoise Filter")
+                filter_handles["DeNoise"] = filter_handle
+            else:
+                self.logg.error("FAIL: Add DeNoise Filter")
+        else:
+            self.logg.error("DeNoise filter load failed")
+        filter_handle = tis.HFRAMEFILTER()
+        if ic.IC_CreateFrameFilter(tis.T("ROI"), filter_handle) == tis.IC_SUCCESS:
+            self.logg.info("ROI filter loaded.")
+            if ic.IC_AddFrameFilterToDevice(grabber, filter_handle) == tis.IC_SUCCESS:
+                self.logg.info("SUCCESS: Add ROI Filter")
+                filter_handles["ROI"] = filter_handle
+            else:
+                self.logg.error("FAIL: Add ROI Filter")
+        else:
+            self.logg.error("ROI filter load failed")
+        return filter_handles
+
+    def set_roi(self, left, top, width, height):
+        if self.filters["ROI"] is not None:
+            if ic.IC_FrameFilterSetParameterInt(self.filters["ROI"], tis.T("Left"), left) == tis.IC_SUCCESS:
+                self.logg.info(f"SUCCESS: Set ROI Left to {left}")
+            else:
+                self.logg.error(f"FAIL: Set ROI Left to {left}")
+            if ic.IC_FrameFilterSetParameterInt(self.filters["ROI"], tis.T("Top"), top) == tis.IC_SUCCESS:
+                self.logg.info(f"SUCCESS: Set ROI Top to {top}")
+            else:
+                self.logg.error(f"FAIL: Set ROI Top to {top}")
+            if ic.IC_FrameFilterSetParameterInt(self.filters["ROI"], tis.T("Width"), width) == tis.IC_SUCCESS:
+                self.logg.info(f"SUCCESS: Set ROI Width to {width}")
+            else:
+                self.logg.error(f"FAIL: Set ROI Width to {width}")
+            if ic.IC_FrameFilterSetParameterInt(self.filters["ROI"], tis.T("Height"), height) == tis.IC_SUCCESS:
+                self.logg.info(f"SUCCESS: Set ROI Height to {height}")
+            else:
+                self.logg.error(f"FAIL: Set ROI Height to {height}")
 
     def prepare_live(self):
         if ic.IC_PrepareLive(self.hGrabber, 0):
