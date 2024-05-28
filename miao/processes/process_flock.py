@@ -9,7 +9,8 @@ from sklearn.linear_model import LinearRegression
 class FocusLocker:
 
     def __init__(self, pid_p=(0.5, 0.5, 0.0)):
-        self.threshold = 0.04
+        self.threshold = None
+        self.cm_ref = None
         self.model = LinearRegression()
         kp, ki, kd = pid_p
         self.pid = PID(P=kp, I=ki, D=kd)
@@ -26,12 +27,15 @@ class FocusLocker:
         self.ctd.reset()
         self.ctd.add_elements(0., zp)
 
-    def set_focus(self, fz):
-        self.pid.set_point = fz
+    def set_focus(self, img):
+        self.cm_ref = self.compute_com(img)
+        zr = np.array(self.cm_ref).reshape(-1, 2)
+        self.pid.set_point = self.model.predict(zr)
 
     def update(self, img):
-        z = self.calculate_new_position(img)
-        if np.abs(z - self.ctd.data_list[-1]) > self.threshold:
+        ncm = self.compute_com(img)
+        if self.calculate_distance(ncm, self.cm_ref) > self.threshold:
+            z = self.calculate_new_position(img)
             cz = self.pid.update(z)
             zp = self.ctd.data_list[-1] + cz
             self.ctd.add_elements(cz[0], zp[0])
@@ -39,13 +43,16 @@ class FocusLocker:
         else:
             return False
 
-    def calibrate(self, zs, img_stack):
+    def calibrate(self, zs, img_stack, thd=0.04):
         nz, nx, ny = img_stack.shape
         cm = np.zeros((nz, 2))
         for i in range(nz):
             cm[i] = self.compute_com(img_stack[i])
         cm = cm.reshape(-1, 2)
         self.model.fit(cm, zs)
+        diffs = np.diff(cm, axis=0)
+        distances = np.linalg.norm(diffs, axis=1)
+        self.threshold = thd * np.average(distances[:-1]) / np.abs(zs[0] - zs[1])
 
     def calculate_new_position(self, img):
         cm = self.compute_com(img)
@@ -55,6 +62,11 @@ class FocusLocker:
     def compute_com(self, img):
         img = self.background_filter(img)
         return ndimage.center_of_mass(img)
+
+    @staticmethod
+    def calculate_distance(center1, center2):
+        distance = np.sqrt((center1[0] - center2[0]) ** 2 + (center1[1] - center2[1]) ** 2)
+        return distance
 
     @staticmethod
     def crop_image(image, crop_size=(1024, 1024)):

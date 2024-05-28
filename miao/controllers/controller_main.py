@@ -543,12 +543,14 @@ class MainController(QtCore.QObject):
     def prepare_focus_locking(self):
         p = self.con_controller.get_pid_parameters()
         self.p.foc_ctrl.update_pid(p)
-        z = self.con_controller.get_piezo_positions()
-        self.p.foc_ctrl.set_focus(z[2])
         z = self.m.pz.read_position(2)
         self.p.foc_ctrl.initiate(z)
         self.m.cam_set[self.cameras["focus_lock"]].set_exposure(self.con_controller.get_tis_expo())
         self.m.cam_set[self.cameras["focus_lock"]].prepare_live()
+        self.m.cam_set[self.cameras["focus_lock"]].start_live()
+        time.sleep(0.1)
+        self.p.foc_ctrl.set_focus(self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
+        self.m.cam_set[self.cameras["focus_lock"]].stop_live()
 
     def lock_focus(self):
         try:
@@ -657,7 +659,7 @@ class MainController(QtCore.QObject):
             return
         try:
             positions = self.con_controller.get_piezo_positions()
-            center_pos, axis_length, step_size = positions[2], 0.64, 0.16
+            center_pos, axis_length, step_size = positions[2], 0.8, 0.1
             start = center_pos - axis_length
             end = center_pos + axis_length
             zps = np.arange(start, end + step_size, step_size)
