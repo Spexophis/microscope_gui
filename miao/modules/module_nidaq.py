@@ -18,7 +18,8 @@ class NIDAQ:
         def __init__(self):
             self.sample_rate = 250000
             self.duty_cycle = 0.5
-            self.piezo_channels = "Dev1/ao0:1"
+            self.piezo_x_channel = "Dev1/ao0"
+            self.piezo_y_channel = "Dev1/ao1"
             self.galvo_channels = "Dev1/ao2:3"
             self.analog_channels = "Dev1/ao0:3"
             self.digital_channels = "Dev1/port0/line0:6"
