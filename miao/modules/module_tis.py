@@ -172,7 +172,7 @@ class TISCamera:
         else:
             self.logg.error("FAIL: Set Frame Ready Callback")
         self.set_trigger_mode(sw=False)
-        self.set_denoise(4)
+        self.set_denoise(2)
 
     def _create_frame_filters(self, grabber):
         filter_handles = {"DeNoise": None, "ROI": None}
