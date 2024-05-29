@@ -18,22 +18,22 @@ class MainModule:
         self.cam_set = {}
         try:
             self.ccdcam = module_andorixon.EMCCDCamera(logg=self.logg.error_log)
-            self.cam_set[0] = self.ccdcam
+            self.cam_set["andor ccd"] = self.ccdcam
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
             self.scmoscam = module_hamamatsu.HamamatsuCameraMR(logg=self.logg.error_log)
-            self.cam_set[1] = self.scmoscam
+            self.cam_set["hamamatsu scmos"] = self.scmoscam
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
             self.thorcam = module_thorlabcam.ThorCMOS(logg=self.logg.error_log)
-            self.cam_set[2] = self.thorcam
+            self.cam_set["thorlabs cmos"] = self.thorcam
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         try:
             self.tiscam = module_tis.TISCamera(logg=self.logg.error_log)
-            self.cam_set[3] = self.tiscam
+            self.cam_set["tis cmos"] = self.tiscam
         except Exception as e:
             self.logg.error_log.error(f"{e}")
         self.dm = {}

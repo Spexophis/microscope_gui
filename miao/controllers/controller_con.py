@@ -70,13 +70,13 @@ class ConController:
     def get_lasers(self):
         lasers = []
         if self.v.QRadioButton_laser_405.isChecked():
-            lasers.append(0)
+            lasers.append("405")
         if self.v.QRadioButton_laser_488_0.isChecked():
-            lasers.append(1)
+            lasers.append("488_0")
         if self.v.QRadioButton_laser_488_1.isChecked():
-            lasers.append(2)
+            lasers.append("488_1")
         if self.v.QRadioButton_laser_488_2.isChecked():
-            lasers.append(3)
+            lasers.append("488_2")
         return lasers
 
     def get_cobolt_laser_power(self, laser):
@@ -93,7 +93,7 @@ class ConController:
                     self.v.QDoubleSpinBox_laserpower_488_1.value(), self.v.QDoubleSpinBox_laserpower_488_2.value()]
 
     def get_imaging_camera(self):
-        detection_device = self.v.QComboBox_imaging_camera_selection.currentIndex()
+        detection_device = self.v.QComboBox_imaging_camera_selection.currentText()
         return detection_device
 
     def get_digital_parameters(self):

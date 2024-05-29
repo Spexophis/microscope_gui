@@ -29,7 +29,7 @@ class MainController(QtCore.QObject):
         self._set_signal_connections()
         self._initial_setup()
         self.lasers = []
-        self.cameras = {"imaging": 0, "wfs": 1, "focus_lock": 3}
+        self.cameras = {"imaging": "andor ccd", "wfs": "hamamatsu scmos", "focus_lock": "tis cmos"}
         # dedicated thread pool for tasks
         self.task_worker = None
         self.task_thread = QtCore.QThread()
@@ -189,25 +189,25 @@ class MainController(QtCore.QObject):
 
     def set_camera_roi(self, key="imaging"):
         try:
-            if self.cameras[key] == 0:
+            if self.cameras[key] == "andor ccd":
                 x, y, nx, ny, bx, by = self.con_controller.get_emccd_roi()
-                self.m.cam_set[0].bin_h, self.m.cam_set[0].bin_v = bx, by
-                self.m.cam_set[0].start_h, self.m.cam_set[0].end_h = x, x + nx - 1
-                self.m.cam_set[0].start_v, self.m.cam_set[0].end_v = y, y + ny - 1
-                self.m.cam_set[0].set_roi()
-                self.m.cam_set[0].gain = self.con_controller.get_emccd_gain()
-                self.m.cam_set[0].set_gain()
-            if self.cameras[key] == 1:
+                self.m.cam_set[key].bin_h, self.m.cam_set[0].bin_v = bx, by
+                self.m.cam_set[key].start_h, self.m.cam_set[0].end_h = x, x + nx - 1
+                self.m.cam_set[key].start_v, self.m.cam_set[0].end_v = y, y + ny - 1
+                self.m.cam_set[key].set_roi()
+                self.m.cam_set[key].gain = self.con_controller.get_emccd_gain()
+                self.m.cam_set[key].set_gain()
+            if self.cameras[key] == "hamamatsu scmos":
                 x, y, nx, ny, bx, by = self.con_controller.get_scmos_roi()
-                self.m.cam_set[1].set_roi(bx, by, x, x + nx - 1, y, y + ny - 1)
-            if self.cameras[key] == 2:
+                self.m.cam_set[key].set_roi(bx, by, x, x + nx - 1, y, y + ny - 1)
+            if self.cameras[key] == "thorlabs cmos":
                 x, y, nx, ny, bx, by = self.con_controller.get_thorcam_roi()
-                self.m.cam_set[2].set_roi(x, y, x + nx - 1, y + ny - 1)
-            if self.cameras[key] == 3:
+                self.m.cam_set[key].set_roi(x, y, x + nx - 1, y + ny - 1)
+            if self.cameras[key] == "tis cmos":
                 expo = self.con_controller.get_tis_expo()
-                self.m.cam_set[3].set_exposure(expo)
+                self.m.cam_set[key].set_exposure(expo)
                 # x, y, nx, ny, bx, by = self.con_controller.get_tis_roi()
-                # self.m.cam_set[3].set_roi(x, y, nx, ny)
+                # self.m.cam_set[key].set_roi(x, y, nx, ny)
         except Exception as e:
             self.logg.error(f"Camera Error: {e}")
 
@@ -298,12 +298,14 @@ class MainController(QtCore.QObject):
                 self.logg.error(f"Cobolt Laser Error: {e}")
 
     def set_lasers(self):
+        self.lasers = self.con_controller.get_lasers()
+        pwr = []
+        for laser in self.lasers:
+            pwr.append(self.con_controller.get_cobolt_laser_power(laser))
         try:
-            self.m.laser.set_constant_power(["405", "488_0", "488_1", "488_2"], [0, 0, 0, 0])
-            self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0, 0, 0, 0])
-            self.m.laser.laser_on("all")
-            self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"],
-                                             self.con_controller.get_cobolt_laser_power("all"))
+            self.m.laser.laser_off("all")
+            self.m.laser.set_modulation_mode(self.lasers, pwr)
+            self.m.laser.laser_on(self.lasers)
         except Exception as e:
             self.logg.error(f"Cobolt Laser Error: {e}")
 
