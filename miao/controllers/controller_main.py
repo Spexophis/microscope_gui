@@ -73,7 +73,7 @@ class MainController(QtCore.QObject):
         self.thread_wfs.finished.connect(self.wfsWorker.stop)
 
     def _set_signal_connections(self):
-        self.sada.connect(self.save_image)
+        self.sada.connect(self.save_data)
         self.v.view_view.Signal_image_metrics.connect(self.compute_image_metrics)
         # MCL Piezo
         self.v.con_view.Signal_piezo_move.connect(self.set_piezo_positions)
@@ -535,7 +535,7 @@ class MainController(QtCore.QObject):
             self.logg.error(f"Invalid video mode")
 
     @QtCore.pyqtSlot(str, np.ndarray, list)
-    def save_image(self, tm: str, d: np.ndarray, idx: list):
+    def save_data(self, tm: str, d: np.ndarray, idx: list):
         fn = self.v.get_file_dialog()
         if fn is not None:
             fd = fn + '_' + tm + '.tif'
@@ -1107,14 +1107,16 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
-    @QtCore.pyqtSlot(str)
-    def load_dm(self, filename: str):
-        try:
-            self.dfm.dm_cmd.append(self.dfm.read_cmd(filename))
-            self.dfm.set_dm(self.dfm.dm_cmd[-1])
-            print('New DM cmd loaded')
-        except Exception as e:
-            self.logg.error(f"DM Error: {e}")
+    @QtCore.pyqtSlot()
+    def load_dm(self):
+        filename = self.v.get_file_dialog(sw="Open File")
+        if filename is not None:
+            try:
+                self.dfm.dm_cmd.append(self.dfm.read_cmd(filename))
+                self.dfm.set_dm(self.dfm.dm_cmd[-1])
+                self.logg.info('New DM cmd loaded')
+            except Exception as e:
+                self.logg.error(f"DM Error: {e}")
 
     @QtCore.pyqtSlot()
     def save_dm(self):
@@ -1229,8 +1231,13 @@ class MainController(QtCore.QObject):
         # self.view_controller.plot_update(self.dfm.az)
         self.imshow_img_wfr()
 
-    @QtCore.pyqtSlot(str)
-    def save_img_wf(self, file_name: str):
+    @QtCore.pyqtSlot()
+    def save_img_wf(self):
+        fn = self.v.get_file_dialog()
+        if fn is not None:
+            file_name = fn + '_' + time.strftime("%Y%m%d%H%M%S")
+        else:
+            file_name = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S"))
         try:
             tf.imwrite(file_name + '_shimg_base_raw.tif', self.p.shwfsr.ref)
         except Exception as e:

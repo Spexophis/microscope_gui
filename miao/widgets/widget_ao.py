@@ -9,7 +9,7 @@ class AOWidget(QtWidgets.QWidget):
     Signal_img_shwfr_run = QtCore.pyqtSignal()
     Signal_img_shwfs_compute_wf = QtCore.pyqtSignal()
     Signal_img_shwfs_correct_wf = QtCore.pyqtSignal(int)
-    Signal_img_shwfs_save_wf = QtCore.pyqtSignal(str)
+    Signal_img_shwfs_save_wf = QtCore.pyqtSignal()
     Signal_img_shwfs_acquisition = QtCore.pyqtSignal()
     Signal_dm_selection = QtCore.pyqtSignal(str)
     Signal_push_actuator = QtCore.pyqtSignal(int, float)
@@ -17,7 +17,7 @@ class AOWidget(QtWidgets.QWidget):
     Signal_set_zernike = QtCore.pyqtSignal()
     Signal_set_dm = QtCore.pyqtSignal()
     Signal_update_cmd = QtCore.pyqtSignal()
-    Signal_load_dm = QtCore.pyqtSignal(str)
+    Signal_load_dm = QtCore.pyqtSignal()
     Signal_save_dm = QtCore.pyqtSignal()
     Signal_sensorlessAO_run = QtCore.pyqtSignal()
     Signal_sensorlessAO_save = QtCore.pyqtSignal()
@@ -284,13 +284,7 @@ class AOWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot()
     def save_img_wf(self):
-        dialog = cw.create_file_dialogue(name="Save File", file_filter="All Files (*)",
-                                         default_dir=r"C:/Users/ruizhe.lin/Documents/data")
-        if dialog.exec_() == QtWidgets.QFileDialog.Accepted:
-            selected_file = dialog.selectedFiles()
-            if selected_file:
-                print(selected_file[0])
-                self.Signal_img_shwfs_save_wf.emit(selected_file[0])
+        self.Signal_img_shwfs_save_wf.emit()
 
     @QtCore.pyqtSlot()
     def wfs_acq(self):
@@ -325,13 +319,7 @@ class AOWidget(QtWidgets.QWidget):
 
     @QtCore.pyqtSlot()
     def load_dm_file(self):
-        dialog = cw.create_file_dialogue(name="Open File", file_filter="All Files (*)",
-                                         default_dir=r"C:/Users/ruizhe.lin/Documents/data")
-        if dialog.exec_() == QtWidgets.QFileDialog.Accepted:
-            selected_files = dialog.selectedFiles()
-            if selected_files:
-                print(selected_files[0])
-                self.Signal_load_dm.emit(selected_files[0])
+        self.Signal_load_dm.emit()
 
     @QtCore.pyqtSlot()
     def save_dm_cmd(self):
