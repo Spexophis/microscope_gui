@@ -23,12 +23,10 @@ class NIDAQ:
         self.clock_rate = 2000000
         self.duty_cycle = 0.5
         self.clock = "Ctr0InternalOutput"
-        self.mode = None
         self.device = self._initialize()
-        self.tasks = {}
-        self._active = {}
-        self._running = {}
-        self.tasks, self._active, self._running, = self._configure()
+        self.tasks = {"analog": None, "digital": None, "clock": None}
+        self._active = {key: False for key in self.tasks.keys()}
+        self._running = {key: False for key in self.tasks.keys()}
 
     def close(self):
         self.device.reset_device()
@@ -57,12 +55,35 @@ class NIDAQ:
         except Exception as e:
             self.logg.error(f"Error initializing NIDAQ: {e}")
 
-    def _configure(self):
+    def set_analog(self, sgs, m=(-10., 10.)):
         try:
-            tasks = {"analog": None, "digital": None, "clock": None}
-            _active = {key: False for key in tasks.keys()}
-            _running = {key: False for key in tasks.keys()}
-            return tasks, _active, _running
+            with nidaqmx.Task() as task:
+                vs = []
+                for sg in sgs:
+                    task.ao_channels.add_ao_voltage_chan(self.analog_output_channels[sg[0]], min_val=m[0], max_val=m[1])
+                    vs.append(sg[1])
+                task.timing.cfg_samp_clk_timing(rate=2000000, sample_mode=AcquisitionType.FINITE, samps_per_chan=1,
+                                                active_edge=Edge.RISING)
+                task.write(vs, auto_start=True)
+                task.wait_until_done(WAIT_INFINITELY)
+                task.stop()
+        except nidaqmx.DaqWarning as e:
+            self.logg.warning("DaqWarning caught as exception: %s", e)
+            try:
+                assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE, "Unexpected error code: {}".format(
+                    e.error_code)
+            except AssertionError as ae:
+                self.logg.error("Assertion Error: %s", ae)
+
+    def get_analog(self, channels, m=(-10., 10.), n=16):
+        try:
+            with nidaqmx.Task() as task:
+                for ch in channels:
+                    task.ai_channels.add_ai_voltage_chan(self.analog_input_channels[ch], min_val=m[0], max_val=m[1])
+                task.timing.cfg_samp_clk_timing(rate=250000, sample_mode=AcquisitionType.FINITE, samps_per_chan=n,
+                                                active_edge=Edge.RISING)
+                r = task.read(number_of_samples_per_channel=n)
+            return [sum(p) / len(p) for p in r]
         except nidaqmx.DaqWarning as e:
             self.logg.warning("DaqWarning caught as exception: %s", e)
             try:

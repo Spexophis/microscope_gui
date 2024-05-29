@@ -6,12 +6,12 @@ from miao.utilities import customized_widgets as cw
 class ConWidget(QtWidgets.QWidget):
     Signal_check_emccd_temperature = QtCore.pyqtSignal()
     Signal_switch_emccd_cooler = QtCore.pyqtSignal(bool)
-    Signal_piezo_move = QtCore.pyqtSignal(str, float, float, float)
+    Signal_piezo_move = QtCore.pyqtSignal(str, float)
     Signal_deck_read_position = QtCore.pyqtSignal()
     Signal_deck_zero_position = QtCore.pyqtSignal()
     Signal_deck_move_single_step = QtCore.pyqtSignal(bool)
     Signal_deck_move_continuous = QtCore.pyqtSignal(bool, int, float)
-    Signal_galvo_set = QtCore.pyqtSignal(float, float)
+    Signal_galvo_set = QtCore.pyqtSignal(str, float)
     Signal_galvo_scan_update = QtCore.pyqtSignal()
     Signal_set_laser = QtCore.pyqtSignal(list, bool, float)
     Signal_daq_update = QtCore.pyqtSignal(int)
@@ -430,23 +430,7 @@ class ConWidget(QtWidgets.QWidget):
         else:
             self.QPushButton_emccd_cooler_switch.setText("Cooler OFF")
 
-    @QtCore.pyqtSlot(float)
-    def set_piezo_x(self, pos_x: float):
-        pos_y = self.QDoubleSpinBox_stage_y.value()
-        pos_z = self.QDoubleSpinBox_stage_z.value()
-        self.Signal_piezo_move.emit("x", pos_x, pos_y, pos_z)
 
-    @QtCore.pyqtSlot(float)
-    def set_piezo_y(self, pos_y: float):
-        pos_x = self.QDoubleSpinBox_stage_x.value()
-        pos_z = self.QDoubleSpinBox_stage_z.value()
-        self.Signal_piezo_move.emit("y", pos_x, pos_y, pos_z)
-
-    @QtCore.pyqtSlot(float)
-    def set_piezo_z(self, pos_z: float):
-        pos_x = self.QDoubleSpinBox_stage_x.value()
-        pos_y = self.QDoubleSpinBox_stage_y.value()
-        self.Signal_piezo_move.emit("z", pos_x, pos_y, pos_z)
 
     @QtCore.pyqtSlot()
     def read_deck(self):
@@ -471,14 +455,24 @@ class ConWidget(QtWidgets.QWidget):
         self.Signal_deck_move_continuous.emit(checked, distance, velocity)
 
     @QtCore.pyqtSlot(float)
+    def set_piezo_x(self, pos_x: float):
+        self.Signal_piezo_move.emit("piezo_x", pos_x)
+
+    @QtCore.pyqtSlot(float)
+    def set_piezo_y(self, pos_y: float):
+        self.Signal_piezo_move.emit("piezo_y", pos_y)
+
+    @QtCore.pyqtSlot(float)
+    def set_piezo_z(self, pos_z: float):
+        self.Signal_piezo_move.emit("piezo_z", pos_z)
+
+    @QtCore.pyqtSlot(float)
     def set_galvo_x(self, value: float):
-        vy = self.QDoubleSpinBox_galvo_y.value()
-        self.Signal_galvo_set.emit(value, vy)
+        self.Signal_galvo_set.emit("galvo_x", value)
 
     @QtCore.pyqtSlot(float)
     def set_galvo_y(self, value: float):
-        vx = self.QDoubleSpinBox_galvo_x.value()
-        self.Signal_galvo_set.emit(vx, value)
+        self.Signal_galvo_set.emit("galvo_y", value)
 
     @QtCore.pyqtSlot()
     def update_galvo_scan(self):
