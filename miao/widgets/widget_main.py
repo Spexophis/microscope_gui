@@ -50,9 +50,20 @@ class MainWidget(QtWidgets.QMainWindow):
         self.dialog.exec_()
         self.dialog_text.setText(f"Task is running, please wait...")
 
+    def get_file_dialog(self):
+        file_dialog = cw.create_file_dialogue(name="Save File", file_filter="All Files (*)",
+                                              default_dir=self.data_folder)
+        if file_dialog.exec_() == QtWidgets.QFileDialog.Accepted:
+            selected_file = file_dialog.selectedFiles()
+            if selected_file:
+                return selected_file[0]
+            else:
+                return None
+
 
 if __name__ == '__main__':
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
     gui = MainWidget(config=None, logg=None, path=None)
     gui.show()

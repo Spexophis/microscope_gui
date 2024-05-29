@@ -12,6 +12,7 @@ from miao.tools import tool_improc as ipr
 
 
 class MainController(QtCore.QObject):
+    sada = QtCore.pyqtSignal(str, np.ndarray, list)
 
     def __init__(self, view, module, process, config, logg, path, parent=None):
         super().__init__(parent)
@@ -72,6 +73,7 @@ class MainController(QtCore.QObject):
         self.thread_wfs.finished.connect(self.wfsWorker.stop)
 
     def _set_signal_connections(self):
+        self.sada.connect(self.save_image)
         self.v.view_view.Signal_image_metrics.connect(self.compute_image_metrics)
         # MCL Piezo
         self.v.con_view.Signal_piezo_move.connect(self.set_piezo_positions)
@@ -100,7 +102,6 @@ class MainController(QtCore.QObject):
         # Main Data Recording
         self.v.con_view.Signal_alignment.connect(self.run_pattern_alignment)
         self.v.con_view.Signal_data_acquire.connect(self.data_acquisition)
-        self.v.con_view.Signal_save_file.connect(self.save_data)
         # DM
         self.v.ao_view.Signal_dm_selection.connect(self.select_dm)
         self.v.ao_view.Signal_push_actuator.connect(self.push_actuator)
@@ -533,6 +534,17 @@ class MainController(QtCore.QObject):
         else:
             self.logg.error(f"Invalid video mode")
 
+    @QtCore.pyqtSlot(str, np.ndarray, list)
+    def save_image(self, tm: str, d: np.ndarray, idx: list):
+        fn = self.v.get_file_dialog()
+        if fn is not None:
+            fd = fn + '_' + tm + '.tif'
+        else:
+            fd = os.path.join(self.data_folder, tm + '.tif')
+        tf.imwrite(fd, d, imagej=True, resolution=(
+                   1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
+                   metadata={'unit': 'um', 'indices': idx})
+
     @QtCore.pyqtSlot(bool)
     def run_focus_locking(self, sw: bool):
         if sw:
@@ -582,7 +594,8 @@ class MainController(QtCore.QObject):
         self.set_lasers()
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
-        self.m.cam_set[self.cameras["imaging"]].prepare_live()
+        self.m.cam_set[self.cameras["imaging"]].acq_num = 64
+        self.m.cam_set[self.cameras["imaging"]].prepare_data_acquisition()
         dtr = self.generate_live_triggers("imaging")
         self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
         self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
@@ -604,22 +617,18 @@ class MainController(QtCore.QObject):
                 start = positions[2] - num_steps * step_sizes[2]
                 end = positions[2] + num_steps * step_sizes[2]
                 zps = np.arange(start, end + step_sizes[2], step_sizes[2])
-                data = []
                 pzs = []
-                self.m.cam_set[self.cameras["imaging"]].start_live()
+                self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
                 for i, z in enumerate(zps):
                     pz = self.m.pz.move_position(2, z)
                     pzs.append([i, pz])
                     self.m.daq.run_triggers()
                     time.sleep(0.05)
-                    data.append(self.m.cam_set[self.cameras["imaging"]].get_last_image())
                     self.m.daq.stop_triggers(_close=False)
                 self.logg.info(pzs)
-                fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_widefield_zstack.tif')
-                tf.imwrite(fd, np.asarray(data), imagej=True, resolution=(
-                    1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
-                           metadata={'unit': 'um',
-                                     'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
+                self.sada.emit(time.strftime("%Y%m%d%H%M%S") + '_widefield_zstack_',
+                               self.m.cam_set[self.cameras["imaging"]].get_data(),
+                               list(self.m.cam_set[self.cameras["imaging"]].data.ind_list))
         except Exception as e:
             self.finish_widefield_zstack()
             self.logg.error(f"Error running widefield zstack: {e}")
@@ -629,7 +638,7 @@ class MainController(QtCore.QObject):
     def finish_widefield_zstack(self):
         try:
             self.reset_piezo_positions()
-            self.m.cam_set[self.cameras["imaging"]].stop_live()
+            self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
             self.lasers_off()
             self.m.daq.stop_triggers()
             self.logg.info("Widefield image stack acquired")
@@ -1051,17 +1060,6 @@ class MainController(QtCore.QObject):
 
     def run_pattern_alignment(self):
         self.run_task(task=self.pattern_alignment)
-
-    @QtCore.pyqtSlot(str)
-    def save_data(self, file_name: str):
-        try:
-            tf.imwrite(file_name + '.tif', self.m.cam_set[self.cameras["imaging"]].get_last_image(), imagej=True,
-                       resolution=(
-                           1 / self.pixel_sizes[self.cameras["imaging"]],
-                           1 / self.pixel_sizes[self.cameras["imaging"]]),
-                       metadata={'unit': 'um', 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
-        except Exception as e:
-            self.logg.error(f"Error saving data: {e}")
 
     @QtCore.pyqtSlot(str)
     def select_dm(self, dm_n):

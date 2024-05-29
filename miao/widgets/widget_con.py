@@ -375,14 +375,12 @@ class ConWidget(QtWidgets.QWidget):
         self.QSpinBox_acquisition_number = cw.spinbox_widget(1, 50000, 1, 1)
         self.QPushButton_alignment = cw.pushbutton_widget('Alignment')
         self.QPushButton_acquire = cw.pushbutton_widget('Acquire')
-        self.QPushButton_save = cw.pushbutton_widget('Save')
         layout_acquisition.addWidget(cw.label_widget(str('Acq Modes')), 0, 0, 1, 1)
         layout_acquisition.addWidget(self.QComboBox_acquisition_modes, 1, 0, 1, 1)
         layout_acquisition.addWidget(cw.label_widget(str('Acq Number')), 0, 1, 1, 1)
         layout_acquisition.addWidget(self.QSpinBox_acquisition_number, 1, 1, 1, 1)
-        layout_acquisition.addWidget(self.QPushButton_alignment, 0, 2, 1, 1)
-        layout_acquisition.addWidget(self.QPushButton_acquire, 1, 2, 1, 1)
-        layout_acquisition.addWidget(self.QPushButton_save, 1, 3, 1, 1)
+        layout_acquisition.addWidget(self.QPushButton_alignment, 1, 2, 1, 1)
+        layout_acquisition.addWidget(self.QPushButton_acquire, 1, 3, 1, 1)
         return layout_acquisition
 
     def _set_signal_connections(self):
@@ -414,7 +412,6 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_add_profile.clicked.connect(self.run_add_profile)
         self.QPushButton_acquire.clicked.connect(self.run_acquisition)
         self.QPushButton_alignment.clicked.connect(self.run_alignment)
-        self.QPushButton_save.clicked.connect(self.save)
         self.QComboBox_live_modes.currentIndexChanged[str].connect(self.update_live_parameter_sets)
         self.QComboBox_acquisition_modes.currentIndexChanged[str].connect(self.update_acquisition_parameter_sets)
 
@@ -565,15 +562,6 @@ class ConWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot()
     def run_alignment(self):
         self.Signal_alignment.emit()
-
-    @QtCore.pyqtSlot()
-    def save(self):
-        dialog = cw.create_file_dialogue(name="Save File", file_filter="All Files (*)",
-                                         default_dir=str(self.data_folder))
-        if dialog.exec_() == QtWidgets.QFileDialog.Accepted:
-            selected_file = dialog.selectedFiles()
-            if selected_file:
-                self.Signal_save_file.emit(selected_file[0])
 
     @QtCore.pyqtSlot(str)
     def update_live_parameter_sets(self, text: str):
