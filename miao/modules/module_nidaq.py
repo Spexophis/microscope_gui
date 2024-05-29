@@ -1,4 +1,3 @@
-import time
 import warnings
 
 import nidaqmx
@@ -16,35 +15,16 @@ class NIDAQ:
     def __init__(self, logg=None, config=None):
         self.logg = logg or self.setup_logging()
         self.config = config or self.load_configs()
-        self.channels = self.config.configs["Triggers"]["NIDAQ"]["Channels"]
-        self.analog_output_channels = {"piezo_x": "Dev1/ao0",
-                                       "piezo_y": "Dev1/ao1",
-                                       "piezo_z": "Dev1/ao2",
-                                       "galvo_x": "Dev2/ao0",
-                                       "galvo_y": "Dev2/ao1",
-                                       "galvo_s": "Dev2/ao2"}
-        self.digital_output_channels = {"laser_405": "Dev1/port0/line0",
-                                        "laser_488_0": "Dev1/port0/line1",
-                                        "laser_488_1": "Dev1/port0/line2",
-                                        "laser_488_2": "Dev1/port0/line3",
-                                        "andor ccd": "Dev1/port0/line4",
-                                        "hamamatsu scmos": "Dev1/port0/line5",
-                                        "thorlabs cmos": "Dev1/port0/line6",
-                                        "tis cmos": "Dev1/port0/line7"}
-        self.analog_input_channels = {"piezo_x": "Dev1/ai0",
-                                      "piezo_y": "Dev1/ai1",
-                                      "piezo_z": "Dev1/ai2",
-                                      "galvo_x": "Dev2/ai0",
-                                      "galvo_y": "Dev2/ai1",
-                                      "galvo_s": "Dev2/ai2"}
+        self.analog_output_channels = self.config["Triggers"]["NIDAQ"]["Channels"]["analog_output_channels"]
+        self.digital_output_channels = self.config["Triggers"]["NIDAQ"]["Channels"]["digital_output_channels"]
+        self.analog_input_channels = self.config["Triggers"]["NIDAQ"]["Channels"]["analog_input_channels"]
+        self.clock_channel = ["Dev1/ctr0", "Dev1/PFI0", "Dev2/PFI0"]
         self.sample_rate = 250000
-        self.clock_channel = ["Dev1/ctr0", "Dev1/ctr0"]
         self.clock_rate = 2000000
         self.duty_cycle = 0.5
         self.clock = "Ctr0InternalOutput"
         self.mode = None
         self.device = self._initialize()
-        self._settings = self.NIDAQSettings()
         self.tasks = {}
         self._active = {}
         self._running = {}
@@ -189,7 +169,7 @@ class NIDAQ:
             self.tasks["clock"].co_pulse_freq_timebase_src = '20MHzTimebase'
             self.tasks["clock"].co_pulse_freq_timebase_rate = self.clock_rate
             self.tasks["clock"].timing.cfg_implicit_timing(sample_mode=AcquisitionType.CONTINUOUS)
-            self.tasks["clock"].export_signals.export_signal(ExportSignal.COUNTER_OUTPUT_EVENT, "Dev1/PFI0")
+            self.tasks["clock"].export_signals.counter_output_event_output_term = "Dev1/PFI0"
             self._active["clock"] = True
             self.logg.info("Clock is Written to " + self.clock_channel[0] + " and Exported to " + self.clock_channel[1])
         except nidaqmx.DaqWarning as e:
