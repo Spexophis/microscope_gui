@@ -70,23 +70,23 @@ class ConController:
     def get_lasers(self):
         lasers = []
         if self.v.QRadioButton_laser_405.isChecked():
-            lasers.append("405")
+            lasers.append("laser_405")
         if self.v.QRadioButton_laser_488_0.isChecked():
-            lasers.append("488_0")
+            lasers.append("laser_488_0")
         if self.v.QRadioButton_laser_488_1.isChecked():
-            lasers.append("488_1")
+            lasers.append("laser_488_1")
         if self.v.QRadioButton_laser_488_2.isChecked():
-            lasers.append("488_2")
+            lasers.append("laser_488_2")
         return lasers
 
     def get_cobolt_laser_power(self, laser):
-        if laser == "405":
+        if laser == "laser_405":
             return [self.v.QDoubleSpinBox_laserpower_405.value()]
-        if laser == "488_0":
+        if laser == "laser_488_0":
             return [self.v.QDoubleSpinBox_laserpower_488_0.value()]
-        if laser == "488_1":
+        if laser == "laser_488_1":
             return [self.v.QDoubleSpinBox_laserpower_488_1.value()]
-        if laser == "488_2":
+        if laser == "laser_488_2":
             return [self.v.QDoubleSpinBox_laserpower_488_2.value()]
         if laser == "all":
             return [self.v.QDoubleSpinBox_laserpower_405.value(), self.v.QDoubleSpinBox_laserpower_488_0.value(),

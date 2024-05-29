@@ -5,10 +5,10 @@ class CoboltLaser:
 
     def __init__(self, logg=None):
         self.logg = logg or self.setup_logging()
-        laser_dict = {"405": 'COM4',
-                      "488_0": 'COM5',
-                      "488_1": 'COM6',
-                      "488_2": 'COM7'}
+        laser_dict = {"laser_405": 'COM4',
+                      "laser_488_0": 'COM5',
+                      "laser_488_1": 'COM6',
+                      "laser_488_2": 'COM7'}
         self.lasers, self._h = self._initiate_lasers(laser_dict)
 
     def __del__(self):

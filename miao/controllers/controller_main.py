@@ -283,6 +283,10 @@ class MainController(QtCore.QObject):
                                    ["galvo_y", volty]],
                               m=(0., 10.))
 
+    @QtCore.pyqtSlot(float)
+    def set_galvo_switch(self, voltx: float):
+        self.m.daq.set_analog(sgs=[["galvo_s", voltx]], m=(0., 10.))
+
     @QtCore.pyqtSlot(list, bool, float)
     def set_laser(self, laser: list, sw: bool, pw: float):
         if sw:
@@ -298,12 +302,12 @@ class MainController(QtCore.QObject):
                 self.logg.error(f"Cobolt Laser Error: {e}")
 
     def set_lasers(self):
+        self.m.laser.laser_off("all")
         self.lasers = self.con_controller.get_lasers()
         pwr = []
         for laser in self.lasers:
             pwr.append(self.con_controller.get_cobolt_laser_power(laser))
         try:
-            self.m.laser.laser_off("all")
             self.m.laser.set_modulation_mode(self.lasers, pwr)
             self.m.laser.laser_on(self.lasers)
         except Exception as e:
@@ -328,14 +332,14 @@ class MainController(QtCore.QObject):
                                                     foci=dot_pos)
         self.con_controller.display_frequency(self.p.trigger.frequency)
 
+    def update_ttl_parameters(self):
+        digital_starts, digital_ends = self.con_controller.get_digital_parameters()
+        self.p.trigger.update_digital_parameters(digital_starts, digital_ends)
+
     def update_trigger_parameters(self, cam_key):
         try:
-            digital_starts, digital_ends = self.con_controller.get_digital_parameters()
-            self.p.trigger.update_digital_parameters(digital_starts, digital_ends)
-            galvo_positions, [galvo_ranges, dot_ranges], dot_pos = self.con_controller.get_galvo_scan_parameters()
-            self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions, ranges=[galvo_ranges, dot_ranges],
-                                                        foci=dot_pos)
-            self.con_controller.display_frequency(self.p.trigger.frequency)
+            self.update_ttl_parameters()
+            self.update_galvo_scanner()
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             positions = self.con_controller.get_piezo_positions()
             return_time = self.con_controller.get_piezo_return_time()
@@ -352,21 +356,22 @@ class MainController(QtCore.QObject):
 
     def generate_live_triggers(self, cam_key):
         self.update_trigger_parameters(cam_key)
-        return self.p.trigger.generate_digital_triggers(self.lasers, self.cameras[cam_key])
+        digital_channels = self.lasers + [self.cameras[cam_key]]
+        return self.p.trigger.generate_digital_triggers(digital_channels)
 
     def prepare_video(self, vd_mod):
-        self.lasers = self.con_controller.get_lasers()
         self.set_lasers()
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
         if vd_mod == "Wide Field":
             dtr = self.generate_live_triggers("imaging")
-            self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=False)
             self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
+            self.m.daq.write_triggers(digital_sequences=dtr, finite=False)
         elif vd_mod == "Dot Scan":
+            digital_channels = self.lasers + [self.cameras["imaging"]]
+            analog_channels = ["galvo_x", "galvo_y"]
             self.update_trigger_parameters("imaging")
-            self.p.trigger.update_piezo_scan_parameters(piezo_ranges=[0., 0., 0.])
             gtr, ptr, dtr, pos = self.p.trigger.generate_dotscan_resolft_2d()
             self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=gtr, digital_sequences=dtr, finite=False)
             self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
