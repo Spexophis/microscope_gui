@@ -154,6 +154,7 @@ class NIDAQ:
             self.tasks["clock"].co_pulse_freq_timebase_src = '20MHzTimebase'
             self.tasks["clock"].co_pulse_freq_timebase_rate = self.clock_rate
             self.tasks["clock"].timing.cfg_implicit_timing(sample_mode=AcquisitionType.CONTINUOUS)
+            self.tasks["clock"].export_signals.counter_output_event_output_term = "Dev1/PFI0"
             self._active["clock"] = True
             self.logg.info("Channel " + self.clock_channel + " Writes Successfully")
         except nidaqmx.DaqWarning as e:
