@@ -33,7 +33,7 @@ class AOWidget(QtWidgets.QWidget):
         self._set_initial_values()
 
     def closeEvent(self, event):
-        self._save_spinbox_values()
+        self.save_spinbox_values()
         event.accept()
 
     def _setup_ui(self):
@@ -262,6 +262,7 @@ class AOWidget(QtWidgets.QWidget):
         self.QSpinBox_n_lenslets_y_img.setValue(18)
         self.QSpinBox_spacing_img.setValue(61)
         self.QSpinBox_radius_img.setValue(24)
+        self.load_spinbox_values()
 
     @QtCore.pyqtSlot()
     def img_wfs_base(self):
@@ -338,7 +339,7 @@ class AOWidget(QtWidgets.QWidget):
     def save_sensorless_correction(self):
         self.Signal_sensorlessAO_save.emit()
 
-    def _save_spinbox_values(self):
+    def save_spinbox_values(self):
         values = {}
         for name in dir(self):
             obj = getattr(self, name)
@@ -346,7 +347,7 @@ class AOWidget(QtWidgets.QWidget):
                 values[name] = obj.value()
         self.config.write_config(values, self.config.configs["AOWidget Path"])
 
-    def _load_spinbox_values(self):
+    def load_spinbox_values(self):
         try:
             values = self.config.load_config(self.config.configs["AOWidget Path"])
             for name, value in values.items():

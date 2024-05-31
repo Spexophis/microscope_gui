@@ -42,8 +42,8 @@ class MainWidget(QtWidgets.QMainWindow):
 
     def closeEvent(self, event, **kwargs):
         self.Signal_quit.emit()
-        self.con_view._save_spinbox_values()
-        self.ao_view._save_spinbox_values()
+        self.con_view.save_spinbox_values()
+        self.ao_view.save_spinbox_values()
         super().closeEvent(event)
 
     def get_dialog(self):
