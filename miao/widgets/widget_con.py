@@ -35,10 +35,10 @@ class ConWidget(QtWidgets.QWidget):
         self.data_folder = path
         self._setup_ui()
         self._set_signal_connections()
-        self._load_spinbox_values()
+        self.load_spinbox_values()
 
     def closeEvent(self, event):
-        self._save_spinbox_values()
+        self.save_spinbox_values()
         event.accept()
 
     def _setup_ui(self):
@@ -714,7 +714,7 @@ class ConWidget(QtWidgets.QWidget):
             self.QDoubleSpinBox_ttl_start_tis.setValue(0.040)
             self.QDoubleSpinBox_ttl_stop_tis.setValue(0.064)
 
-    def _save_spinbox_values(self):
+    def save_spinbox_values(self):
         values = {}
         for name in dir(self):
             obj = getattr(self, name)
@@ -722,7 +722,7 @@ class ConWidget(QtWidgets.QWidget):
                 values[name] = obj.value()
         self.config.write_config(values, self.config.configs["ConWidget Path"])
 
-    def _load_spinbox_values(self):
+    def load_spinbox_values(self):
         try:
             values = self.config.load_config(self.config.configs["ConWidget Path"])
             for name, value in values.items():
