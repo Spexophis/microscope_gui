@@ -42,6 +42,38 @@ def find_center_of_mass(image):
     return row_mass, col_mass
 
 
+def find_valley_2d(image, coordinates=None):
+    data = image - image.min()
+    data = data / data.max()
+    mx = np.average(data, axis=0)
+    my = np.average(data, axis=1)
+    if coordinates is not None:
+        cdx, cdy = coordinates
+        l_ = valley_find(cdy, my)
+        k_ = valley_find(cdx, mx)
+        return k_, l_
+    else:
+        l_ = np.where(my == my.min())
+        k_ = np.where(mx == mx.min())
+        return k_[0][0], l_[0][0]
+
+
+def find_peak_2d(image, coordinates=None):
+    data = image - image.min()
+    data = data / data.max()
+    mx = np.average(data, axis=0)
+    my = np.average(data, axis=1)
+    if coordinates is not None:
+        cdx, cdy = coordinates
+        l_ = peak_find(cdy, my)
+        k_ = peak_find(cdx, mx)
+        return k_, l_
+    else:
+        l_ = np.where(my == my.max())
+        k_ = np.where(mx == mx.max())
+        return k_[0][0], l_[0][0]
+
+
 def gaussian_beam(r, bg, I0, r0, w0):
     return bg + I0 * np.exp(-2 * ((r - r0) / w0) ** 2)
 
