@@ -22,7 +22,8 @@ class ConWidget(QtWidgets.QWidget):
     Signal_fft = QtCore.pyqtSignal(bool)
     Signal_plot_profile = QtCore.pyqtSignal(bool)
     Signal_add_profile = QtCore.pyqtSignal()
-    Signal_alignment = QtCore.pyqtSignal()
+    Signal_focal_array_scan = QtCore.pyqtSignal()
+    Signal_grid_pattern_scan = QtCore.pyqtSignal()
     Signal_data_acquire = QtCore.pyqtSignal(str, int)
     Signal_save_file = QtCore.pyqtSignal(str)
 
@@ -260,7 +261,6 @@ class ConWidget(QtWidgets.QWidget):
         self.QDoubleSpinBox_dot_step_x = cw.doublespinbox_widget(0, 20, 0.0001, 5, 0.01720)
         self.QSpinBox_dot_step_x = cw.spinbox_widget(0, 4000, 1, 88)
         self.QDoubleSpinBox_dot_step_y = cw.doublespinbox_widget(0, 20, 0.0001, 5, 0.01720)
-        self.QPushButton_alignment = cw.pushbutton_widget('Alignment')
         self.galvo_scroll_area, galvo_scroll_layout = cw.create_scroll_area()
         galvo_scroll_layout.addRow(cw.label_widget(str('Galvo Scanner')))
         galvo_scroll_layout.addRow(cw.frame_widget())
@@ -276,8 +276,6 @@ class ConWidget(QtWidgets.QWidget):
         galvo_scroll_layout.addRow(cw.label_widget(str('Range / V')), self.QDoubleSpinBox_galvo_range_y)
         galvo_scroll_layout.addRow(cw.label_widget(str('Dot Range / V')), self.QDoubleSpinBox_dot_range_y)
         galvo_scroll_layout.addRow(cw.label_widget(str('Dot Step / volt')), self.QDoubleSpinBox_dot_step_y)
-        galvo_scroll_layout.addRow(cw.frame_widget())
-        galvo_scroll_layout.addRow(self.QPushButton_alignment)
         layout_position.addWidget(self.mad_deck_scroll_area)
         layout_position.addWidget(self.mcl_piezo_scroll_area)
         layout_position.addWidget(self.galvo_scroll_area)
@@ -373,15 +371,18 @@ class ConWidget(QtWidgets.QWidget):
         layout_acquisition = QtWidgets.QGridLayout()
         self.QComboBox_acquisition_modes = cw.combobox_widget(list_items=["Wide Field 2D", "Wide Field 3D",
                                                                           "Monalisa Scan 2D", "Monalisa Scan 3D",
-                                                                          "Dot Scan 2D", "Dot Scan 3D",
-                                                                          "Focal Array Scan 2D"])
+                                                                          "Dot Scan 2D", "Dot Scan 3D"])
         self.QSpinBox_acquisition_number = cw.spinbox_widget(1, 50000, 1, 1)
         self.QPushButton_acquire = cw.pushbutton_widget('Acquire')
+        self.QPushButton_focal_array_scan = cw.pushbutton_widget('FocalArray Scan')
+        self.QPushButton_grid_pattern_scan = cw.pushbutton_widget('GridPattern Scan')
         layout_acquisition.addWidget(cw.label_widget(str('Acq Modes')), 0, 0, 1, 1)
         layout_acquisition.addWidget(self.QComboBox_acquisition_modes, 1, 0, 1, 1)
         layout_acquisition.addWidget(cw.label_widget(str('Acq Number')), 0, 1, 1, 1)
         layout_acquisition.addWidget(self.QSpinBox_acquisition_number, 1, 1, 1, 1)
-        layout_acquisition.addWidget(self.QPushButton_acquire, 1, 3, 1, 1)
+        layout_acquisition.addWidget(self.QPushButton_acquire, 1, 2, 1, 1)
+        layout_acquisition.addWidget(self.QPushButton_grid_pattern_scan, 0, 3, 1, 1)
+        layout_acquisition.addWidget(self.QPushButton_focal_array_scan, 1, 3, 1, 1)
         return layout_acquisition
 
     def _set_signal_connections(self):
@@ -412,7 +413,8 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_plot_profile.clicked.connect(self.run_plot_profile)
         self.QPushButton_add_profile.clicked.connect(self.run_add_profile)
         self.QPushButton_acquire.clicked.connect(self.run_acquisition)
-        self.QPushButton_alignment.clicked.connect(self.run_alignment)
+        self.QPushButton_focal_array_scan.clicked.connect(self.run_array_scan)
+        self.QPushButton_grid_pattern_scan.clicked.connect(self.run_pattern_scan)
         self.QComboBox_live_modes.currentIndexChanged[str].connect(self.update_live_parameter_sets)
         self.QComboBox_acquisition_modes.currentIndexChanged[str].connect(self.update_acquisition_parameter_sets)
 
@@ -561,8 +563,12 @@ class ConWidget(QtWidgets.QWidget):
         self.Signal_data_acquire.emit(acq_mode, acq_num)
 
     @QtCore.pyqtSlot()
-    def run_alignment(self):
-        self.Signal_alignment.emit()
+    def run_array_scan(self):
+        self.Signal_focal_array_scan.emit()
+
+    @QtCore.pyqtSlot()
+    def run_pattern_scan(self):
+        self.Signal_grid_pattern_scan.emit()
 
     @QtCore.pyqtSlot(str)
     def update_live_parameter_sets(self, text: str):
