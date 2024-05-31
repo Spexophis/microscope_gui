@@ -931,11 +931,9 @@ class MainController(QtCore.QObject):
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_grid_min.tif')
             tf.imwrite(fd, mx)
             self.v.view_view.plot_image(data=mx, axis_arrays=scans, axis_labels=None)
-            k_, l_ = np.where(mx == mx.min())
+            k_, l_ = ipr.find_valley_2d(image=mx)
             self.m.daq.set_piezo_position(scans[0][k_], scans[1][l_])
             self.con_controller.change_piezo_positions(x=scans[0][k_] * 10, y=scans[1][l_] * 10)
-            self.logg.info("x = {} \ny = {} \nx = {} \ny = {}".format(scans[0][k_], scans[1][l_], scans[0][k_] * 10,
-                                                                      scans[1][l_] * 10))
             # double check
             positions = self.con_controller.get_piezo_positions()
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
@@ -944,6 +942,7 @@ class MainController(QtCore.QObject):
             scans = [np.arange(start / 10, end / 10 + 0.8 * step_size / 10, 0.8 * step_size / 10) for
                      start, end, step_size in zip(starts, ends, step_sizes)]
             data = []
+            sx, sy = scans[0].shape[0], scans[1].shape[0]
             mx = np.zeros((sx, sy))
             for i in range(sx):
                 for j in range(sy):
@@ -964,11 +963,9 @@ class MainController(QtCore.QObject):
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_grid_min.tif')
             tf.imwrite(fd, mx)
             self.v.view_view.plot_image(data=mx, axis_arrays=scans, axis_labels=None)
-            k_, l_ = np.where(mx == mx.min())
-            self.m.daq.set_piezo_position(scans[0][k_], scans[1][l_])
-            self.con_controller.change_piezo_positions(x=scans[0][k_] * 10, y=scans[1][l_] * 10)
-            self.logg.info("x = {} \ny = {} \nx = {} \ny = {}".format(scans[0][k_], scans[1][l_], scans[0][k_] * 10,
-                                                                      scans[1][l_] * 10))
+            k_, l_ = ipr.find_valley_2d(image=mx, coordinates=(scans[0], scans[1]))
+            self.m.daq.set_piezo_position(k_, l_)
+            self.con_controller.change_piezo_positions(x=k_ * 10, y=l_ * 10)
             # dot array maxima
             self.p.trigger.update_piezo_scan_parameters(piezo_ranges=[0., 0., 0.])
             p_w = self.con_controller.get_cobolt_laser_power("488_2")
@@ -1003,9 +1000,8 @@ class MainController(QtCore.QObject):
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_dot_max.tif')
             tf.imwrite(fd, mx)
             self.v.view_view.plot_image(data=mx, axis_arrays=[scan_x, scan_y], axis_labels=None)
-            k_, l_ = np.where(mx == mx.max())
-            self.con_controller.change_galvo_scan(x=scan_x[k_][0], y=scan_y[l_][0])
-            self.logg.info("gx = {} \ngy = {}".format(scan_x[k_], scan_y[l_]))
+            k_, l_ = ipr.find_peak_2d(image=mx)
+            self.con_controller.change_galvo_scan(x=scan_x[k_], y=scan_y[l_])
             # double check
             galvo_positions, [galvo_ranges, dot_ranges], dot_pos = self.con_controller.get_galvo_scan_parameters()
             scan_x = dot_ranges[0] + np.linspace(-0.6 * self.p.trigger.dot_step_v, 0.6 * self.p.trigger.dot_step_v, 10,
@@ -1039,9 +1035,8 @@ class MainController(QtCore.QObject):
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_pattern_alignment_dot_max.tif')
             tf.imwrite(fd, mx)
             self.v.view_view.plot_image(data=mx, axis_arrays=[scan_x, scan_y], axis_labels=None)
-            k_, l_ = np.where(mx == mx.max())
-            self.con_controller.change_galvo_scan(x=scan_x[k_][0], y=scan_y[l_][0])
-            self.logg.info("gx = {} \ngy = {}".format(scan_x[k_], scan_y[l_]))
+            k_, l_ = ipr.find_peak_2d(image=mx, coordinates=(scans[0], scans[1]))
+            self.con_controller.change_galvo_scan(x=k_, y=l_)
         except Exception as e:
             self.finish_pattern_alignment()
             self.logg.error(f"Error running alignment scanning: {e}")
