@@ -34,16 +34,17 @@ if __name__ == "__main__":
     from scipy.ndimage import gaussian_filter, convolve
     from scipy.interpolate import RectBivariateSpline
 
-    PSF = (0.5 / 2.8) / 0.0785
-    gain = 1
-    window_radius = int(1 * np.ceil(PSF))
+    gain_value = 2.5
+    window_radius = int(1 * np.ceil((0.5 / 2.8) / 0.0785))
 
-    I_in = tf.imread(r"C:\Users\ruizhe.lin\Desktop\20240530154400_pattern_alignment_grid-1.tif")
+    I_in = tf.imread(r"C:\Users\ruizhe.lin\Desktop\20240530161327_dot_scanning_crop-1.tif")
 
     # Upscale factor calculation
     number_row_initial, number_column_initial = I_in.shape
-    row_scale, column_scale = 2.5, 2.5
-    number_row_scaleup, number_column_scaleup = int(row_scale * number_row_initial), int(column_scale * number_column_initial)
+    scale_factor = 2.5
+    number_row_scaleup = int(scale_factor * number_row_initial)
+    number_column_scaleup = int(scale_factor * number_column_initial)
+
     x0 = np.linspace(-0.5, 0.5, number_column_initial)
     y0 = np.linspace(-0.5, 0.5, number_row_initial)
     X0, Y0 = np.meshgrid(x0, y0)
@@ -68,13 +69,11 @@ if __name__ == "__main__":
     # Upscale using spline interpolation
     interp_localmin = RectBivariateSpline(y0, x0, single_frame_I_in_localmin)
     single_frame_localmin_magnified = interp_localmin(y, x, grid=True)
-    # single_frame_localmin_magnified = zoom(single_frame_I_in_localmin, 2.5, order=4)
     single_frame_localmin_magnified[single_frame_localmin_magnified < 0] = 0
     single_frame_localmin_magnified = np.pad(single_frame_localmin_magnified, ((10, 10), (10, 10)), mode='constant')
 
     interp_in = RectBivariateSpline(y0, x0, single_frame_I_in)
     single_frame_I_magnified = interp_in(y, x, grid=True)
-    # single_frame_I_magnified = zoom(single_frame_I_in, 2.5, order=4)
     single_frame_I_magnified[single_frame_I_magnified < 0] = 0
     single_frame_I_magnified = np.pad(single_frame_I_magnified, ((10, 10), (10, 10)), mode='constant')
 
@@ -83,11 +82,9 @@ if __name__ == "__main__":
     # Local normalization
     I_normalized = single_frame_localmin_magnified / (gaussian_filter(single_frame_localmin_magnified, 8) + 1e-5)
 
-    # Sobel kernels
+    # Calculate normalized gradients
     sobelX = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]])
     sobelY = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
-
-    # Calculate normalized gradients
     gradient_y = convolve(I_normalized, sobelX, mode='reflect')
     gradient_x = convolve(I_normalized, sobelY, mode='reflect')
 
@@ -95,7 +92,6 @@ if __name__ == "__main__":
     gradient_y = gradient_y / (I_normalized + 1e-5)
 
     # Calculate pixel displacements
-    gain_value = 2
     displacement_x = gain_value * gradient_x
     displacement_y = gain_value * gradient_y
     displacement_x[np.abs(displacement_x) > 10] = 0
