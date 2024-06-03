@@ -35,7 +35,7 @@ if __name__ == "__main__":
     from scipy.interpolate import RectBivariateSpline
 
     PSF = (0.5 / 2.8) / 0.0785
-    gain = 2.0
+    gain = 1
     window_radius = int(1 * np.ceil(PSF))
 
     I_in = tf.imread(r"C:\Users\ruizhe.lin\Desktop\20240530154400_pattern_alignment_grid-1.tif")
@@ -68,18 +68,20 @@ if __name__ == "__main__":
     # Upscale using spline interpolation
     interp_localmin = RectBivariateSpline(y0, x0, single_frame_I_in_localmin)
     single_frame_localmin_magnified = interp_localmin(y, x, grid=True)
+    # single_frame_localmin_magnified = zoom(single_frame_I_in_localmin, 2.5, order=4)
     single_frame_localmin_magnified[single_frame_localmin_magnified < 0] = 0
     single_frame_localmin_magnified = np.pad(single_frame_localmin_magnified, ((10, 10), (10, 10)), mode='constant')
 
     interp_in = RectBivariateSpline(y0, x0, single_frame_I_in)
     single_frame_I_magnified = interp_in(y, x, grid=True)
+    # single_frame_I_magnified = zoom(single_frame_I_in, 2.5, order=4)
     single_frame_I_magnified[single_frame_I_magnified < 0] = 0
     single_frame_I_magnified = np.pad(single_frame_I_magnified, ((10, 10), (10, 10)), mode='constant')
 
     number_row, number_column = single_frame_I_magnified.shape
 
     # Local normalization
-    I_normalized = single_frame_localmin_magnified / (gaussian_filter(single_frame_localmin_magnified, 10) + 1e-5)
+    I_normalized = single_frame_localmin_magnified / (gaussian_filter(single_frame_localmin_magnified, 8) + 1e-5)
 
     # Sobel kernels
     sobelX = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]])
