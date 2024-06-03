@@ -31,22 +31,19 @@ class ImageReconstruction:
 if __name__ == "__main__":
     import tifffile as tf
     import numpy as np
-    from scipy.ndimage import gaussian_filter, sobel, convolve
+    from scipy.ndimage import gaussian_filter, convolve
     from scipy.interpolate import RectBivariateSpline
 
     PSF = (0.5 / 2.8) / 0.0785
     gain = 2.0
-    window_radius = int(2 * np.ceil((0.5 / 2.8) / 0.0785))
-
-    # Convert PSF to the 1/e radius
-    PSF = PSF / 1.6651
+    window_radius = int(1 * np.ceil(PSF))
 
     I_in = tf.imread(r"C:\Users\ruizhe.lin\Desktop\20240530154400_pattern_alignment_grid-1.tif")
 
     # Upscale factor calculation
     number_row_initial, number_column_initial = I_in.shape
-    row_scale, column_scale = 2, 2
-    number_row_scaleup, number_column_scaleup = row_scale * number_row_initial, column_scale * number_column_initial
+    row_scale, column_scale = 2.5, 2.5
+    number_row_scaleup, number_column_scaleup = int(row_scale * number_row_initial), int(column_scale * number_column_initial)
     x0 = np.linspace(-0.5, 0.5, number_column_initial)
     y0 = np.linspace(-0.5, 0.5, number_row_initial)
     X0, Y0 = np.meshgrid(x0, y0)
