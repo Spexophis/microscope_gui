@@ -1,7 +1,3 @@
-import numpy as np
-import tifffile as tf
-
-
 class ImageReconstruction:
 
     def __init__(self):
@@ -30,3 +26,108 @@ class ImageReconstruction:
         y = np.arange(-self.ny / 2, self.ny / 2)
         xv, yv = np.meshgrid(x, y, indexing='ij', sparse=True)
         return np.roll(xv, int(self.nx / 2)), np.roll(yv, int(self.ny / 2))
+
+
+if __name__ == "__main__":
+    import tifffile as tf
+    import numpy as np
+    from scipy.ndimage import gaussian_filter, sobel, zoom
+    from scipy.interpolate import RectBivariateSpline
+
+    PSF = (0.5 / 2.8) / 0.0785
+    gain = 2.0
+    window_radius = int(10 * np.ceil((0.5 / 2.8) / 0.0785))
+
+    # Convert PSF to the 1/e radius
+    PSF = PSF / 1.6651
+
+    img = tf.imread(r"C:\Users\ruizhe.lin\Documents\data\20240530\20240530154400_pattern_alignment_grid.tif")
+    I_in = img[0]
+
+    # Upscale factor calculation
+    number_row_initial, number_column_initial = I_in.shape
+    row_scale, column_scale = int(8 / PSF), int(8 / PSF)
+    number_row_scaleup, number_column_scaleup = row_scale * number_row_initial, column_scale * number_column_initial
+    x0 = np.linspace(-0.5, 0.5, number_column_initial)
+    y0 = np.linspace(-0.5, 0.5, number_row_initial)
+    X0, Y0 = np.meshgrid(x0, y0)
+    x = np.linspace(-0.5, 0.5, number_column_scaleup)
+    y = np.linspace(-0.5, 0.5, number_row_scaleup)
+    X, Y = np.meshgrid(x, y)
+
+    # DPR on single frames
+    single_frame_I_in = I_in - np.min(I_in)
+    local_minimum = np.zeros_like(single_frame_I_in)
+    single_frame_I_in_localmin = np.zeros_like(single_frame_I_in)
+
+    for u in range(number_row_initial):
+        for v in range(number_column_initial):
+            sub_window = single_frame_I_in[
+                         max(0, u - window_radius):min(number_row_initial, u + window_radius + 1),
+                         max(0, v - window_radius):min(number_column_initial, v + window_radius + 1)
+                         ]
+            local_minimum[u, v] = np.min(sub_window)
+            single_frame_I_in_localmin[u, v] = single_frame_I_in[u, v] - local_minimum[u, v]
+
+    # Upscale using spline interpolation
+    single_frame_localmin_magnified = zoom(single_frame_I_in_localmin, (row_scale, column_scale), order=2)
+    single_frame_localmin_magnified[single_frame_localmin_magnified < 0] = 0
+    single_frame_localmin_magnified = np.pad(single_frame_localmin_magnified, ((10, 10), (10, 10)), mode='constant')
+
+    single_frame_I_magnified = zoom(single_frame_I_in, (row_scale, column_scale), order=2)
+    single_frame_I_magnified[single_frame_I_magnified < 0] = 0
+    single_frame_I_magnified = np.pad(single_frame_I_magnified, ((10, 10), (10, 10)), mode='constant')
+
+    number_row, number_column = single_frame_I_magnified.shape
+
+    # Local normalization
+    I_normalized = single_frame_localmin_magnified / (gaussian_filter(single_frame_localmin_magnified, 10) + 1e-5)
+
+    # Calculate normalized gradients
+    gradient_y = sobel(I_normalized, axis=0)
+    gradient_x = sobel(I_normalized, axis=0)
+
+    gradient_x = gradient_x / (I_normalized + 1e-5)
+    gradient_y = gradient_y / (I_normalized + 1e-5)
+
+    # Calculate pixel displacements
+    gain_value = 0.5 * gain + 1
+    displacement_x = gain_value * gradient_x
+    displacement_y = gain_value * gradient_y
+    displacement_x[np.abs(displacement_x) > 10] = 0
+    displacement_y[np.abs(displacement_y) > 10] = 0
+
+    # Calculate I_out with weighted pixel displacements
+    single_frame_I_out = np.zeros((number_row, number_column))
+    for nx in range(10, number_row - 10):
+        for ny in range(10, number_column - 10):
+            weighted1 = (1 - np.abs(displacement_x[nx, ny] - np.fix(displacement_x[nx, ny]))) * (
+                    1 - np.abs(displacement_y[nx, ny] - np.fix(displacement_y[nx, ny])))
+            weighted2 = (1 - np.abs(displacement_x[nx, ny] - np.fix(displacement_x[nx, ny]))) * (
+                np.abs(displacement_y[nx, ny] - np.fix(displacement_y[nx, ny])))
+            weighted3 = (np.abs(displacement_x[nx, ny] - np.fix(displacement_x[nx, ny]))) * (
+                    1 - np.abs(displacement_y[nx, ny] - np.fix(displacement_y[nx, ny])))
+            weighted4 = (np.abs(displacement_x[nx, ny] - np.fix(displacement_x[nx, ny]))) * (
+                np.abs(displacement_y[nx, ny] - np.fix(displacement_y[nx, ny])))
+
+            coordinate1 = [int(np.fix(displacement_x[nx, ny])), int(np.fix(displacement_y[nx, ny]))]
+            coordinate2 = [int(np.fix(displacement_x[nx, ny])),
+                           int(np.fix(displacement_y[nx, ny]) + np.sign(displacement_y[nx, ny]))]
+            coordinate3 = [int(np.fix(displacement_x[nx, ny]) + np.sign(displacement_x[nx, ny])),
+                           int(np.fix(displacement_y[nx, ny]))]
+            coordinate4 = [int(np.fix(displacement_x[nx, ny]) + np.sign(displacement_x[nx, ny])),
+                           int(np.fix(displacement_y[nx, ny]) + np.sign(displacement_y[nx, ny]))]
+
+            single_frame_I_out[nx + coordinate1[0], ny + coordinate1[1]] += weighted1 * single_frame_I_magnified[
+                nx, ny]
+            single_frame_I_out[nx + coordinate2[0], ny + coordinate2[1]] += weighted2 * single_frame_I_magnified[
+                nx, ny]
+            single_frame_I_out[nx + coordinate3[0], ny + coordinate3[1]] += weighted3 * single_frame_I_magnified[
+                nx, ny]
+            single_frame_I_out[nx + coordinate4[0], ny + coordinate4[1]] += weighted4 * single_frame_I_magnified[
+                nx, ny]
+
+    single_frame_I_out = single_frame_I_out[10:-10, 10:-10]
+    single_frame_I_magnified = single_frame_I_magnified[10:-10, 10:-10]
+    result = [single_frame_I_out, single_frame_I_magnified]
+    tf.imwrite(r"C:\Users\ruizhe.lin\Desktop\result.tif", np.asarray(result))
