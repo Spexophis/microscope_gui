@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     # Upscale factor calculation
     number_row_initial, number_column_initial = I_in.shape
-    row_scale, column_scale = int(8 / PSF), int(8 / PSF)
+    row_scale, column_scale = 2, 2
     number_row_scaleup, number_column_scaleup = row_scale * number_row_initial, column_scale * number_column_initial
     x0 = np.linspace(-0.5, 0.5, number_column_initial)
     y0 = np.linspace(-0.5, 0.5, number_row_initial)
