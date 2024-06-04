@@ -139,6 +139,23 @@ class NIDAQ:
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
 
+    def set_galvo_switch(self, pos):
+        try:
+            with nidaqmx.Task() as task:
+                task.ao_channels.add_ao_voltage_chan(self.galvo_channels[2], min_val=-5., max_val=5.)
+                task.timing.cfg_samp_clk_timing(rate=2000000, sample_mode=AcquisitionType.FINITE, samps_per_chan=1,
+                                                active_edge=Edge.RISING)
+                task.write(pos, auto_start=True)
+                task.wait_until_done(WAIT_INFINITELY)
+                task.stop()
+        except nidaqmx.DaqWarning as e:
+            self.logg.warning("DaqWarning caught as exception: %s", e)
+            try:
+                assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE, "Unexpected error code: {}".format(
+                    e.error_code)
+            except AssertionError as ae:
+                self.logg.error("Assertion Error: %s", ae)
+
     def get_galvo_position(self):
         try:
             with nidaqmx.Task() as task:

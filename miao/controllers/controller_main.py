@@ -252,7 +252,7 @@ class MainController(QtCore.QObject):
     @QtCore.pyqtSlot(float)
     def set_switch(self, volt: float):
         try:
-            self.m.daq.set_galvo_position([volt], [2])
+            self.m.daq.set_galvo_switch(volt)
         except Exception as e:
             self.logg.error(f"Galvo Error: {e}")
 
