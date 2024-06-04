@@ -116,6 +116,16 @@ class NIDAQ:
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
 
+    def piezo_step_callback(self, task_handle, signal_type, callback_data):
+        self.tasks["piezo_x"].write(self.ao_value[self.pzx], auto_start=True)
+        self.pzx += 1
+        if self.pzx >= 20:
+            self.pzy += 1
+            self.tasks["piezo_y"].write(self.ao_value[self.pzy], auto_start=True)
+            self.pzx = 0
+            self.tasks["piezo_x"].write(self.ao_value[self.pzx], auto_start=True)
+        return 0
+
     def set_galvo_position(self, pos, indices=None):
         if indices is None:
             indices = [0, 1, 2]
@@ -191,7 +201,7 @@ class NIDAQ:
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
 
-    def write_digital_sequences(self, digital_sequences, indices=None):
+    def write_digital_sequences(self, digital_sequences, indices=None, callback=None):
         if indices is None:
             indices = [0, 1, 2, 3, 4, 5, 6]
         n_channels, n_samples = digital_sequences.shape
@@ -208,6 +218,10 @@ class NIDAQ:
                                                              samps_per_chan=n_samples)
             self.tasks["digital"].write(digital_sequences == 1.0, auto_start=False)
             self._active["digital"] = True
+            if callback is not None:
+                self.tasks["digital"].register_signal_event(nidaqmx.constants.Signal.CHANGE_DETECTION_EVENT, callback)
+                self.tasks["digital"].change_detection.dig_edge_start_trig.cfg_dig_edge_start_trig(
+                    trigger_source=self.digital_channels[4], trigger_edge=nidaqmx.constants.Edge.FALLING)
         except nidaqmx.DaqWarning as e:
             self.logg.warning("DaqWarning caught as exception: %s", e)
             try:
