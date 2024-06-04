@@ -165,7 +165,7 @@ class NIDAQ:
             self.tasks["clock"].co_pulse_freq_timebase_src = '20MHzTimebase'
             self.tasks["clock"].co_pulse_freq_timebase_rate = self.clock_rate
             self.tasks["clock"].timing.cfg_implicit_timing(sample_mode=AcquisitionType.CONTINUOUS)
-            self.tasks["clock"].co_pulse_term = "/Dev1/PFI12"
+            self.tasks["clock"].co_pulse_term = self.clock[0]
             self._active["clock"] = True
         except nidaqmx.DaqWarning as e:
             self.logg.warning("DaqWarning caught as exception: %s", e)
@@ -257,7 +257,7 @@ class NIDAQ:
             self.mode = AcquisitionType.CONTINUOUS
         try:
             if digital_sequences is not None:
-                self.write_digital_sequences(digital_sequences=digital_sequences)
+                self.write_digital_sequences(digital_sequences)
             if piezo_sequences is not None:
                 self.write_piezo_sequences(piezo_sequences)
             if galvo_sequences is not None:
