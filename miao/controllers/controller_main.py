@@ -210,43 +210,49 @@ class MainController(QtCore.QObject):
 
     def reset_piezo_positions(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        self.m.daq.set_piezo_position(pos_x / 10., pos_y / 10.)
-        self.set_piezo_position_z(pos_z)
+        self.m.daq.set_piezo_position([pos_x / 10., pos_y / 10., pos_z / 10.], [0, 1, 2])
 
     @QtCore.pyqtSlot(str, float, float, float)
     def set_piezo_positions(self, axis: str, value_x: float, value_y: float, value_z: float):
         if axis == "x":
-            self.set_piezo_position_x(value_x, value_y)
+            self.set_piezo_position_x(value_x)
         if axis == "y":
-            self.set_piezo_position_y(value_x, value_y)
+            self.set_piezo_position_y(value_y)
         if axis == "z":
             self.set_piezo_position_z(value_z)
 
-    def set_piezo_position_x(self, pos_x, pos_y):
+    def set_piezo_position_x(self, pos_x):
         try:
-            self.m.daq.set_piezo_position(pos_x / 10., pos_y / 10.)
+            self.m.daq.set_piezo_position([pos_x / 10.], [0])
             self.con_controller.display_piezo_position_x(self.m.pz.read_position(0))
         except Exception as e:
             self.logg.error(f"MCL Piezo Error: {e}")
 
-    def set_piezo_position_y(self, pos_x, pos_y):
+    def set_piezo_position_y(self, pos_y):
         try:
-            self.m.daq.set_piezo_position(pos_x / 10., pos_y / 10.)
+            self.m.daq.set_piezo_position([pos_y / 10.], [1])
             self.con_controller.display_piezo_position_y(self.m.pz.read_position(1))
         except Exception as e:
             self.logg.error(f"MCL Piezo Error: {e}")
 
     def set_piezo_position_z(self, pos_z):
         try:
-            z = self.m.pz.move_position(2, pos_z)
-            self.con_controller.display_piezo_position_z(z)
+            self.m.daq.set_piezo_position([pos_z / 10.], [2])
+            self.con_controller.display_piezo_position_z(self.m.pz.read_position(2))
         except Exception as e:
             self.logg.error(f"MCL Piezo Error: {e}")
 
     @QtCore.pyqtSlot(float, float)
     def set_galvo(self, voltx: float, volty: float):
         try:
-            self.m.daq.set_galvo_position(voltx, volty)
+            self.m.daq.set_galvo_position([voltx, volty], [0, 1])
+        except Exception as e:
+            self.logg.error(f"Galvo Error: {e}")
+
+    @QtCore.pyqtSlot(float)
+    def set_switch(self, volt: float):
+        try:
+            self.m.daq.set_galvo_position([volt], [2])
         except Exception as e:
             self.logg.error(f"Galvo Error: {e}")
 
@@ -908,7 +914,7 @@ class MainController(QtCore.QObject):
             ends = [position + 0.5 * axis_length for position, axis_length in zip(positions, axis_lengths)]
             scans = [np.arange(start / 10, end / 10 + step_size / 10, step_size / 10) for start, end, step_size in
                      zip(starts, ends, step_sizes)]
-            self.m.daq.set_piezo_position(scans[0][0], scans[1][0])
+            self.m.daq.set_piezo_position([scans[0][0], scans[1][0]], [0, 1])
             # grid pattern minima
             p_w = self.con_controller.get_cobolt_laser_power("488_0")
             self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0., p_w[0], 0., 0.])
@@ -921,7 +927,7 @@ class MainController(QtCore.QObject):
             # self.m.pz.lock_position(2, positions[2])
             for i in range(sx):
                 for j in range(sy):
-                    self.m.daq.set_piezo_position(scans[0][i], scans[1][j])
+                    self.m.daq.set_piezo_position([scans[0][i], scans[1][j]], [0, 1])
                     time.sleep(0.08)
                     self.m.daq.run_triggers()
                     time.sleep(0.04)
