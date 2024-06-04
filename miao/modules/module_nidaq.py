@@ -23,7 +23,6 @@ class NIDAQ:
                                      "Dev1/port0/line4", "Dev1/port0/line5", "Dev1/port0/line6"]
             self.clock_channel = "Dev1/ctr0"
             self.clock_rate = 2000000
-            self.clk = "Ctr0InternalOutput"
             self.clock = ["/Dev1/PFI12", "/Dev2/PFI0"]
             self.mode = None
 
