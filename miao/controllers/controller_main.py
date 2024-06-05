@@ -846,13 +846,14 @@ class MainController(QtCore.QObject):
                                                  endpoint=False, dtype=float)
             scan_y = dot_ranges[1] + np.linspace(-1.2 * self.p.trigger.dot_step_v, 1.2 * self.p.trigger.dot_step_y, 10,
                                                  endpoint=False, dtype=float)
+            sx, sy = scan_x.shape[0], scan_y.shape[0]
             data = []
-            mx = np.zeros((10, 10))
+            mx = np.zeros((sy, sx))
             self.m.cam_set[self.cameras["imaging"]].start_live()
-            for j in range(10):
-                dot_ranges[0] = scan_x[i]
-                for i in range(10):
-                    dot_ranges[1] = scan_y[j]
+            for j in range(sy):
+                dot_ranges[1] = scan_y[j]
+                for i in range(sx):
+                    dot_ranges[0] = scan_x[i]
                     self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions,
                                                                 ranges=[galvo_ranges, dot_ranges],
                                                                 foci=dot_pos)
@@ -922,12 +923,13 @@ class MainController(QtCore.QObject):
             self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
             data = []
             sx, sy = scans[0].shape[0], scans[1].shape[0]
-            mx = np.zeros((sx, sy))
+            mx = np.zeros((sy, sx))
             self.m.cam_set[self.cameras["imaging"]].start_live()
             # self.m.pz.lock_position(2, positions[2])
             for j in range(sy):
+                self.m.daq.set_piezo_position([scans[1][j]], [1])
                 for i in range(sx):
-                    self.m.daq.set_piezo_position([scans[0][i], scans[1][j]], [0, 1])
+                    self.m.daq.set_piezo_position([scans[0][i]], [0])
                     time.sleep(0.08)
                     self.m.daq.run_triggers()
                     time.sleep(0.04)
