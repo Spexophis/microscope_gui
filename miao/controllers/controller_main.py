@@ -849,9 +849,9 @@ class MainController(QtCore.QObject):
             data = []
             mx = np.zeros((10, 10))
             self.m.cam_set[self.cameras["imaging"]].start_live()
-            for i in range(10):
+            for j in range(10):
                 dot_ranges[0] = scan_x[i]
-                for j in range(10):
+                for i in range(10):
                     dot_ranges[1] = scan_y[j]
                     self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions,
                                                                 ranges=[galvo_ranges, dot_ranges],
@@ -864,7 +864,7 @@ class MainController(QtCore.QObject):
                     temp = self.m.cam_set[self.cameras["imaging"]].get_last_image()
                     self.m.daq.stop_triggers()
                     data.append(temp)
-                    mx[i, j] = np.mean(temp)
+                    mx[j, i] = np.mean(temp)
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_focal_array_scan.tif')
             tf.imwrite(fd, np.asarray(data), imagej=True,
                        resolution=(1 / self.pixel_sizes[self.cameras["imaging"]],
@@ -925,8 +925,8 @@ class MainController(QtCore.QObject):
             mx = np.zeros((sx, sy))
             self.m.cam_set[self.cameras["imaging"]].start_live()
             # self.m.pz.lock_position(2, positions[2])
-            for i in range(sx):
-                for j in range(sy):
+            for j in range(sy):
+                for i in range(sx):
                     self.m.daq.set_piezo_position([scans[0][i], scans[1][j]], [0, 1])
                     time.sleep(0.08)
                     self.m.daq.run_triggers()
@@ -934,7 +934,7 @@ class MainController(QtCore.QObject):
                     temp = self.m.cam_set[self.cameras["imaging"]].get_last_image()
                     self.m.daq.stop_triggers(_close=False)
                     data.append(temp)
-                    mx[i, j] = np.mean(temp)
+                    mx[j, i] = np.mean(temp)
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_grid_pattern_scan.tif')
             tf.imwrite(fd, np.asarray(data), imagej=True,
                        resolution=(1 / self.pixel_sizes[self.cameras["imaging"]],
