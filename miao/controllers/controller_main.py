@@ -1299,23 +1299,36 @@ class MainController(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def run_sensorless_iteration(self):
-        try:
-            self._prepare_sensorless_iteration()
-        except Exception as e:
-            self.logg.error(f"Prepare sensorless iteration Error: {e}")
-            return
-        self.run_task(task=self.sensorless_iteration, callback=self._finish_sensorless_iteration)
+        self.run_task(task=self.sensorless_iteration)
 
-    def _prepare_sensorless_iteration(self):
+    def prepare_sensorless_iteration(self):
+        vd_mod = self.con_controller.get_live_mode()
         self.lasers = self.con_controller.get_lasers()
         self.set_lasers()
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
-        dtr = self.generate_live_triggers("imaging")
-        self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
+        if vd_mod == "Wide Field":
+            dtr = self.generate_live_triggers("imaging")
+            self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
+            self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
+        elif vd_mod == "Dot Scan":
+            self.update_trigger_parameters("imaging")
+            self.p.trigger.update_piezo_scan_parameters(piezo_ranges=[0., 0., 0.])
+            gtr, ptr, dtr, pos = self.p.trigger.generate_dotscan_resolft_2d()
+            self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=gtr, digital_sequences=dtr, finite=True)
+            self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
+        else:
+            self.m.cam_set[self.cameras["imaging"]].stop_live()
+            self.lasers_off()
+            raise ValueError("Invalid video mode")
 
     def sensorless_iteration(self):
+        try:
+            self.prepare_sensorless_iteration()
+        except Exception as e:
+            self.logg.error(f"Prepare sensorless iteration Error: {e}")
+            return
         try:
             lpr, hpr, mindex, metric = self.ao_controller.get_ao_parameters()
             name = time.strftime("%Y%m%d_%H%M%S_") + '_ao_iteration_' + metric
@@ -1360,7 +1373,7 @@ class MainController(QtCore.QObject):
                     if mindex == 0:
                         dt.append(self.m.cam_set[self.cameras["imaging"]].get_last_image().max())
                     if mindex == 1:
-                        dt.append(ipr.snr(self.m.cam_set[self.cameras["imaging"]].get_last_image(), lpr, hpr))
+                        dt.append(ipr.snr(self.m.cam_set[self.cameras["imaging"]].get_last_image(), lpr, hpr, True))
                     if mindex == 2:
                         dt.append(ipr.hpf(self.m.cam_set[self.cameras["imaging"]].get_last_image(), hpr))
                     results.append((mode, amp, dt[stnm]))
@@ -1389,9 +1402,12 @@ class MainController(QtCore.QObject):
             self.dfm.write_cmd(new_folder, '_')
             self.dfm.save_sensorless_results(os.path.join(new_folder, 'results.xlsx'), za, mv, zp)
         except Exception as e:
+            self.finish_sensorless_iteration()
             self.logg.error(f"Sensorless AO Error: {e}")
+            return
+        self.finish_sensorless_iteration()
 
-    def _finish_sensorless_iteration(self):
+    def finish_sensorless_iteration(self):
         try:
             self.lasers_off()
             self.m.daq.stop_triggers()
