@@ -87,6 +87,7 @@ class MainController(QtCore.QObject):
         # Galvo Scanners
         self.v.con_view.Signal_galvo_set.connect(self.set_galvo)
         self.v.con_view.Signal_galvo_scan_update.connect(self.update_galvo_scanner)
+        self.v.con_view.Signal_galvo_path_switch.connect(self.set_switch)
         # Cobolt Lasers
         self.v.con_view.Signal_set_laser.connect(self.set_laser)
         # Main Image Control
@@ -249,8 +250,8 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"Galvo Error: {e}")
 
-    @QtCore.pyqtSlot(float)
-    def set_switch(self, volt: float):
+    @QtCore.pyqtSlot(int)
+    def set_switch(self, volt: int):
         try:
             self.m.daq.set_galvo_switch(volt)
         except Exception as e:
