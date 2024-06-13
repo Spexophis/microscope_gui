@@ -126,6 +126,8 @@ class MainController(QtCore.QObject):
 
     def _initial_setup(self):
         try:
+
+            self.set_switch(5.0)
             p = self.m.md.get_position_steps_taken(3)
             self.con_controller.display_deck_position(p)
 
@@ -250,8 +252,8 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"Galvo Error: {e}")
 
-    @QtCore.pyqtSlot(int)
-    def set_switch(self, volt: int):
+    @QtCore.pyqtSlot(float)
+    def set_switch(self, volt: float):
         try:
             self.m.daq.set_galvo_switch(volt)
         except Exception as e:
