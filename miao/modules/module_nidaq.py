@@ -169,11 +169,27 @@ class NIDAQ:
     def get_galvo_position(self):
         try:
             with nidaqmx.Task() as task:
-                task.ai_channels.add_ai_voltage_chan("Dev1/ai0:2", min_val=-10.0, max_val=10.0)
+                task.ai_channels.add_ai_voltage_chan("Dev1/ai0:1", min_val=-10.0, max_val=10.0)
                 task.timing.cfg_samp_clk_timing(rate=500000, sample_mode=AcquisitionType.FINITE, samps_per_chan=10,
                                                 active_edge=Edge.RISING)
                 pos = task.read(number_of_samples_per_channel=10)
             return [sum(p) / len(p) for p in pos]
+        except nidaqmx.DaqWarning as e:
+            self.logg.warning("DaqWarning caught as exception: %s", e)
+            try:
+                assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE, "Unexpected error code: {}".format(
+                    e.error_code)
+            except AssertionError as ae:
+                self.logg.error("Assertion Error: %s", ae)
+
+    def get_switch_position(self):
+        try:
+            with nidaqmx.Task() as task:
+                task.ai_channels.add_ai_voltage_chan("Dev1/ai2", min_val=-10.0, max_val=10.0)
+                task.timing.cfg_samp_clk_timing(rate=500000, sample_mode=AcquisitionType.FINITE, samps_per_chan=10,
+                                                active_edge=Edge.RISING)
+                p = task.read(number_of_samples_per_channel=10)
+            return sum(p) / len(p)
         except nidaqmx.DaqWarning as e:
             self.logg.warning("DaqWarning caught as exception: %s", e)
             try:
@@ -355,7 +371,7 @@ class NIDAQ:
                 input_task.timing.cfg_samp_clk_timing(rate=self.sample_rate,
                                                       sample_mode=AcquisitionType.FINITE,
                                                       samps_per_chan=num_samples,
-                                                      source=f'/Dev1/ao/SampleClock')
+                                                      source="/Dev1/ao/SampleClock")
                 writer = AnalogSingleChannelWriter(output_task.out_stream)
                 reader = AnalogSingleChannelReader(input_task.in_stream)
                 writer.write_many_sample(data)

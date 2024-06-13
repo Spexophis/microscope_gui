@@ -135,10 +135,10 @@ class MainController(QtCore.QObject):
 
             self.update_galvo_scanner()
 
-            self.magnifications = [157.5, 1., 1., 1.]
+            self.magnifications = [196.875, 1., 1., 1.]
             self.pixel_sizes = []
             self.pixel_sizes = [self.m.cam_set[i].ps / mag for i, mag in enumerate(self.magnifications)]
-            self.pixel_sizes[0] = 0.0785
+            self.pixel_sizes[0] = 0.063
             self.magnifications[0] = self.m.cam_set[0].ps / self.pixel_sizes[0]
 
             for key in self.m.dm.keys():

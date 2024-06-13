@@ -8,7 +8,7 @@ class TriggerSequence:
             self.sample_rate = sample_rate  # Hz
             # camera
             self.cycle_time = 0.05
-            self.initial_time = 0.24
+            self.initial_time = 0.005
             self.standby_time = 0.05
             self.exposure_samples = 0.
             self.exposure_time = self.exposure_samples / self.sample_rate
@@ -29,6 +29,9 @@ class TriggerSequence:
                                    zip(self.piezo_ranges, self.piezo_steps)]
             self.piezo_scan_positions = [np.arange(start, start + range_, step) for start, range_, step in
                                          zip(self.piezo_starts, self.piezo_ranges, self.piezo_steps)]
+            # galvo switcher
+            self.galvo_sw_settle = 0.004  # s
+            self.galvo_sw_settle_sample = int(np.ceil(self.galvo_sw_settle * self.sample_rate))
             # galvo scanner
             self.galvo_origins = [0.0, 0.0]  # V
             self.galvo_ranges = [0.5, 0.5]  # V
