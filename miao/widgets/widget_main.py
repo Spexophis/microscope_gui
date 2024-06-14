@@ -18,16 +18,8 @@ class MainWidget(QtWidgets.QMainWindow):
         self.view_view = widget_view.ViewWidget()
         self.ao_view = widget_ao.AOWidget(config, logg, path)
 
-        self.dock_con = cw.dock_widget()
-        self.dock_con.setWidget(self.con_view)
-        title_bar_widget_con = QtWidgets.QWidget()
-        title_bar_widget_con.setFixedHeight(0)
-        self.dock_con.setTitleBarWidget(title_bar_widget_con)
-        self.dock_ao = cw.dock_widget()
-        self.dock_ao.setWidget(self.ao_view)
-        title_bar_widget_ao = QtWidgets.QWidget()
-        title_bar_widget_ao.setFixedHeight(0)
-        self.dock_ao.setTitleBarWidget(title_bar_widget_ao)
+        self.dock_con = self.create_dock_widget("Control Widget", self.con_view)
+        self.dock_ao = self.create_dock_widget("AO Widget", self.ao_view)
 
         self.dialog, self.dialog_text = cw.dialog(labtex=True)
 
@@ -35,10 +27,21 @@ class MainWidget(QtWidgets.QMainWindow):
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, self.dock_con)
         self.addDockWidget(QtCore.Qt.RightDockWidgetArea, self.dock_ao)
 
+        self.dock_con.setFloating(True)
+        self.dock_ao.setFloating(True)
+
         self.setWindowTitle("Microscope Control")
         self.setStyleSheet("background-color: #242424")
 
         self.logg.info("Finish setting up widgets")
+
+    def create_dock_widget(self, title, widget):
+        dock_widget = QtWidgets.QDockWidget(title, self)
+        dock_widget.setWidget(widget)
+        dock_widget.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
+        dock_widget.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable |
+                                QtWidgets.QDockWidget.DockWidgetFloatable)
+        return dock_widget
 
     def closeEvent(self, event, **kwargs):
         self.Signal_quit.emit()
@@ -58,12 +61,3 @@ class MainWidget(QtWidgets.QMainWindow):
                 return selected_file[0]
             else:
                 return None
-
-
-if __name__ == '__main__':
-    import sys
-
-    app = QtWidgets.QApplication(sys.argv)
-    gui = MainWidget(config=None, logg=None, path=None)
-    gui.show()
-    sys.exit(app.exec_())

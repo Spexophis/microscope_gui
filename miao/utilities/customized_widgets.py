@@ -124,9 +124,12 @@ def create_scroll_area():
     return scroll_area, layout
 
 
-def frame_widget():
+def frame_widget(h=True):
     line = QtWidgets.QFrame()
-    line.setFrameShape(QtWidgets.QFrame.HLine)
+    if h:
+        line.setFrameShape(QtWidgets.QFrame.HLine)
+    else:
+        line.setFrameShape(QtWidgets.QFrame.VLine)
     line.setFrameShadow(QtWidgets.QFrame.Sunken)
     return line
 

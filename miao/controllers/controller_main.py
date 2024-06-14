@@ -227,6 +227,7 @@ class MainController(QtCore.QObject):
     def set_piezo_position_x(self, pos_x):
         try:
             self.m.daq.set_piezo_position([pos_x / 10.], [0])
+            time.sleep(0.1)
             self.con_controller.display_piezo_position_x(self.m.pz.read_position(0))
         except Exception as e:
             self.logg.error(f"MCL Piezo Error: {e}")
@@ -234,6 +235,7 @@ class MainController(QtCore.QObject):
     def set_piezo_position_y(self, pos_y):
         try:
             self.m.daq.set_piezo_position([pos_y / 10.], [1])
+            time.sleep(0.1)
             self.con_controller.display_piezo_position_y(self.m.pz.read_position(1))
         except Exception as e:
             self.logg.error(f"MCL Piezo Error: {e}")
@@ -241,6 +243,7 @@ class MainController(QtCore.QObject):
     def set_piezo_position_z(self, pos_z):
         try:
             self.m.daq.set_piezo_position([pos_z / 10.], [2])
+            time.sleep(0.1)
             self.con_controller.display_piezo_position_z(self.m.pz.read_position(2))
         except Exception as e:
             self.logg.error(f"MCL Piezo Error: {e}")
