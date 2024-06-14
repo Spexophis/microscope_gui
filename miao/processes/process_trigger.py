@@ -7,10 +7,12 @@ class TriggerSequence:
             # daq
             self.sample_rate = sample_rate  # Hz
             # camera
-            self.cycle_time = 0.05
-            self.initial_time = 0.005
-            self.standby_time = 0.05
-            self.exposure_samples = 0.
+            self.cycle_time = 0.0521  # s
+            self.initial_time = 0.0055  # s
+            self.initial_samples = int(np.ceil(self.initial_time * self.sample_rate))
+            self.standby_time = 0.0467  # s
+            self.standby_samples = int(np.ceil(self.standby_time * self.sample_rate))
+            self.exposure_samples = 0.  # s
             self.exposure_time = self.exposure_samples / self.sample_rate
             # piezo scanner
             self.piezo_conv_factors = [10., 10., 10.]
@@ -31,7 +33,8 @@ class TriggerSequence:
                                          zip(self.piezo_starts, self.piezo_ranges, self.piezo_steps)]
             # galvo switcher
             self.galvo_sw_settle = 0.004  # s
-            self.galvo_sw_settle_sample = int(np.ceil(self.galvo_sw_settle * self.sample_rate))
+            self.galvo_sw_settle_samples = int(np.ceil(self.galvo_sw_settle * self.sample_rate))
+            self.galvo_sw_states = [0., 5., -5.]
             # galvo scanner
             self.galvo_origins = [0.0, 0.0]  # V
             self.galvo_ranges = [0.5, 0.5]  # V
@@ -177,20 +180,20 @@ class TriggerSequence:
     def update_camera_parameters(self, initial_time=None, standby_time=None, cycle_time=None):
         if initial_time is not None:
             self.initial_time = initial_time
+            self.initial_samples = int(np.ceil(self.initial_time * self.sample_rate))
         if standby_time is not None:
             self.standby_time = standby_time
+            self.standby_samples = int(np.ceil(self.standby_time * self.sample_rate))
         if self.cycle_time is not None:
             self.cycle_time = cycle_time
 
     def generate_digital_triggers(self, lasers, camera):
-        initial_samples = int(np.ceil(self.initial_time * self.sample_rate))
-        standby_samples = int(np.ceil(self.standby_time * self.sample_rate))
         cam_ind = camera + 4
-        offset = max(0, initial_samples - self.digital_starts[cam_ind])
+        offset = max(0, self.initial_samples - self.digital_starts[cam_ind])
         self.digital_starts = [(_start + offset) for _start in self.digital_starts]
         self.digital_ends = [(_end + offset) for _end in self.digital_ends]
-        cycle_samples = self.digital_ends[cam_ind] + standby_samples
-        digital_trigger = np.zeros((len(self.digital_starts), cycle_samples), dtype=int)
+        cycle_samples = self.digital_ends[cam_ind] + self.standby_samples
+        digital_trigger = np.zeros((len(self.digital_starts), cycle_samples), dtype=np.int8)
         self.exposure_samples = self.digital_ends[cam_ind] - self.digital_starts[cam_ind]
         self.exposure_time = self.exposure_samples / self.sample_rate
         digital_trigger[cam_ind, self.digital_starts[cam_ind]:self.digital_ends[cam_ind]] = 1
@@ -199,24 +202,23 @@ class TriggerSequence:
         return digital_trigger
 
     def generate_digital_triggers_(self, lasers, camera):
-        initial_samples = int(np.ceil(self.initial_time * self.sample_rate))
-        standby_samples = int(np.ceil(self.standby_time * self.sample_rate))
         cam_ind = camera + 4
-        offset = max(0, initial_samples - self.digital_starts[cam_ind])
-        self.digital_starts = [(_start + offset) for _start in self.digital_starts]
-        self.digital_ends = [(_end + offset) for _end in self.digital_ends]
-        cycle_samples = self.digital_ends[cam_ind] + standby_samples
-        digital_trigger = np.zeros((len(self.lasers) + 1, cycle_samples), dtype=int)
+        interval_samples = max(self.initial_samples, self.galvo_sw_settle_samples)
+        offset_samples = max(0, interval_samples - self.digital_starts[cam_ind])
+        self.digital_starts = [(_start + offset_samples) for _start in self.digital_starts]
+        self.digital_ends = [(_end + offset_samples) for _end in self.digital_ends]
+        cycle_samples = self.digital_ends[cam_ind] + self.standby_samples
+        digital_trigger = np.zeros((len(lasers) + 1, cycle_samples), dtype=np.int8)
+        galvo_trigger = 0. * np.ones(cycle_samples, dtype=np.float16)
         self.exposure_samples = self.digital_ends[cam_ind] - self.digital_starts[cam_ind]
         self.exposure_time = self.exposure_samples / self.sample_rate
         digital_trigger[-1, self.digital_starts[cam_ind]:self.digital_ends[cam_ind]] = 1
         for ln, laser in enumerate(lasers):
             digital_trigger[ln, self.digital_starts[laser]:self.digital_ends[laser]] = 1
-        return digital_trigger
+        return digital_trigger, galvo_trigger
 
     def generate_dotscan_resolft_2d(self, camera=0):
         interval_samples = self.galvo_return
-        initial_samples = int(np.ceil(self.initial_time * self.sample_rate))
         digital_sequences = [np.empty((0,)) for _ in range(len(self.digital_starts))]
         galvo_sequences = [np.empty((0,)) for _ in range(2)]
         piezo_sequences = [np.empty((0,)) for _ in range(2)]
@@ -245,18 +247,18 @@ class TriggerSequence:
         # OFF
         off_samples = self.digital_ends[1] - self.digital_starts[1]
         galvo_sequences[0] = np.concatenate(
-            (galvo_sequences[0], self.galvo_starts[0] * np.ones(off_samples + initial_samples + interval_samples)))
+            (galvo_sequences[0], self.galvo_starts[0] * np.ones(off_samples + self.initial_samples + interval_samples)))
         galvo_sequences[1] = np.concatenate(
-            (galvo_sequences[1], self.dot_starts[1] * np.ones(off_samples + initial_samples + interval_samples)))
+            (galvo_sequences[1], self.dot_starts[1] * np.ones(off_samples + self.initial_samples + interval_samples)))
         digital_sequences[0] = np.concatenate(
-            (digital_sequences[0], np.zeros(off_samples + initial_samples + interval_samples)))
+            (digital_sequences[0], np.zeros(off_samples + self.initial_samples + interval_samples)))
         digital_sequences[1] = np.concatenate(
             (digital_sequences[1], np.concatenate((np.zeros(interval_samples), np.ones(off_samples)))))
         digital_sequences[1] = np.concatenate(
-            (digital_sequences[1], np.zeros(initial_samples)))
+            (digital_sequences[1], np.zeros(self.initial_samples)))
         for i in range(5):
             digital_sequences[i + 2] = np.concatenate(
-                (digital_sequences[i + 2], np.zeros(off_samples + initial_samples + interval_samples)))
+                (digital_sequences[i + 2], np.zeros(off_samples + self.initial_samples + interval_samples)))
         # Read
         galvo_sequences[0] = np.concatenate(
             (galvo_sequences[0], np.concatenate((self.galvo_starts[0] * np.ones(interval_samples), fast_axis_galvo))))
@@ -365,7 +367,6 @@ class TriggerSequence:
 
     def generate_point_scan_2d(self, camera=0):
         interval_samples = self.galvo_return
-        initial_samples = int(np.ceil(self.initial_time * self.sample_rate))
         digital_sequences = [np.empty((0,)) for _ in range(len(self.digital_starts))]
         galvo_sequences = [np.empty((0,)) for _ in range(2)]
         ramp_down_samples = int(self.samples_period * self.ramp_down_fraction)
@@ -396,18 +397,18 @@ class TriggerSequence:
         # OFF
         off_samples = self.digital_ends[1] - self.digital_starts[1]
         galvo_sequences[0] = np.concatenate(
-            (galvo_sequences[0], self.galvo_starts[0] * np.ones(off_samples + initial_samples + interval_samples)))
+            (galvo_sequences[0], self.galvo_starts[0] * np.ones(off_samples + self.initial_samples + interval_samples)))
         galvo_sequences[1] = np.concatenate(
-            (galvo_sequences[1], self.dot_starts[1] * np.ones(off_samples + initial_samples + interval_samples)))
+            (galvo_sequences[1], self.dot_starts[1] * np.ones(off_samples + self.initial_samples + interval_samples)))
         digital_sequences[0] = np.concatenate(
-            (digital_sequences[0], np.zeros(off_samples + initial_samples + interval_samples)))
+            (digital_sequences[0], np.zeros(off_samples + self.initial_samples + interval_samples)))
         digital_sequences[1] = np.concatenate(
             (digital_sequences[1], np.concatenate((np.zeros(interval_samples), np.ones(off_samples)))))
         digital_sequences[1] = np.concatenate(
-            (digital_sequences[1], np.zeros(initial_samples)))
+            (digital_sequences[1], np.zeros(self.initial_samples)))
         for i in range(5):
             digital_sequences[i + 2] = np.concatenate(
-                (digital_sequences[i + 2], np.zeros(off_samples + initial_samples + interval_samples)))
+                (digital_sequences[i + 2], np.zeros(off_samples + self.initial_samples + interval_samples)))
         # Read
         galvo_sequences[0] = np.concatenate(
             (galvo_sequences[0], np.concatenate((self.galvo_starts[0] * np.ones(interval_samples), fast_axis_galvo))))
@@ -443,8 +444,7 @@ class TriggerSequence:
         cam_ind = camera + 4
         digital_sequences = [np.empty((0,)) for _ in range(len(self.digital_starts))]
         piezo_sequences = [np.empty((0,)) for _ in range(2)]
-        initial_samples = int(np.ceil(self.initial_time * self.sample_rate))
-        offset = max(0, initial_samples - self.digital_starts[cam_ind])
+        offset = max(0, self.initial_samples - self.digital_starts[cam_ind])
         self.digital_starts = [(_start + offset) for _start in self.digital_starts]
         self.digital_ends = [(_end + offset) for _end in self.digital_ends]
         standby_samples = int(np.ceil(self.standby_time * self.sample_rate))
