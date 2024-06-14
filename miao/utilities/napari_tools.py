@@ -39,6 +39,7 @@ class EmbeddedNapari(napari.Viewer):
 
         # Make menu bar not native
         self.window._qt_window.menuBar().setNativeMenuBar(False)
+        self.window._qt_window.menuBar().setVisible(False)
 
         # Remove unwanted menu bar items
         menuChildren = self.window._qt_window.findChildren(QtWidgets.QAction)

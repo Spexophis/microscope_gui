@@ -1,3 +1,5 @@
+import sys
+
 from PyQt5 import QtWidgets, QtCore
 
 from miao.utilities import customized_widgets as cw
@@ -18,8 +20,8 @@ class MainWidget(QtWidgets.QMainWindow):
         self.view_view = widget_view.ViewWidget()
         self.ao_view = widget_ao.AOWidget(config, logg, path)
 
-        self.dock_con = self.create_dock_widget("Control Widget", self.con_view)
-        self.dock_ao = self.create_dock_widget("AO Widget", self.ao_view)
+        self.dock_con = self.create_dock_widget(self.con_view)
+        self.dock_ao = self.create_dock_widget(self.ao_view)
 
         self.dialog, self.dialog_text = cw.dialog(labtex=True)
 
@@ -30,17 +32,21 @@ class MainWidget(QtWidgets.QMainWindow):
         self.dock_con.setFloating(True)
         self.dock_ao.setFloating(True)
 
+        self.dock_con.hide()
+        self.dock_ao.hide()
+
         self.setWindowTitle("Microscope Control")
-        self.setStyleSheet("background-color: #242424")
+        self.setStyleSheet("background-color: #121212; color: #FFFFFF")
 
         self.logg.info("Finish setting up widgets")
 
-    def create_dock_widget(self, title, widget):
-        dock_widget = QtWidgets.QDockWidget(title, self)
+    def create_dock_widget(self, widget):
+        dock_widget = QtWidgets.QDockWidget(self)
         dock_widget.setWidget(widget)
         dock_widget.setAllowedAreas(QtCore.Qt.AllDockWidgetAreas)
         dock_widget.setFeatures(QtWidgets.QDockWidget.DockWidgetMovable |
                                 QtWidgets.QDockWidget.DockWidgetFloatable)
+        dock_widget.setTitleBarWidget(CustomDockTitleBar(dock_widget))
         return dock_widget
 
     def closeEvent(self, event, **kwargs):
@@ -61,3 +67,37 @@ class MainWidget(QtWidgets.QMainWindow):
                 return selected_file[0]
             else:
                 return None
+
+
+class CustomDockTitleBar(QtWidgets.QWidget):
+    def __init__(self, dock_widget):
+        super().__init__()
+        self.dock_widget = dock_widget
+        self.init_ui()
+
+    def init_ui(self):
+        self.layout = QtWidgets.QHBoxLayout()
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(self.layout)
+
+        self.label = QtWidgets.QLabel(self.dock_widget.windowTitle())
+        self.layout.addWidget(self.label)
+
+        self.minimize_button = QtWidgets.QToolButton()
+        self.minimize_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_TitleBarMinButton))
+        self.minimize_button.clicked.connect(self.minimize_dock_widget)
+        self.layout.addWidget(self.minimize_button)
+
+    def minimize_dock_widget(self):
+        self.dock_widget.setFloating(False)
+        self.dock_widget.hide()
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    config = None  # Replace with actual config
+    logg = None  # Replace with actual logger
+    path = ""  # Replace with actual path
+    main_widget = MainWidget(config, logg, path)
+    main_widget.show()
+    sys.exit(app.exec_())

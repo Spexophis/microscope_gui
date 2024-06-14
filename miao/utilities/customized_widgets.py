@@ -4,7 +4,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 def toolbar_widget():
     toolbar = QtWidgets.QToolBar()
     toolbar.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-    toolbar.setStyleSheet('QToolBar {background-color: #2E2E2E; color: white;}')
+    toolbar.setStyleSheet('QToolBar {background-color: #121212; color: white;}')
     return toolbar
 
 
@@ -12,14 +12,14 @@ def dock_widget(name=''):
     dock = QtWidgets.QDockWidget(name)
     dock.setStyleSheet('''
         QDockWidget {
-            background-color: #222222;
+            background-color: #121212;
             font-weight: bold;
             font-size: 12px;
             color: #CCCCCC;
         }
         QDockWidget::title {
             text-align: center;
-            background-color: #444444;
+            background-color: #1E1E1E;
             padding: 2px;
             border-top-left-radius: 4px;
             border-top-right-radius: 4px;
@@ -41,8 +41,8 @@ def group_widget(name=''):
     group = QtWidgets.QGroupBox(name)
     group.setStyleSheet('''
         QGroupBox {
-            background-color: #444444;
-            border: 0px solid #444444;
+            background-color: #1E1E1E;
+            border: 0px solid #1E1E1E;
             border-bottom-left-radius: 4px;
             border-bottom-right-radius: 4px;
             margin-top: 0ex;
@@ -82,19 +82,19 @@ def create_file_dialogue(name="Save File", file_filter="All Files (*)", default_
     dialog.setDirectory(default_dir)
     dialog.setStyleSheet("""
             QFileDialog {
-                background-color: #333333;
+                background-color: #121212;
                 color: white;
             }
             QFileDialog QLabel {
                 color: white;
             }
             QFileDialog QLineEdit {
-                background-color: #2E2E2E;
+                background-color: #1E1E1E;
                 color: white;
                 selection-background-color: #0096FF;
             }
             QFileDialog QPushButton {
-                background-color: #2E2E2E;
+                background-color: #1E1E1E;
                 color: white;
                 padding: 5px;
                 min-width: 80px;
@@ -112,12 +112,12 @@ def create_scroll_area():
     scroll_area.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
     scroll_area.setStyleSheet("""
                                 QScrollArea {
-                                    background-color: #444444;
+                                    background-color: #1E1E1E;
                                     color: white;
                                 }
                             """)
     content_widget = QtWidgets.QWidget(scroll_area)
-    content_widget.setStyleSheet("background-color: #444444;")
+    content_widget.setStyleSheet("background-color: #1E1E1E;")
     scroll_area.setWidget(content_widget)
     layout = QtWidgets.QFormLayout(content_widget)
     content_widget.setLayout(layout)
@@ -137,20 +137,19 @@ def frame_widget(h=True):
 def label_widget(name=''):
     label = QtWidgets.QLabel(name)
     label.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-    label.setStyleSheet('background-color: #444444; color: #ECECEC; padding: 2px; border-radius: 2px;')
+    label.setStyleSheet('background-color: #1E1E1E; color: #ECECEC; padding: 2px; border-radius: 2px;')
     return label
 
 
 def lcdnumber_widget(num=None, n=None):
     lcd = QtWidgets.QLCDNumber()
-    palette = QtGui.QPalette()
-    palette.setColor(QtGui.QPalette.WindowText, QtGui.QColor(255, 255, 255))  # set text color
-    palette.setColor(QtGui.QPalette.Background, QtGui.QColor(37, 37, 38))  # set background color
-    palette.setColor(QtGui.QPalette.Light, QtGui.QColor(64, 64, 64))  # set light color
-    palette.setColor(QtGui.QPalette.Dark, QtGui.QColor(26, 26, 27))  # set dark color
-    palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(0, 85, 255))  # set highlight color
-    palette.setColor(QtGui.QPalette.HighlightedText, QtGui.QColor(255, 255, 255))  # set highlighted text color
-    lcd.setPalette(palette)
+    lcd.setStyleSheet("""
+        QLCDNumber {
+            background-color: #121212;
+            color: white;
+            border: 1px solid #333333;
+        }
+    """)
     lcd.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
     lcd.setSegmentStyle(QtWidgets.QLCDNumber.Flat)
     lcd.setDecMode()
@@ -167,28 +166,41 @@ def lcdnumber_widget(num=None, n=None):
 def spinbox_widget(range_min, range_max, step, value):
     spinbox = QtWidgets.QSpinBox()
     spinbox.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-    dark_palette = QtGui.QPalette()
-    dark_palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
-    dark_palette.setColor(QtGui.QPalette.WindowText, QtCore.Qt.white)
-    dark_palette.setColor(QtGui.QPalette.Base, QtGui.QColor(25, 25, 25))
-    dark_palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
-    dark_palette.setColor(QtGui.QPalette.ToolTipBase, QtCore.Qt.white)
-    dark_palette.setColor(QtGui.QPalette.ToolTipText, QtCore.Qt.white)
-    dark_palette.setColor(QtGui.QPalette.Text, QtCore.Qt.white)
-    dark_palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
-    dark_palette.setColor(QtGui.QPalette.ButtonText, QtCore.Qt.white)
-    dark_palette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.red)
-    dark_palette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
-    dark_palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
-    dark_palette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
-    spinbox.setPalette(dark_palette)
+    spinbox.setStyleSheet("""
+        QSpinBox {
+            background-color: #121212;
+            color: white;
+            border: 1px solid #333333;
+            padding: 2px;
+        }
+        QSpinBox::up-button {
+            background-color: #353535;
+            border-left: 1px solid #333333;
+        }
+        QSpinBox::down-button {
+            background-color: #353535;
+            border-left: 1px solid #333333;
+        }
+        QSpinBox::up-arrow {
+            image: url(up_arrow.png);  /* You can set a custom arrow image */
+        }
+        QSpinBox::down-arrow {
+            image: url(down_arrow.png);  /* You can set a custom arrow image */
+        }
+        QSpinBox::up-arrow:disabled, QSpinBox::up-arrow:off {
+            image: url(up_arrow_disabled.png);  /* Custom arrow image when disabled */
+        }
+        QSpinBox::down-arrow:disabled, QSpinBox::down-arrow:off {
+            image: url(down_arrow_disabled.png);  /* Custom arrow image when disabled */
+        }
+    """)
     spinbox.setRange(range_min, range_max)
     spinbox.setSingleStep(step)
     spinbox.setValue(value)
     spinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
     spinbox.setMinimumWidth(spinbox.sizeHint().width())
     spinbox.setMinimumHeight(spinbox.sizeHint().height())
-    max_value_width = spinbox.fontMetrics().width(str(spinbox.maximum()))
+    max_value_width = spinbox.fontMetrics().horizontalAdvance(str(spinbox.maximum()))
     max_value_height = spinbox.fontMetrics().height()
     spinbox.setMaximumWidth(max_value_width + 32)
     spinbox.setMaximumHeight(max_value_height + 16)
@@ -198,21 +210,39 @@ def spinbox_widget(range_min, range_max, step, value):
 def doublespinbox_widget(range_min, range_max, step, decimals, value):
     doublespinbox = QtWidgets.QDoubleSpinBox()
     doublespinbox.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-    dark_palette = QtGui.QPalette()
-    dark_palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
-    dark_palette.setColor(QtGui.QPalette.WindowText, QtCore.Qt.white)
-    dark_palette.setColor(QtGui.QPalette.Base, QtGui.QColor(25, 25, 25))
-    dark_palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
-    dark_palette.setColor(QtGui.QPalette.ToolTipBase, QtCore.Qt.white)
-    dark_palette.setColor(QtGui.QPalette.ToolTipText, QtCore.Qt.white)
-    dark_palette.setColor(QtGui.QPalette.Text, QtCore.Qt.white)
-    dark_palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
-    dark_palette.setColor(QtGui.QPalette.ButtonText, QtCore.Qt.white)
-    dark_palette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.red)
-    dark_palette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
-    dark_palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
-    dark_palette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
-    doublespinbox.setPalette(dark_palette)
+    doublespinbox.setStyleSheet("""
+        QDoubleSpinBox {
+            background-color: #121212;
+            color: white;
+            border: 1px solid #333333;
+            padding: 2px;
+        }
+        QToolTip {
+            color: white;
+            background-color: #2a2a2a;
+            border: 1px solid white;
+        }
+        QDoubleSpinBox::up-button {
+            background-color: #353535;
+            border-left: 1px solid #333333;
+        }
+        QDoubleSpinBox::down-button {
+            background-color: #353535;
+            border-left: 1px solid #333333;
+        }
+        QDoubleSpinBox::up-arrow {
+            image: url(up_arrow.png);  /* You can set a custom arrow image */
+        }
+        QDoubleSpinBox::down-arrow {
+            image: url(down_arrow.png);  /* You can set a custom arrow image */
+        }
+        QDoubleSpinBox::up-arrow:disabled, QDoubleSpinBox::up-arrow:off {
+            image: url(up_arrow_disabled.png);  /* Custom arrow image when disabled */
+        }
+        QDoubleSpinBox::down-arrow:disabled, QDoubleSpinBox::down-arrow:off {
+            image: url(down_arrow_disabled.png);  /* Custom arrow image when disabled */
+        }
+    """)
     doublespinbox.setRange(range_min, range_max)
     doublespinbox.setSingleStep(step)
     doublespinbox.setDecimals(decimals)
@@ -220,7 +250,7 @@ def doublespinbox_widget(range_min, range_max, step, decimals, value):
     doublespinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
     doublespinbox.setMinimumWidth(doublespinbox.sizeHint().width())
     doublespinbox.setMinimumHeight(doublespinbox.sizeHint().height())
-    max_value_width = doublespinbox.fontMetrics().width(str(doublespinbox.maximum()))
+    max_value_width = doublespinbox.fontMetrics().horizontalAdvance(str(doublespinbox.maximum()))
     max_value_height = doublespinbox.fontMetrics().height()
     doublespinbox.setMaximumWidth(max_value_width + 32)
     doublespinbox.setMaximumHeight(max_value_height + 16)
@@ -235,7 +265,7 @@ def pushbutton_widget(name='', checkable=False, enable=True, checked=False):
     button.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
     button.setStyleSheet('''
         QPushButton {
-            background-color: #282828;
+            background-color: #121212;
             border-style: outset;
             border-radius: 4px;
             color: #FFFFFF;
@@ -272,25 +302,20 @@ def checkbox_widget(name=''):
     checkbox.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
     checkbox.setStyleSheet('''
         QCheckBox {
-            background-color: qradialgradient(cx: 0.5, cy: 0.5, radius: 0.5, fx: 0.5, fy: 0.5, 
-                stop: 0.8 #fff, stop: 0.9 #ddd);
-            color: #000;
+            background-color: #121212;
+            color: #FFFFFF;
             padding: 2px;
-            border: 2px solid #aaa;
-            border-radius: 20px;
         }
         QCheckBox::indicator {
             width: 25px;
             height: 25px;
-            border-radius: 20px;
-            border: 2px solid #aaa;
-            background-color: qradialgradient(cx: 0.5, cy: 0.5, radius: 0.5, fx: 0.5, fy: 0.5, 
-                stop: 0.8 #fff, stop: 0.9 #ddd);
+            border-radius: 4px;
+            border: 2px solid #AAAAAA;
+            background-color: #121212;
         }
         QCheckBox::indicator:checked {
-            background-color: qradialgradient(cx: 0.5, cy: 0.5, radius: 0.5, fx: 0.5, fy: 0.5, 
-                stop: 0.8 #9af, stop: 0.9 #8bf);
-            border: 2px solid #8bf;
+            background-color: #4169e1;
+            border: 2px solid #4169e1;
         }
     ''')
     checkbox.setChecked(False)
@@ -302,30 +327,25 @@ def radiobutton_widget(name='', color=f"rgb(192, 255, 62)", autoex=False):
     radiobutton = QtWidgets.QRadioButton(name)
     radiobutton.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
     radiobutton.setAutoExclusive(autoex)
-    palette = QtGui.QPalette()
-    palette.setColor(QtGui.QPalette.ButtonText, QtGui.QColor(200, 200, 200))  # set text color
-    palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))  # set background color
-    palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))  # set button color
-    palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(142, 45, 197))  # set highlight color
-    radiobutton.setPalette(palette)
-    radiobutton.setStyleSheet('''
-                    QRadioButton {
-                        background-color: #444444;
-                        color: white;
-                    }
-                    QRadioButton::indicator {
-                        width: 8px;
-                        height: 8px;
-                    }
-                    QRadioButton::indicator::unchecked {
-                        border: 2px solid rgb(200, 200, 200);
-                        border-radius: 4px;
-                    }
-                    QRadioButton::indicator::checked {
-                        background-color: %s;
-                        border: 2px solid %s;
-                        border-radius: 4px;
-                    }''' % (color, color))
+    radiobutton.setStyleSheet(f'''
+        QRadioButton {{
+            background-color: #1E1E1E;
+            color: white;
+        }}
+        QRadioButton::indicator {{
+            width: 8px;
+            height: 8px;
+        }}
+        QRadioButton::indicator::unchecked {{
+            border: 2px solid rgb(200, 200, 200);
+            border-radius: 4px;
+        }}
+        QRadioButton::indicator::checked {{
+            background-color: {color};
+            border: 2px solid {color};
+            border-radius: 4px;
+        }}
+    ''')
     return radiobutton
 
 
@@ -334,10 +354,24 @@ def combobox_widget(list_items):
     for item in list_items:
         combobox.addItem(item)
     combobox.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
-    combobox.setStyle(QtWidgets.QStyleFactory.create('Fusion'))
-    combobox.setStyleSheet('QComboBox {background-color: #454545; color: #f0f0f0;}'
-                           'QComboBox::down-arrow { image: none; }'
-                           'QComboBox::drop-down { border: none; }')
+    combobox.setStyleSheet('''
+        QComboBox {
+            background-color: #121212;
+            color: #FFFFFF;
+            border: 1px solid #555555;
+        }
+        QComboBox::drop-down {
+            border: none;
+        }
+        QComboBox::down-arrow {
+            image: none;
+        }
+        QComboBox QAbstractItemView {
+            background-color: #121212;
+            color: #FFFFFF;
+            selection-background-color: #4169e1;
+        }
+    ''')
     combobox.setMaximumWidth(100)
     return combobox
 
@@ -430,10 +464,13 @@ def dialog(labtex=False):
     dialogue = QtWidgets.QDialog()
     dialogue.setStyleSheet(''' 
         QDialog {
-            background-color: #333;
-            color: #FFF;
+            background-color: #121212;
+            color: #FFFFFF;
         }
-        ''')
+        QLabel {
+            color: #FFFFFF;
+        }
+    ''')
     dialogue.setWindowTitle("Please Wait")
     layout = QtWidgets.QVBoxLayout()
     label = QtWidgets.QLabel("Task is running, please wait...")
@@ -452,8 +489,12 @@ def message_box(title):
     msg.setStandardButtons(QtWidgets.QMessageBox.NoButton)
     msg.setStyleSheet("""
         QMessageBox {
-            background-color: #333;
-            color: #EEE;
+            background-color: #121212;
+            color: #EEEEEE;
             text-align: center;
         }
+        QLabel {
+            color: #EEEEEE;
+        }
     """)
+    return msg

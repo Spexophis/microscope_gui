@@ -74,7 +74,6 @@ class MainController(QtCore.QObject):
 
     def _set_signal_connections(self):
         self.sada.connect(self.save_data)
-        self.v.view_view.Signal_image_metrics.connect(self.compute_image_metrics)
         # MCL Piezo
         self.v.con_view.Signal_piezo_move.connect(self.set_piezo_positions)
         self.v.con_view.Signal_focus_finding.connect(self.run_focus_finding)
@@ -442,19 +441,6 @@ class MainController(QtCore.QObject):
                                            layer=self.cameras["imaging"])
         except Exception as e:
             self.logg.error(f"Error showing imaging video: {e}")
-
-    @QtCore.pyqtSlot()
-    def compute_image_metrics(self):
-        try:
-            img = self.m.cam_set[self.cameras["imaging"]].get_last_image()
-            img = img - img.min()
-            img = img / img.max()
-            m1 = ipr.calculate_focus_measure(img)
-            m2 = ipr.calculate_focus_measure_with_laplacian(img)
-            m3 = ipr.calculate_focus_measure_with_sobel(img)
-            self.view_controller.display_metrics(m1, m2, m3)
-        except Exception as e:
-            self.logg.error(f"Error compute image metrics: {e}")
 
     @QtCore.pyqtSlot(bool)
     def fft(self, sw: bool):

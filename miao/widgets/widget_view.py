@@ -24,13 +24,11 @@ class MplCanvas(FigureCanvas):
 
 
 class ViewWidget(QtWidgets.QWidget):
-    Signal_image_metrics = QtCore.pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._setup_ui()
         self._set_napari_layers()
-        self._set_signal_connections()
 
     def _setup_ui(self):
         layout = QtWidgets.QVBoxLayout()
@@ -46,14 +44,12 @@ class ViewWidget(QtWidgets.QWidget):
     def _create_docks(self):
         self.docks = {
             "view": cw.create_dock("Image"),
-            "metric": cw.create_dock("Image Metrics"),
             "plot": cw.create_dock("Profile")
         }
 
     def _create_widgets(self):
         self.widgets = {
             "view": self._create_view_widgets(),
-            "metric": self._create_metric_widgets(),
             "plot": self._create_plot_widgets()
         }
 
@@ -63,24 +59,6 @@ class ViewWidget(QtWidgets.QWidget):
         self.napariViewer = napari_tools.EmbeddedNapari()
         layout_view.addWidget(self.napariViewer.get_widget())
         return layout_view
-
-    def _create_metric_widgets(self):
-        layout_metric = QtWidgets.QGridLayout()
-        self.QLabel_img_laplacian_cv2 = cw.label_widget(str('Laplacian (cv2)'))
-        self.QLCDNumber_img_laplacian_cv2 = cw.lcdnumber_widget()
-        self.QLabel_img_laplacian_scikit = cw.label_widget(str('Laplacian (scikit)'))
-        self.QLCDNumber_img_laplacian_scikit = cw.lcdnumber_widget()
-        self.QLabel_img_sobel_scikit = cw.label_widget(str('Sobel (scikit)'))
-        self.QLCDNumber_img_sobel_scikit = cw.lcdnumber_widget()
-        self.QPushButton_image_metrics = cw.pushbutton_widget('Calculate')
-        layout_metric.addWidget(self.QLabel_img_laplacian_cv2, 0, 0, 1, 1)
-        layout_metric.addWidget(self.QLCDNumber_img_laplacian_cv2, 1, 0, 1, 1)
-        layout_metric.addWidget(self.QLabel_img_laplacian_scikit, 0, 1, 1, 1)
-        layout_metric.addWidget(self.QLCDNumber_img_laplacian_scikit, 1, 1, 1, 1)
-        layout_metric.addWidget(self.QLabel_img_sobel_scikit, 0, 2, 1, 1)
-        layout_metric.addWidget(self.QLCDNumber_img_sobel_scikit, 1, 2, 1, 1)
-        layout_metric.addWidget(self.QPushButton_image_metrics, 1, 3, 1, 1)
-        return layout_metric
 
     def _create_plot_widgets(self):
         layout_plot = QtWidgets.QVBoxLayout()
@@ -96,9 +74,6 @@ class ViewWidget(QtWidgets.QWidget):
                            5: "ShackHartmann(Base)", 6: "Wavefront"}
         for name in reversed(list(self.img_layers.values())):
             self.napari_layers[name] = self.add_napari_layer(name)
-
-    def _set_signal_connections(self):
-        self.QPushButton_image_metrics.clicked.connect(self.calculate_image_metric)
 
     def add_napari_layer(self, name):
         return self.napariViewer.add_image(np.zeros((1024, 1024)), rgb=False, name=name, blending='additive',
@@ -144,10 +119,6 @@ class ViewWidget(QtWidgets.QWidget):
             self.canvas.axes.axhline(y=sp, color='r', linestyle='--')
         self.canvas.axes.grid(True)
         self.canvas.draw()
-
-    @QtCore.pyqtSlot()
-    def calculate_image_metric(self):
-        self.Signal_image_metrics.emit()
 
 
 if __name__ == "__main__":
