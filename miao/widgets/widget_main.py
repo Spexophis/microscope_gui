@@ -38,6 +38,8 @@ class MainWidget(QtWidgets.QMainWindow):
         self.setWindowTitle("Microscope Control")
         self.setStyleSheet("background-color: #121212; color: #FFFFFF")
 
+        self.create_menu()
+
         self.logg.info("Finish setting up widgets")
 
     def create_dock_widget(self, widget):
@@ -48,6 +50,18 @@ class MainWidget(QtWidgets.QMainWindow):
                                 QtWidgets.QDockWidget.DockWidgetFloatable)
         dock_widget.setTitleBarWidget(CustomDockTitleBar(dock_widget))
         return dock_widget
+
+    def create_menu(self):
+        menubar = self.menuBar()
+        view_menu = menubar.addMenu('View')
+
+        show_con_action = QtWidgets.QAction('Show Control Widget', self)
+        show_con_action.triggered.connect(lambda: self.dock_con.show())
+        view_menu.addAction(show_con_action)
+
+        show_ao_action = QtWidgets.QAction('Show AO Widget', self)
+        show_ao_action.triggered.connect(lambda: self.dock_ao.show())
+        view_menu.addAction(show_ao_action)
 
     def closeEvent(self, event, **kwargs):
         self.Signal_quit.emit()
