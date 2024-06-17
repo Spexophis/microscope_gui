@@ -187,7 +187,7 @@ class TriggerSequence:
         if self.cycle_time is not None:
             self.cycle_time = cycle_time
 
-    def generate_digital_triggers(self, lasers, camera):
+    def generate_digital_triggers_(self, lasers, camera):
         cam_ind = camera + 4
         offset = max(0, self.initial_samples - self.digital_starts[cam_ind])
         self.digital_starts = [(_start + offset) for _start in self.digital_starts]
@@ -201,21 +201,34 @@ class TriggerSequence:
             digital_trigger[laser, self.digital_starts[laser]:self.digital_ends[laser]] = 1
         return digital_trigger
 
-    def generate_digital_triggers_(self, lasers, camera):
+    def generate_digital_triggers(self, lasers, camera):
+        if camera == 0:
+            cam_sw = 5.
+        elif camera == 1:
+            cam_sw = -5.
+        else:
+            cam_sw = 0.
         cam_ind = camera + 4
         interval_samples = max(self.initial_samples, self.galvo_sw_settle_samples)
-        offset_samples = max(0, interval_samples - self.digital_starts[cam_ind])
-        self.digital_starts = [(_start + offset_samples) for _start in self.digital_starts]
-        self.digital_ends = [(_end + offset_samples) for _end in self.digital_ends]
+        if interval_samples > self.digital_starts[cam_ind]:
+            offset_samples = interval_samples - self.digital_starts[cam_ind]
+            self.digital_starts = [(_start + offset_samples) for _start in self.digital_starts]
+            self.digital_ends = [(_end + offset_samples) for _end in self.digital_ends]
         cycle_samples = self.digital_ends[cam_ind] + self.standby_samples
         digital_trigger = np.zeros((len(lasers) + 1, cycle_samples), dtype=np.int8)
-        galvo_trigger = 0. * np.ones(cycle_samples, dtype=np.float16)
+        switch_trigger = cam_sw * np.ones(cycle_samples, dtype=np.float16)
         self.exposure_samples = self.digital_ends[cam_ind] - self.digital_starts[cam_ind]
         self.exposure_time = self.exposure_samples / self.sample_rate
         digital_trigger[-1, self.digital_starts[cam_ind]:self.digital_ends[cam_ind]] = 1
         for ln, laser in enumerate(lasers):
             digital_trigger[ln, self.digital_starts[laser]:self.digital_ends[laser]] = 1
-        return digital_trigger, galvo_trigger
+        lasers.append(cam_ind)
+        switch_trigger[:self.digital_starts[cam_ind] - self.galvo_sw_settle_samples] = 0.
+        switch_trigger[
+        self.digital_starts[cam_ind] - self.galvo_sw_settle_samples:self.digital_starts[cam_ind]] = smooth_ramp(0.,
+                                                                                                                cam_sw,
+                                                                                                                self.galvo_sw_settle_samples)
+        return digital_trigger, switch_trigger, lasers
 
     def generate_dotscan_resolft_2d(self, camera=0):
         interval_samples = self.galvo_return

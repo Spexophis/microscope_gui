@@ -126,12 +126,11 @@ class MainController(QtCore.QObject):
     def _initial_setup(self):
         try:
 
-            self.set_switch(5.0)
             p = self.m.md.get_position_steps_taken(3)
             self.con_controller.display_deck_position(p)
 
             self.reset_piezo_positions()
-
+            self.reset_galvo_positions()
             self.update_galvo_scanner()
 
             self.magnifications = [196.875, 1., 1., 1.]
@@ -247,6 +246,14 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"MCL Piezo Error: {e}")
 
+    def reset_galvo_positions(self):
+        g_x, g_y = self.con_controller.get_galvo_positions()
+        try:
+            self.m.daq.set_galvo_position([g_x, g_y], [0, 1])
+            self.m.daq.set_switch_position(5.)
+        except Exception as e:
+            self.logg.error(f"Galvo Error: {e}")
+
     @QtCore.pyqtSlot(float, float)
     def set_galvo(self, voltx: float, volty: float):
         try:
@@ -257,7 +264,7 @@ class MainController(QtCore.QObject):
     @QtCore.pyqtSlot(float)
     def set_switch(self, volt: float):
         try:
-            self.m.daq.set_galvo_switch(volt)
+            self.m.daq.set_switch_position(volt)
         except Exception as e:
             self.logg.error(f"Galvo Error: {e}")
 
@@ -387,8 +394,8 @@ class MainController(QtCore.QObject):
         self.set_camera_roi("imaging")
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
         if vd_mod == "Wide Field":
-            dtr = self.generate_live_triggers("imaging")
-            self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=False)
+            dt, sw, dch = self.generate_live_triggers("imaging")
+            self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dt, digital_channels=dch, finite=False)
             self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
         elif vd_mod == "Dot Scan":
             self.update_trigger_parameters("imaging")
@@ -511,7 +518,7 @@ class MainController(QtCore.QObject):
     @QtCore.pyqtSlot()
     def plot_trigger(self):
         try:
-            dtr = self.generate_live_triggers("imaging")
+            dtr, sw, dch = self.generate_live_triggers("imaging")
             self.view_controller.plot_update(dtr[0])
             for i in range(dtr.shape[0] - 1):
                 self.view_controller.plot(dtr[i + 1] + i + 1)
@@ -593,8 +600,8 @@ class MainController(QtCore.QObject):
         self.set_camera_roi("imaging")
         self.m.cam_set[self.cameras["imaging"]].acq_num = 64
         self.m.cam_set[self.cameras["imaging"]].prepare_data_acquisition()
-        dtr = self.generate_live_triggers("imaging")
-        self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
+        dtr, sw, dch = self.generate_live_triggers("imaging")
+        self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dtr, digital_channels=dch, finite=True)
         self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
 
     def widefield_zstack(self):
@@ -651,8 +658,8 @@ class MainController(QtCore.QObject):
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
-        dtr = self.generate_live_triggers("imaging")
-        self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
+        dtr, sw, dch = self.generate_live_triggers("imaging")
+        self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dtr, digital_channels=dch, finite=True)
         self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
         self.m.cam_set[self.cameras["focus_lock"]].set_exposure(self.con_controller.get_tis_expo())
         self.m.cam_set[self.cameras["focus_lock"]].prepare_live()
@@ -900,7 +907,7 @@ class MainController(QtCore.QObject):
             self.logg.error(f"Error preparing grid pattern scanning: {e}")
             return
         try:
-            dtr = self.generate_live_triggers("imaging")
+            dtr, sw, dch = self.generate_live_triggers("imaging")
             positions = self.con_controller.get_piezo_positions()
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             starts = [position - 0.5 * axis_length for position, axis_length in zip(positions, axis_lengths)]
@@ -911,7 +918,7 @@ class MainController(QtCore.QObject):
             # grid pattern minima
             p_w = self.con_controller.get_cobolt_laser_power("488_0")
             self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0., p_w[0], 0., 0.])
-            self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
+            self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dtr, digital_channels=dch, finite=True)
             self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
             data = []
             sx, sy = scans[0].shape[0], scans[1].shape[0]
@@ -1052,8 +1059,8 @@ class MainController(QtCore.QObject):
         self.set_camera_roi("wfs")
         self.set_img_wfs()
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
-        dtr = self.generate_live_triggers("wfs")
-        self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=False)
+        dtr, sw, dch = self.generate_live_triggers("wfs")
+        self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dtr, digital_channels=dch, finite=False)
 
     def _start_img_wfs(self):
         try:
@@ -1165,8 +1172,8 @@ class MainController(QtCore.QObject):
         self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
         self.set_camera_roi("wfs")
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
-        dtr = self.generate_live_triggers("wfs")
-        self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
+        dtr, sw, dch = self.generate_live_triggers("wfs")
+        self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dtr, digital_channels=dch, finite=True)
 
     def influence_function(self):
         try:
@@ -1257,8 +1264,8 @@ class MainController(QtCore.QObject):
         self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
         self.set_camera_roi("wfs")
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
-        dtr = self.generate_live_triggers("wfs")
-        self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
+        dtr, sw, dch = self.generate_live_triggers("wfs")
+        self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dtr, digital_channels=dch, finite=True)
 
     def close_loop_correction(self):
         self.m.cam_set[self.cameras["wfs"]].start_live()
@@ -1301,8 +1308,8 @@ class MainController(QtCore.QObject):
         self.set_camera_roi("imaging")
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
         if vd_mod == "Wide Field":
-            dtr = self.generate_live_triggers("imaging")
-            self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
+            dtr, sw, dch = self.generate_live_triggers("imaging")
+            self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dtr, digital_channels=dch, finite=True)
             self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
         elif vd_mod == "Dot Scan":
             self.update_trigger_parameters("imaging")
@@ -1423,8 +1430,8 @@ class MainController(QtCore.QObject):
         self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
         self.set_camera_roi("wfs")
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
-        dtr = self.generate_live_triggers("wfs")
-        self.m.daq.write_triggers(piezo_sequences=None, galvo_sequences=None, digital_sequences=dtr, finite=True)
+        dtr, sw, dch = self.generate_live_triggers("wfs")
+        self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dtr, digital_channels=dch, finite=True)
 
     def shwfs_acquisition(self):
         try:
