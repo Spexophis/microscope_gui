@@ -269,9 +269,7 @@ class TriggerSequence:
             cam_sw = 0.
         cam_ind = camera + 4
         interval_samples = self.galvo_return
-        digital_sequences = [np.empty((0,)) for _ in range(len(self.digital_starts))]
         galvo_sequences = [np.empty((0,)) for _ in range(2)]
-        switch_sequence = np.empty(())
         ramp_down = np.linspace(self.ramp_up[-1], self.ramp_up[0], num=self.ramp_down_samples, endpoint=True)
         extended_cycle = np.concatenate((self.ramp_up, ramp_down))
         fast_axis_galvo = np.tile(extended_cycle, self.dot_pos.size)
@@ -281,11 +279,15 @@ class TriggerSequence:
         slow_axis_galvo = np.cumsum(slow_axis_galvo) * self.dot_step_y + self.dot_starts[1]
         slow_axis_galvo[-self.ramp_down_samples:] = np.linspace(slow_axis_galvo[-self.ramp_down_samples],
                                                                 self.dot_starts[1], self.ramp_down_samples)
+        switch_galvo = np.ones(fast_axis_galvo.shape) * cam_sw
         _sqr = np.pad(np.ones(self.samples_high), (0, self.samples_low), 'constant', constant_values=(0, 0))
         square_wave = np.pad(np.tile(_sqr, self.dot_pos.size),
                              (self.samples_delay, self.samples_offset + self.ramp_down_samples), 'constant',
                              constant_values=(0, 0))
         laser_trigger = np.tile(square_wave, self.dot_pos.size)
+        camera_trigger = np.ones(laser_trigger.shape, dtype=np.int8)
+        camera_trigger[:self.samples_delay] = 0
+        camera_trigger[- self.samples_low - self.samples_offset - self.ramp_down_samples:] = 0
 
     def generate_dotscan_resolft_2d(self, camera=0):
         interval_samples = self.galvo_return
