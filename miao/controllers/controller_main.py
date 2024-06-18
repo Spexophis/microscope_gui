@@ -250,7 +250,7 @@ class MainController(QtCore.QObject):
         g_x, g_y = self.con_controller.get_galvo_positions()
         try:
             self.m.daq.set_galvo_position([g_x, g_y], [0, 1])
-            self.m.daq.set_switch_position(5.)
+            self.m.daq.set_switch_position(0.)
         except Exception as e:
             self.logg.error(f"Galvo Error: {e}")
 
@@ -598,10 +598,13 @@ class MainController(QtCore.QObject):
         self.set_lasers()
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
-        self.m.cam_set[self.cameras["imaging"]].acq_num = 64
+        self.update_trigger_parameters("imaging")
+        dtr, sw, pz, dch, pos = self.p.trigger.generate_widefield_zstack_triggers(self.lasers,  self.cameras["imaging"])
+        self.set_piezo_position_z(pz[0])
+        self.m.cam_set[self.cameras["imaging"]].acq_num = pos
         self.m.cam_set[self.cameras["imaging"]].prepare_data_acquisition()
-        dtr, sw, dch = self.generate_live_triggers("imaging")
-        self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dtr, digital_channels=dch, finite=True)
+        self.m.daq.write_triggers(piezo_sequences=pz, piezo_channels=[2], switch_sequence=sw,
+                                  digital_sequences=dtr, digital_channels=dch, finite=True)
         self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
 
     def widefield_zstack(self):
@@ -611,28 +614,12 @@ class MainController(QtCore.QObject):
             self.logg.error(f"Error starting widefield zstack: {e}")
             return
         try:
-            positions = self.con_controller.get_piezo_positions()
-            axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
-            if step_sizes[2] == 0:
-                self.logg.error(f"Error running widefield zstack: z step size cannot be zero")
-                return
-            else:
-                num_steps = int(axis_lengths[2] / (2 * step_sizes[2]))
-                start = positions[2] - num_steps * step_sizes[2]
-                end = positions[2] + num_steps * step_sizes[2]
-                zps = np.arange(start, end + step_sizes[2], step_sizes[2])
-                pzs = []
-                self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
-                for i, z in enumerate(zps):
-                    pz = self.m.pz.move_position(2, z)
-                    pzs.append([i, pz])
-                    self.m.daq.run_triggers()
-                    time.sleep(0.05)
-                    self.m.daq.stop_triggers(_close=False)
-                self.logg.info(pzs)
-                self.sada.emit(time.strftime("%Y%m%d%H%M%S") + '_widefield_zstack_',
-                               self.m.cam_set[self.cameras["imaging"]].get_data(),
-                               list(self.m.cam_set[self.cameras["imaging"]].data.ind_list))
+            self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
+            self.m.daq.run_triggers()
+            time.sleep(0.2)
+            self.sada.emit(time.strftime("%Y%m%d%H%M%S") + '_widefield_zstack_',
+                           self.m.cam_set[self.cameras["imaging"]].get_data(),
+                           list(self.m.cam_set[self.cameras["imaging"]].data.ind_list))
         except Exception as e:
             self.finish_widefield_zstack()
             self.logg.error(f"Error running widefield zstack: {e}")
@@ -641,10 +628,10 @@ class MainController(QtCore.QObject):
 
     def finish_widefield_zstack(self):
         try:
-            self.reset_piezo_positions()
             self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
             self.lasers_off()
             self.m.daq.stop_triggers()
+            self.reset_piezo_positions()
             self.logg.info("Widefield image stack acquired")
         except Exception as e:
             self.logg.error(f"Error stopping widefield zstack: {e}")
@@ -714,11 +701,11 @@ class MainController(QtCore.QObject):
 
     def finish_focus_finding(self):
         try:
-            self.reset_piezo_positions()
             self.m.cam_set[self.cameras["imaging"]].stop_live()
             self.m.cam_set[self.cameras["focus_lock"]].stop_live()
             self.lasers_off()
             self.m.daq.stop_triggers()
+            self.reset_piezo_positions()
             self.logg.info("Focus finding stack acquired")
         except Exception as e:
             self.logg.error(f"Error stopping focus finding: {e}")

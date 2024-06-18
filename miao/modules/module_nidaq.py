@@ -214,9 +214,11 @@ class NIDAQ:
     def write_digital_sequences(self, digital_sequences, indices=None, callback=None):
         if indices is None:
             indices = [0, 1, 2, 3, 4, 5, 6]
-        n_channels, n_samples = digital_sequences.shape
-        if n_channels == 1:
-            digital_sequences = digital_sequences[0]
+        if digital_sequences.ndim > 1:
+            n_channels, n_samples = digital_sequences.shape
+        else:
+            n_channels = 1
+            n_samples = digital_sequences.shape[0]
         if n_channels != len(indices):
             self.logg.error("WARNING: Length of n_channels and indices differ, skipping digital sequences update.")
             return
@@ -245,9 +247,11 @@ class NIDAQ:
     def write_piezo_sequences(self, piezo_sequences, indices=None):
         if indices is None:
             indices = [0, 1]
-        n_channels, n_samples = piezo_sequences.shape
-        if n_channels == 1:
-            piezo_sequences = piezo_sequences[0]
+        if piezo_sequences.ndim > 1:
+            n_channels, n_samples = piezo_sequences.shape
+        else:
+            n_channels = 1
+            n_samples = piezo_sequences.shape[0]
         if n_channels != len(indices):
             self.logg.error("WARNING: Length of n_channels and indices differ, skipping piezo sequences update.")
             return
@@ -255,7 +259,6 @@ class NIDAQ:
             self.tasks["piezo"] = nidaqmx.Task("piezo")
             for ind in indices:
                 self.tasks["piezo"].ao_channels.add_ao_voltage_chan(self.piezo_channels[ind], min_val=0., max_val=10.)
-            n_channels, n_samples = piezo_sequences.shape
             self.tasks["piezo"].timing.cfg_samp_clk_timing(rate=self.sample_rate, source=self.clock[1],
                                                            active_edge=Edge.RISING, sample_mode=self.mode,
                                                            samps_per_chan=n_samples)
@@ -272,9 +275,11 @@ class NIDAQ:
     def write_galvo_sequences(self, galvo_sequences, indices=None):
         if indices is None:
             indices = [0, 1]
-        n_channels, n_samples = galvo_sequences.shape
-        if n_channels == 1:
-            galvo_sequences = galvo_sequences[0]
+        if galvo_sequences.ndim > 1:
+            n_channels, n_samples = galvo_sequences.shape
+        else:
+            n_channels = 1
+            n_samples = galvo_sequences.shape[0]
         if n_channels != len(indices):
             self.logg.error("WARNING: Length of n_channels and indices differ, skipping galvo sequences update.")
             return
@@ -392,7 +397,7 @@ class NIDAQ:
                 input_task.timing.cfg_samp_clk_timing(rate=self.sample_rate,
                                                       sample_mode=AcquisitionType.FINITE,
                                                       samps_per_chan=num_samples,
-                                                      source="/Dev2/ao/SampleClock")
+                                                      source="/Dev1/ao/SampleClock")
                 writer = AnalogSingleChannelWriter(output_task.out_stream)
                 reader = AnalogSingleChannelReader(input_task.in_stream)
                 writer.write_many_sample(data)
