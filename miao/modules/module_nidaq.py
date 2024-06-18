@@ -17,12 +17,11 @@ class NIDAQ:
         def __init__(self):
             self.sample_rate = 250000
             self.duty_cycle = 0.5
-            self.galvo_channels = ["Dev1/ao0", "Dev1/ao1"]
-            self.switch_channel = "Dev2/ao3"
+            self.galvo_channels = ["Dev1/ao0", "Dev1/ao1", "Dev1/ao2"]
             self.piezo_channels = ["Dev2/ao0", "Dev2/ao1", "Dev2/ao2"]
             self.digital_channels = ["Dev1/port0/line0", "Dev1/port0/line1", "Dev1/port0/line2", "Dev1/port0/line3",
                                      "Dev1/port0/line4", "Dev1/port0/line5", "Dev1/port0/line6"]
-            self.clock_channel = "/Dev1/ctr0"
+            self.counter_channel = "/Dev1/ctr0"
             self.clock_rate = 2000000
             self.clock = ["/Dev1/PFI12", "/Dev2/PFI0"]
             self.mode = None
@@ -88,9 +87,7 @@ class NIDAQ:
             with nidaqmx.Task() as task:
                 for ind in indices:
                     task.ao_channels.add_ao_voltage_chan(self.piezo_channels[ind], min_val=0., max_val=10.)
-                task.timing.cfg_samp_clk_timing(rate=1000000, sample_mode=AcquisitionType.FINITE, samps_per_chan=1,
-                                                active_edge=Edge.RISING, source="20MHzTimebase")
-                task.write(pos, auto_start=True)
+                task.write(pos)
                 task.wait_until_done(WAIT_INFINITELY)
                 task.stop()
         except nidaqmx.DaqWarning as e:
@@ -137,9 +134,7 @@ class NIDAQ:
             with nidaqmx.Task() as task:
                 for ind in indices:
                     task.ao_channels.add_ao_voltage_chan(self.galvo_channels[ind], min_val=-10., max_val=10.)
-                task.timing.cfg_samp_clk_timing(rate=500000, sample_mode=AcquisitionType.FINITE, samps_per_chan=1,
-                                                active_edge=Edge.RISING, source="20MHzTimebase")
-                task.write(pos, auto_start=True)
+                task.write(pos)
                 task.wait_until_done(WAIT_INFINITELY)
                 task.stop()
         except nidaqmx.DaqWarning as e:
@@ -169,10 +164,8 @@ class NIDAQ:
     def set_switch_position(self, pos):
         try:
             with nidaqmx.Task() as task:
-                task.ao_channels.add_ao_voltage_chan(self.switch_channel, min_val=-5., max_val=5.)
-                task.timing.cfg_samp_clk_timing(rate=1000000, sample_mode=AcquisitionType.FINITE, samps_per_chan=1,
-                                                active_edge=Edge.RISING, source="20MHzTimebase")
-                task.write(pos, auto_start=True)
+                task.ao_channels.add_ao_voltage_chan(self.galvo_channels[2], min_val=-5., max_val=5.)
+                task.write(pos)
                 task.wait_until_done(WAIT_INFINITELY)
                 task.stop()
         except nidaqmx.DaqWarning as e:
@@ -202,7 +195,7 @@ class NIDAQ:
     def write_clock_channel(self):
         try:
             self.tasks["clock"] = nidaqmx.Task("clock")
-            self.tasks["clock"].co_channels.add_co_pulse_chan_freq(self.clock_channel, units=FrequencyUnits.HZ,
+            self.tasks["clock"].co_channels.add_co_pulse_chan_freq(self.counter_channel, units=FrequencyUnits.HZ,
                                                                    idle_state=Level.LOW, initial_delay=0.0,
                                                                    freq=self.sample_rate, duty_cycle=self.duty_cycle)
             self.tasks["clock"].co_pulse_freq_timebase_src = '20MHzTimebase'
@@ -306,8 +299,8 @@ class NIDAQ:
         n_samples = switch_sequence.shape[0]
         try:
             self.tasks["switch"] = nidaqmx.Task("switch")
-            self.tasks["switch"].ao_channels.add_ao_voltage_chan(self.switch_channel, min_val=-5., max_val=5.)
-            self.tasks["switch"].timing.cfg_samp_clk_timing(rate=self.sample_rate, source=self.clock[1],
+            self.tasks["switch"].ao_channels.add_ao_voltage_chan(self.galvo_channels[2], min_val=-5., max_val=5.)
+            self.tasks["switch"].timing.cfg_samp_clk_timing(rate=self.sample_rate, source=self.clock[0],
                                                            active_edge=Edge.RISING, sample_mode=self.mode,
                                                            samps_per_chan=n_samples)
             self.tasks["switch"].write(switch_sequence, auto_start=False)
@@ -413,7 +406,7 @@ class NIDAQ:
     def measure_do(self, output_channel, input_channel, data):
         num_samples = data.shape[0]
         with nidaqmx.Task() as task_do, nidaqmx.Task() as task_ai, nidaqmx.Task() as task_clock:
-            task_clock.co_channels.add_co_pulse_chan_freq(self.clock_channel, units=FrequencyUnits.HZ,
+            task_clock.co_channels.add_co_pulse_chan_freq(self.counter_channel, units=FrequencyUnits.HZ,
                                                           idle_state=Level.LOW, initial_delay=0.0,
                                                           freq=self.sample_rate, duty_cycle=self.duty_cycle)
             task_clock.co_pulse_freq_timebase_src = '20MHzTimebase'
