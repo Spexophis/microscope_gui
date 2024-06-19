@@ -132,9 +132,9 @@ class MainController(QtCore.QObject):
             self.reset_piezo_positions()
             self.reset_galvo_positions()
             self.update_galvo_scanner()
-            
+
             self.laser_lists = ["405", "488_0", "488_1", "488_2"]
-            
+
             self.magnifications = [196.875, 1., 1., 1.]
             self.pixel_sizes = []
             self.pixel_sizes = [self.m.cam_set[i].ps / mag for i, mag in enumerate(self.magnifications)]
@@ -615,7 +615,7 @@ class MainController(QtCore.QObject):
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
         self.update_trigger_parameters("imaging")
-        dtr, sw, pz, dch, pos = self.p.trigger.generate_widefield_zstack_triggers(self.lasers,  self.cameras["imaging"])
+        dtr, sw, pz, dch, pos = self.p.trigger.generate_widefield_zstack_triggers(self.lasers, self.cameras["imaging"])
         self.set_piezo_position_z(pz[0])
         self.m.cam_set[self.cameras["imaging"]].acq_num = pos
         self.m.cam_set[self.cameras["imaging"]].prepare_data_acquisition()
@@ -782,10 +782,12 @@ class MainController(QtCore.QObject):
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
         self.update_trigger_parameters("imaging")
-        ptr, dtr, pos = self.p.trigger.generate_monalisa_scan_2d()
+        dtr, sw, ptr, chs, pos = self.p.trigger.generate_monalisa_scan_2d(self.lasers, self.cameras["imaging"])
         self.m.cam_set[self.cameras["imaging"]].acq_num = pos
         self.m.cam_set[self.cameras["imaging"]].prepare_data_acquisition()
-        self.m.daq.write_triggers(piezo_sequences=ptr, galvo_sequences=None, digital_sequences=dtr)
+        self.m.daq.write_triggers(piezo_sequences=ptr, piezo_channels=[0, 1],
+                                  galvo_sequences=sw, galvo_channels=[2],
+                                  digital_sequences=dtr, digital_channels=chs)
         self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
 
     def monalisa_scan_2d(self):
@@ -795,8 +797,6 @@ class MainController(QtCore.QObject):
             self.logg.error(f"Error preparing beads scanning: {e}")
             return
         try:
-            positions = self.con_controller.get_piezo_positions()
-            # self.m.pz.lock_position(2, positions[2])
             self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
             time.sleep(0.02)
             self.m.daq.run_triggers()
@@ -813,7 +813,6 @@ class MainController(QtCore.QObject):
 
     def finish_monalisa_scan(self):
         try:
-            # self.m.pz.release_lock()
             self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
             self.m.daq.stop_triggers()
             self.lasers_off()
