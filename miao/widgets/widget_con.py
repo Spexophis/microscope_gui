@@ -589,9 +589,6 @@ class ConWidget(QtWidgets.QWidget):
     @QtCore.pyqtSlot(str)
     def update_live_parameter_sets(self, text: str):
         if text == "Wide Field":
-            self.QDoubleSpinBox_range_x.setValue(0.000)
-            self.QDoubleSpinBox_range_y.setValue(0.000)
-            self.QDoubleSpinBox_range_z.setValue(0.000)
             self.QDoubleSpinBox_ttl_start_on_405.setValue(0.008)
             self.QDoubleSpinBox_ttl_stop_on_405.setValue(0.032)
             self.QDoubleSpinBox_ttl_start_off_488_0.setValue(0.008)
@@ -607,12 +604,6 @@ class ConWidget(QtWidgets.QWidget):
             self.QDoubleSpinBox_ttl_start_tis.setValue(0.008)
             self.QDoubleSpinBox_ttl_stop_tis.setValue(0.032)
         if text == "Dot Scan":
-            self.QDoubleSpinBox_step_x.setValue(0.030)
-            self.QDoubleSpinBox_step_y.setValue(0.030)
-            self.QDoubleSpinBox_step_z.setValue(0.160)
-            self.QDoubleSpinBox_range_x.setValue(0.000)
-            self.QDoubleSpinBox_range_y.setValue(0.000)
-            self.QDoubleSpinBox_range_z.setValue(0.000)
             self.QDoubleSpinBox_ttl_start_on_405.setValue(0.008)
             self.QDoubleSpinBox_ttl_stop_on_405.setValue(0.032)
             self.QDoubleSpinBox_ttl_start_off_488_0.setValue(0.008)

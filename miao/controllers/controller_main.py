@@ -662,7 +662,7 @@ class MainController(QtCore.QObject):
         self.set_camera_roi("imaging")
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
         dtr, sw, dch = self.generate_live_triggers("imaging")
-        self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dtr, digital_channels=dch, finite=True)
+        self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=dch, galvo_sequences=sw, galvo_channels=[2])
         self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
         self.m.cam_set[self.cameras["focus_lock"]].set_exposure(self.con_controller.get_tis_expo())
         self.m.cam_set[self.cameras["focus_lock"]].prepare_live()
@@ -841,7 +841,7 @@ class MainController(QtCore.QObject):
             galvo_positions, [galvo_ranges, dot_ranges], dot_pos = self.con_controller.get_galvo_scan_parameters()
             scan_x = dot_ranges[0] + np.linspace(-1.2 * self.p.trigger.dot_step_v, 1.2 * self.p.trigger.dot_step_v, 10,
                                                  endpoint=False, dtype=float)
-            scan_y = dot_ranges[1] + np.linspace(-1.2 * self.p.trigger.dot_step_v, 1.2 * self.p.trigger.dot_step_y, 10,
+            scan_y = dot_ranges[1] + np.linspace(-1.2 * self.p.trigger.dot_step_y, 1.2 * self.p.trigger.dot_step_y, 10,
                                                  endpoint=False, dtype=float)
             sx, sy = scan_x.shape[0], scan_y.shape[0]
             data = []
@@ -856,7 +856,7 @@ class MainController(QtCore.QObject):
                     dtr, gtr, chs = self.p.trigger.generate_digital_scanning_triggers(self.lasers,
                                                                                       self.cameras["imaging"])
                     self.m.daq.write_triggers(galvo_sequences=gtr, galvo_channels=[0, 1, 2],
-                                              digital_sequences=dtr, digital_channels=chs, finite=False)
+                                              digital_sequences=dtr, digital_channels=chs)
                     self.m.daq.run_triggers()
                     time.sleep(0.2)
                     temp = self.m.cam_set[self.cameras["imaging"]].get_last_image()
@@ -879,7 +879,6 @@ class MainController(QtCore.QObject):
 
     def finish_focal_array_scan(self):
         try:
-            # self.m.pz.release_lock()
             self.m.cam_set[self.cameras["imaging"]].stop_live()
             self.m.daq.stop_triggers()
             self.lasers_off()
@@ -897,6 +896,9 @@ class MainController(QtCore.QObject):
         self.set_camera_roi("imaging")
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
         self.update_trigger_parameters("imaging")
+        dtr, sw, dch = self.generate_live_triggers("imaging")
+        self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=dch, galvo_sequences=sw, galvo_channels=[2])
+        self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
 
     def grid_pattern_scan(self):
         try:
@@ -905,7 +907,6 @@ class MainController(QtCore.QObject):
             self.logg.error(f"Error preparing grid pattern scanning: {e}")
             return
         try:
-            dtr, sw, dch = self.generate_live_triggers("imaging")
             positions = self.con_controller.get_piezo_positions()
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             starts = [position - 0.5 * axis_length for position, axis_length in zip(positions, axis_lengths)]
@@ -914,15 +915,10 @@ class MainController(QtCore.QObject):
                      zip(starts, ends, step_sizes)]
             self.m.daq.set_piezo_position([scans[0][0], scans[1][0]], [0, 1])
             # grid pattern minima
-            p_w = self.con_controller.get_cobolt_laser_power("488_0")
-            self.m.laser.set_modulation_mode(["405", "488_0", "488_1", "488_2"], [0., p_w[0], 0., 0.])
-            self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dtr, digital_channels=dch, finite=True)
-            self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
             data = []
             sx, sy = scans[0].shape[0], scans[1].shape[0]
             mx = np.zeros((sy, sx))
             self.m.cam_set[self.cameras["imaging"]].start_live()
-            # self.m.pz.lock_position(2, positions[2])
             for j in range(sy):
                 self.m.daq.set_piezo_position([scans[1][j]], [1])
                 for i in range(sx):
@@ -1058,7 +1054,8 @@ class MainController(QtCore.QObject):
         self.set_img_wfs()
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
         dtr, sw, dch = self.generate_live_triggers("wfs")
-        self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dtr, digital_channels=dch, finite=False)
+        self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=dch,
+                                  galvo_sequences=sw, galvo_channels=[2], finite=False)
 
     def start_img_wfs(self):
         try:
@@ -1175,7 +1172,7 @@ class MainController(QtCore.QObject):
         self.set_camera_roi("wfs")
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
         dtr, sw, dch = self.generate_live_triggers("wfs")
-        self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dtr, digital_channels=dch, finite=True)
+        self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2], digital_sequences=dtr, digital_channels=dch)
 
     def influence_function(self):
         try:
@@ -1267,7 +1264,7 @@ class MainController(QtCore.QObject):
         self.set_camera_roi("wfs")
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
         dtr, sw, dch = self.generate_live_triggers("wfs")
-        self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dtr, digital_channels=dch, finite=True)
+        self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2], digital_sequences=dtr, digital_channels=dch)
 
     def close_loop_correction(self):
         self.m.cam_set[self.cameras["wfs"]].start_live()
@@ -1311,7 +1308,7 @@ class MainController(QtCore.QObject):
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
         if vd_mod == "Wide Field":
             dtr, sw, dch = self.generate_live_triggers("imaging")
-            self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dtr, digital_channels=dch, finite=True)
+            self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2], digital_sequences=dtr, digital_channels=dch)
             self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
         elif vd_mod == "Dot Scan":
             dtr, gtr, chs = self.p.trigger.generate_digital_scanning_triggers(self.lasers, self.cameras["imaging"])
@@ -1432,7 +1429,7 @@ class MainController(QtCore.QObject):
         self.set_camera_roi("wfs")
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
         dtr, sw, dch = self.generate_live_triggers("wfs")
-        self.m.daq.write_triggers(switch_sequence=sw, digital_sequences=dtr, digital_channels=dch, finite=True)
+        self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2], digital_sequences=dtr, digital_channels=dch)
 
     def shwfs_acquisition(self):
         try:

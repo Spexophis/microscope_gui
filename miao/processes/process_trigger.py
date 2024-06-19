@@ -336,6 +336,10 @@ class TriggerSequence:
                 else:
                     digital_sequences[i] = np.append(digital_sequences[i], np.zeros(trig.shape))
         lasers.append(cam_ind)
+        for i, dtr in enumerate(digital_sequences):
+            digital_sequences[i] = np.append(dtr, dtr[-1] * np.ones(self.standby_samples))
+        for i, gtr in enumerate(galvo_sequences):
+            galvo_sequences[i] = np.append(gtr, gtr[-1] * np.ones(self.standby_samples))
         return np.asarray(digital_sequences), np.asarray(galvo_sequences), lasers
 
     def generate_dotscan_resolft_2d(self, lasers, camera):
