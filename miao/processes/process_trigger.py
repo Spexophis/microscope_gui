@@ -28,12 +28,12 @@ class TriggerSequence:
             self.piezo_positions = [position / conv_factor for position, conv_factor in
                                     zip(self.piezo_positions, self.piezo_conv_factors)]
             self.piezo_starts = [i - j for i, j in zip(self.piezo_positions, [k / 2 for k in self.piezo_ranges])]
-            self.piezo_scan_pos = [1 + int(np.ceil(safe_divide(scan_range, scan_step))) for scan_range, scan_step in
+            self.piezo_scan_pos = [int(np.ceil(safe_divide(scan_range, scan_step))) for scan_range, scan_step in
                                    zip(self.piezo_ranges, self.piezo_steps)]
-            self.piezo_scan_positions = [np.arange(start, start + range_ + step, step) for start, range_, step in
+            self.piezo_scan_positions = [np.arange(start, start + range_, step) for start, range_, step in
                                          zip(self.piezo_starts, self.piezo_ranges, self.piezo_steps)]
             # galvo switcher
-            self.galvo_sw_settle = 0.004  # s
+            self.galvo_sw_settle = 0.0025  # s
             self.galvo_sw_settle_samples = int(np.ceil(self.galvo_sw_settle * self.sample_rate))
             self.galvo_sw_states = [0., 5., -5.]
             # galvo scanner
@@ -257,8 +257,9 @@ class TriggerSequence:
                                                                                                             self.galvo_sw_settle_samples)
         switch_trigger[self.digital_ends[cam_ind] + self.galvo_sw_settle_samples:] = 0.
         switch_trigger = np.tile(switch_trigger, self.piezo_scan_pos[2])
-        piezo_sequences = np.repeat(self.piezo_scan_positions[2], cycle_samples)
-        return np.asarray(digital_sequences), switch_trigger, piezo_sequences, lasers, self.piezo_scan_pos[2]
+        piezo_sequence = np.repeat(self.piezo_scan_positions[2], cycle_samples)
+        piezo_sequence = shift_array(piezo_sequence, max(self.standby_samples, self.return_samples) - self.galvo_sw_settle_samples, direction="backward")
+        return np.asarray(digital_sequences), switch_trigger, piezo_sequence, lasers, self.piezo_scan_pos[2]
 
     def generate_digital_scanning_triggers(self, lasers, camera):
         if camera == 0:
@@ -268,8 +269,6 @@ class TriggerSequence:
         else:
             cam_sw = 0.
         cam_ind = camera + 4
-        interval_samples = self.galvo_return
-        galvo_sequences = [np.empty((0,)) for _ in range(2)]
         ramp_down = np.linspace(self.ramp_up[-1], self.ramp_up[0], num=self.ramp_down_samples, endpoint=True)
         extended_cycle = np.concatenate((self.ramp_up, ramp_down))
         fast_axis_galvo = np.tile(extended_cycle, self.dot_pos.size)
@@ -279,7 +278,14 @@ class TriggerSequence:
         slow_axis_galvo = np.cumsum(slow_axis_galvo) * self.dot_step_y + self.dot_starts[1]
         slow_axis_galvo[-self.ramp_down_samples:] = np.linspace(slow_axis_galvo[-self.ramp_down_samples],
                                                                 self.dot_starts[1], self.ramp_down_samples)
+        fill_samples = max(0, self.galvo_sw_settle_samples - (self.samples_offset + self.ramp_down_samples))
+        fast_axis_galvo = np.pad(fast_axis_galvo, (self.galvo_return, fill_samples), 'constant',
+                                 constant_values=(self.galvo_starts[0], self.galvo_starts[0]))
+        slow_axis_galvo = np.pad(slow_axis_galvo, (self.galvo_return, fill_samples), 'constant',
+                                 constant_values=(self.dot_starts[1], self.dot_starts[1]))
         switch_galvo = np.ones(fast_axis_galvo.shape) * cam_sw
+        switch_galvo[:self.galvo_sw_settle_samples] = smooth_ramp(0., cam_sw, self.galvo_sw_settle_samples)
+        switch_galvo[-self.galvo_sw_settle_samples:] = smooth_ramp(cam_sw, 0., self.galvo_sw_settle_samples)
         _sqr = np.pad(np.ones(self.samples_high), (0, self.samples_low), 'constant', constant_values=(0, 0))
         square_wave = np.pad(np.tile(_sqr, self.dot_pos.size),
                              (self.samples_delay, self.samples_offset + self.ramp_down_samples), 'constant',
@@ -287,13 +293,61 @@ class TriggerSequence:
         laser_trigger = np.tile(square_wave, self.dot_pos.size)
         camera_trigger = np.ones(laser_trigger.shape, dtype=np.int8)
         camera_trigger[:self.samples_delay] = 0
-        camera_trigger[- self.samples_low - self.samples_offset - self.ramp_down_samples:] = 0
+        camera_trigger[- self.samples_offset - self.ramp_down_samples:] = 0
+        laser_trigger = np.pad(laser_trigger, (self.galvo_return, fill_samples), 'constant', constant_values=(0, 0))
+        camera_trigger = np.pad(camera_trigger, (self.galvo_return, fill_samples), 'constant', constant_values=(0, 0))
+        tl = self.samples_delay + self.galvo_sw_settle_samples + self.galvo_return
+        self.exposure_samples = camera_trigger.shape[0] - tl
+        self.exposure_time = self.exposure_samples / self.sample_rate
+        digital_sequences = [np.empty((0,)) for _ in range(len(lasers) + 1)]
+        galvo_sequences = [np.empty((0,)) for _ in range(3)]
+        for _, las in enumerate(lasers):
+            if las == 0:
+                trig = laser_trigger
+                gvf = fast_axis_galvo
+                gvs = slow_axis_galvo
+                sw = np.zeros(trig.shape)
+                cm = np.zeros(trig.shape)
+            elif las == 1:
+                itl = int(np.ceil(0.0008 * self.sample_rate))
+                trig = np.pad(np.ones(self.digital_ends[las] - self.digital_starts[las]), (itl, itl), 'constant',
+                              constant_values=(0, 0))
+                gvf = np.ones(trig.shape) * fast_axis_galvo[0]
+                gvs = np.ones(trig.shape) * slow_axis_galvo[0]
+                sw = np.zeros(trig.shape)
+                cm = np.zeros(trig.shape)
+            elif las == 2:
+                trig = laser_trigger
+                gvf = fast_axis_galvo
+                gvs = slow_axis_galvo
+                sw = np.zeros(trig.shape)
+                cm = np.zeros(trig.shape)
+            elif las == 3:
+                trig = laser_trigger
+                gvf = fast_axis_galvo
+                gvs = slow_axis_galvo
+                sw = switch_galvo
+                cm = camera_trigger
+            galvo_sequences[0] = np.append(galvo_sequences[0], gvf)
+            galvo_sequences[1] = np.append(galvo_sequences[1], gvs)
+            digital_sequences[-1] = np.append(digital_sequences[-1], cm)
+            galvo_sequences[2] = np.append(galvo_sequences[2], sw)
+            for i in range(len(lasers)):
+                if lasers[i] == las:
+                    digital_sequences[i] = np.append(digital_sequences[i], trig)
+                else:
+                    digital_sequences[i] = np.append(digital_sequences[i], np.zeros(trig.shape))
+        lasers.append(cam_ind)
+        return np.asarray(digital_sequences), np.asarray(galvo_sequences), lasers
 
-    def generate_dotscan_resolft_2d(self, camera=0):
-        interval_samples = self.galvo_return
-        digital_sequences = [np.empty((0,)) for _ in range(len(self.digital_starts))]
-        galvo_sequences = [np.empty((0,)) for _ in range(2)]
-        piezo_sequences = [np.empty((0,)) for _ in range(2)]
+    def generate_dotscan_resolft_2d(self, lasers, camera=0):
+        if camera == 0:
+            cam_sw = 5.
+        elif camera == 1:
+            cam_sw = -5.
+        else:
+            cam_sw = 0.
+        cam_ind = camera + 4
         ramp_down = np.linspace(self.ramp_up[-1], self.ramp_up[0], num=self.ramp_down_samples, endpoint=True)
         extended_cycle = np.concatenate((self.ramp_up, ramp_down))
         fast_axis_galvo = np.tile(extended_cycle, self.dot_pos.size)
@@ -303,129 +357,86 @@ class TriggerSequence:
         slow_axis_galvo = np.cumsum(slow_axis_galvo) * self.dot_step_y + self.dot_starts[1]
         slow_axis_galvo[-self.ramp_down_samples:] = np.linspace(slow_axis_galvo[-self.ramp_down_samples],
                                                                 self.dot_starts[1], self.ramp_down_samples)
+        fill_samples = max(0, self.galvo_sw_settle_samples - (self.samples_offset + self.ramp_down_samples))
+        fast_axis_galvo = np.pad(fast_axis_galvo, (self.galvo_return, fill_samples), 'constant',
+                                 constant_values=(self.galvo_starts[0], self.galvo_starts[0]))
+        slow_axis_galvo = np.pad(slow_axis_galvo, (self.galvo_return, fill_samples), 'constant',
+                                 constant_values=(self.dot_starts[1], self.dot_starts[1]))
+        switch_galvo = np.ones(fast_axis_galvo.shape) * cam_sw
+        switch_galvo[:self.galvo_sw_settle_samples] = smooth_ramp(0., cam_sw, self.galvo_sw_settle_samples)
+        switch_galvo[-self.galvo_sw_settle_samples:] = smooth_ramp(cam_sw, 0., self.galvo_sw_settle_samples)
         _sqr = np.pad(np.ones(self.samples_high), (0, self.samples_low), 'constant', constant_values=(0, 0))
         square_wave = np.pad(np.tile(_sqr, self.dot_pos.size),
                              (self.samples_delay, self.samples_offset + self.ramp_down_samples), 'constant',
                              constant_values=(0, 0))
         laser_trigger = np.tile(square_wave, self.dot_pos.size)
-        # ON
-        galvo_sequences[0] = np.pad(fast_axis_galvo, (interval_samples, 0), 'constant',
-                                    constant_values=(self.galvo_starts[0], self.galvo_starts[0]))
-        galvo_sequences[1] = np.pad(slow_axis_galvo, (interval_samples, 0), 'constant',
-                                    constant_values=(self.dot_starts[1], self.dot_starts[1]))
-        digital_sequences[0] = np.pad(laser_trigger, (interval_samples, 0), 'constant', constant_values=(0, 0))
-        for i in range(6):
-            digital_sequences[i + 1] = np.zeros(digital_sequences[0].size)
-        # OFF
-        off_samples = self.digital_ends[1] - self.digital_starts[1]
-        galvo_sequences[0] = np.concatenate(
-            (galvo_sequences[0], self.galvo_starts[0] * np.ones(off_samples + self.initial_samples + interval_samples)))
-        galvo_sequences[1] = np.concatenate(
-            (galvo_sequences[1], self.dot_starts[1] * np.ones(off_samples + self.initial_samples + interval_samples)))
-        digital_sequences[0] = np.concatenate(
-            (digital_sequences[0], np.zeros(off_samples + self.initial_samples + interval_samples)))
-        digital_sequences[1] = np.concatenate(
-            (digital_sequences[1], np.concatenate((np.zeros(interval_samples), np.ones(off_samples)))))
-        digital_sequences[1] = np.concatenate(
-            (digital_sequences[1], np.zeros(self.initial_samples)))
-        for i in range(5):
-            digital_sequences[i + 2] = np.concatenate(
-                (digital_sequences[i + 2], np.zeros(off_samples + self.initial_samples + interval_samples)))
-        # Read
-        galvo_sequences[0] = np.concatenate(
-            (galvo_sequences[0], np.concatenate((self.galvo_starts[0] * np.ones(interval_samples), fast_axis_galvo))))
-        galvo_sequences[1] = np.concatenate(
-            (galvo_sequences[1], np.concatenate((self.dot_starts[1] * np.ones(interval_samples), slow_axis_galvo))))
-        for i in range(3):
-            digital_sequences[i] = np.concatenate(
-                (digital_sequences[i], np.zeros(laser_trigger.size + interval_samples)))
-        digital_sequences[3] = np.concatenate(
-            (digital_sequences[3], np.concatenate((np.zeros(interval_samples), laser_trigger))))
-        self.exposure_samples = laser_trigger.size - 2 * self.samples_delay + self.dot_step_s
+        camera_trigger = np.ones(laser_trigger.shape, dtype=np.int8)
+        camera_trigger[:self.samples_delay] = 0
+        camera_trigger[- self.samples_offset - self.ramp_down_samples:] = 0
+        laser_trigger = np.pad(laser_trigger, (self.galvo_return, fill_samples), 'constant', constant_values=(0, 0))
+        camera_trigger = np.pad(camera_trigger, (self.galvo_return, fill_samples), 'constant', constant_values=(0, 0))
+        tl = self.samples_delay + self.galvo_sw_settle_samples + self.galvo_return
+        self.exposure_samples = camera_trigger.shape[0] - tl
         self.exposure_time = self.exposure_samples / self.sample_rate
-        temp = np.pad(np.ones(self.exposure_samples),
-                      (interval_samples + self.samples_delay, self.samples_delay - self.dot_step_s), 'constant',
-                      constant_values=(0, 0))
-        for i in range(3):
-            if i == camera:
-                digital_sequences[i + 4] = np.concatenate((digital_sequences[i + 4], temp))
-            else:
-                digital_sequences[i + 4] = np.concatenate(
-                    (digital_sequences[i + 4], np.zeros(laser_trigger.size + interval_samples)))
-        # Piezo Fast Axis
-        if self.standby_samples > self.return_samples:
-            cycle_samples = digital_sequences[0].size + self.standby_samples
-            _temp = np.zeros(cycle_samples * self.piezo_scan_pos[0])
-            _temp[-self.standby_samples:-self.standby_samples + self.return_samples] = self.piezo_steps[
-                                                                                           1] * smooth_ramp(0, 1,
-                                                                                                            self.return_samples)
-            _temp[-self.standby_samples + self.return_samples:] = self.piezo_steps[1]
-            piezo_sequences[1] = _temp + self.piezo_starts[1]
-            for i in range(self.piezo_scan_pos[1] - 1):
-                temp = _temp + self.piezo_starts[1] + (i + 1) * self.piezo_steps[1]
-                piezo_sequences[1] = np.concatenate((piezo_sequences[1], temp))
-            piezo_sequences[1][-self.standby_samples:-self.standby_samples + self.return_samples] = smooth_ramp(
-                piezo_sequences[1][-self.standby_samples], self.piezo_positions[1], self.return_samples)
-            piezo_sequences[1][-self.standby_samples + self.return_samples:] = self.piezo_positions[1]
-            piezo_sequences[0] = np.zeros(digital_sequences[0].size) + self.piezo_starts[0]
-            _temp = np.concatenate((smooth_ramp(0, 1, self.standby_samples), np.ones(digital_sequences[0].size)))
-            for i in range(self.piezo_scan_pos[0] - 1):
-                temp = _temp * self.piezo_steps[0] + self.piezo_starts[0] + i * self.piezo_steps[0]
-                piezo_sequences[0] = np.concatenate((piezo_sequences[0], temp))
-            piezo_sequences[0] = np.concatenate((piezo_sequences[0], smooth_ramp(
-                piezo_sequences[0][-1], piezo_sequences[0][0], self.return_samples)))
-            piezo_sequences[0] = np.concatenate(
-                (piezo_sequences[0], piezo_sequences[0][-1] * np.ones(self.standby_samples - self.return_samples)))
-            piezo_sequences[0] = np.tile(piezo_sequences[0], self.piezo_scan_pos[0])
-            piezo_sequences[0][-self.standby_samples:-self.standby_samples + self.return_samples] = smooth_ramp(
-                piezo_sequences[0][-self.standby_samples], self.piezo_positions[0], self.return_samples)
-            piezo_sequences[0][-self.standby_samples + self.return_samples:] = self.piezo_positions[0]
-            galvo_sequences[0] = np.concatenate(
-                (galvo_sequences[0], self.galvo_starts[0] * np.ones(self.standby_samples)))
-            galvo_sequences[1] = np.concatenate(
-                (galvo_sequences[1], self.dot_starts[1] * np.ones(self.standby_samples)))
-            for i in range(7):
-                digital_sequences[i] = np.concatenate((digital_sequences[i], np.zeros(self.standby_samples)))
-                digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[0])
-                digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[1])
-        else:
-            _temp = np.tile(np.zeros(digital_sequences[0].size + self.return_samples), self.piezo_scan_pos[0])
-            _temp[-self.return_samples:] = self.piezo_steps[1] * smooth_ramp(0, 1, self.return_samples)
-            piezo_sequences[1] = _temp + self.piezo_starts[1]
-            for i in range(self.piezo_scan_pos[1] - 1):
-                temp = _temp + self.piezo_starts[1] + (i + 1) * self.piezo_steps[1]
-                piezo_sequences[1] = np.concatenate((piezo_sequences[1], temp))
-            piezo_sequences[1][-self.return_samples:] = smooth_ramp(piezo_sequences[1][-self.return_samples],
-                                                                    self.piezo_positions[1], self.return_samples)
-            piezo_sequences[0] = np.zeros(digital_sequences[0].size) + self.piezo_starts[0]
-            _temp = np.concatenate((smooth_ramp(0, 1, self.return_samples), np.ones(digital_sequences[0].size)))
-            for i in range(self.piezo_scan_pos[0] - 1):
-                temp = _temp * self.piezo_steps[0] + self.piezo_starts[0] + i * self.piezo_steps[0]
-                piezo_sequences[0] = np.concatenate((piezo_sequences[0], temp))
-            piezo_sequences[0] = np.concatenate(
-                (piezo_sequences[0], smooth_ramp(piezo_sequences[0][-1], piezo_sequences[0][0], self.return_samples)))
-            piezo_sequences[0] = np.tile(piezo_sequences[0], self.piezo_scan_pos[1])
-            piezo_sequences[0][-self.return_samples:] = smooth_ramp(piezo_sequences[0][-self.return_samples],
-                                                                    self.piezo_positions[0], self.return_samples)
-            galvo_sequences[0] = np.concatenate(
-                (galvo_sequences[0], self.galvo_starts[0] * np.ones(self.return_samples)))
-            galvo_sequences[1] = np.concatenate((galvo_sequences[1], self.dot_starts[1] * np.ones(self.return_samples)))
-            for i in range(7):
-                digital_sequences[i] = np.concatenate((digital_sequences[i], np.zeros(self.return_samples)))
-                digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[0])
-                digital_sequences[i] = np.tile(digital_sequences[i], self.piezo_scan_pos[1])
-        for i in range(2):
-            temp = smooth_ramp(self.piezo_positions[i], piezo_sequences[i][0], self.return_samples)
-            piezo_sequences[i] = np.concatenate((temp, piezo_sequences[i]))
-        for i in range(2):
-            galvo_sequences[i] = np.tile(galvo_sequences[i], self.piezo_scan_pos[0])
-            galvo_sequences[i] = np.tile(galvo_sequences[i], self.piezo_scan_pos[1])
-            galvo_sequences[i][-interval_samples:] = smooth_ramp(galvo_sequences[i][-1], 0., interval_samples)
-        for i in range(2):
-            galvo_sequences[i] = np.concatenate(
-                (np.ones(self.return_samples) * galvo_sequences[i][0], galvo_sequences[i]))
-        for i in range(7):
-            digital_sequences[i] = np.concatenate((np.zeros(self.return_samples), digital_sequences[i]))
+        digital_sequences = [np.empty((0,)) for _ in range(len(lasers) + 1)]
+        galvo_sequences = [np.empty((0,)) for _ in range(3)]
+        for _, las in enumerate(lasers):
+            if las == 0:
+                trig = laser_trigger
+                gvf = fast_axis_galvo
+                gvs = slow_axis_galvo
+                sw = np.zeros(trig.shape)
+                cm = np.zeros(trig.shape)
+            elif las == 1:
+                itl = int(np.ceil(0.0008 * self.sample_rate))
+                trig = np.pad(np.ones(self.digital_ends[las] - self.digital_starts[las]), (itl, itl), 'constant',
+                              constant_values=(0, 0))
+                gvf = np.ones(trig.shape) * fast_axis_galvo[0]
+                gvs = np.ones(trig.shape) * slow_axis_galvo[0]
+                sw = np.zeros(trig.shape)
+                cm = np.zeros(trig.shape)
+            elif las == 2:
+                trig = laser_trigger
+                gvf = fast_axis_galvo
+                gvs = slow_axis_galvo
+                sw = np.zeros(trig.shape)
+                cm = np.zeros(trig.shape)
+            elif las == 3:
+                trig = laser_trigger
+                gvf = fast_axis_galvo
+                gvs = slow_axis_galvo
+                sw = switch_galvo
+                cm = camera_trigger
+            galvo_sequences[0] = np.append(galvo_sequences[0], gvf)
+            galvo_sequences[1] = np.append(galvo_sequences[1], gvs)
+            digital_sequences[-1] = np.append(digital_sequences[-1], cm)
+            galvo_sequences[2] = np.append(galvo_sequences[2], sw)
+            for i in range(len(lasers)):
+                if lasers[i] == las:
+                    digital_sequences[i] = np.append(digital_sequences[i], trig)
+                else:
+                    digital_sequences[i] = np.append(digital_sequences[i], np.zeros(trig.shape))
+        lasers.append(cam_ind)
+        idle_samples = max(self.standby_samples, self.return_samples)
+        for i, dtr in enumerate(digital_sequences):
+            digital_sequences[i] = np.append(dtr, dtr[-1] * np.ones(idle_samples))
+        for i, gtr in enumerate(galvo_sequences):
+            galvo_sequences[i] = np.append(gtr, gtr[-1] * np.ones(idle_samples))
+        piezo_sequences = [np.empty((0,)) for _ in range(2)]
+        piezo_sequences[0] = np.repeat(self.piezo_scan_positions[0], digital_sequences[0].shape[0])
+        piezo_sequences[0] = shift_array(piezo_sequences[0], idle_samples, piezo_sequences[0][0], "backward")
+        piezo_sequences[0][-idle_samples:] = piezo_sequences[0][0]
+        for i, dtr in enumerate(digital_sequences):
+            digital_sequences[i] = np.tile(dtr, self.piezo_scan_pos[0])
+        for i, gtr in enumerate(galvo_sequences):
+            galvo_sequences[i] = np.tile(gtr, self.piezo_scan_pos[0])
+        piezo_sequences[0] = np.tile(piezo_sequences[0], self.piezo_scan_pos[1])
+        piezo_sequences[1] = np.repeat(self.piezo_scan_positions[1], digital_sequences[0].shape[0])
+        piezo_sequences[1] = shift_array(piezo_sequences[1], idle_samples, piezo_sequences[1][0], "backward")
+        for i, dtr in enumerate(digital_sequences):
+            digital_sequences[i] = np.tile(dtr, self.piezo_scan_pos[1])
+        for i, gtr in enumerate(galvo_sequences):
+            galvo_sequences[i] = np.tile(gtr, self.piezo_scan_pos[1])
         scan_pos = 1
         for num in self.piezo_scan_pos:
             scan_pos *= num
@@ -438,82 +449,7 @@ class TriggerSequence:
                                                     [self.dot_starts, [self.dot_step_v, self.dot_step_y],
                                                      self.dot_ranges, self.dot_pos.size],
                                                     self.piezo_starts, self.piezo_steps, self.piezo_ranges, scan_pos))
-        return np.asarray(galvo_sequences), np.asarray(piezo_sequences), np.asarray(digital_sequences), scan_pos
-
-    def generate_point_scan_2d(self, camera=0):
-        interval_samples = self.galvo_return
-        digital_sequences = [np.empty((0,)) for _ in range(len(self.digital_starts))]
-        galvo_sequences = [np.empty((0,)) for _ in range(2)]
-        ramp_down_samples = int(self.samples_period * self.ramp_down_fraction)
-        ramp_up = np.linspace(self.galvo_starts[0], self.galvo_stops[0], num=self.samples_period, endpoint=False)
-        ramp_down = np.linspace(self.galvo_stops[0], self.galvo_starts[0], num=ramp_down_samples, endpoint=True)
-        extended_cycle = np.concatenate((ramp_up, ramp_down))
-        fast_axis_galvo = np.tile(extended_cycle, self.dot_pos.size)
-        cycle_length = self.samples_period + ramp_down_samples
-        slow_axis_galvo = np.zeros_like(fast_axis_galvo)
-        indices = np.arange(self.samples_period + 1, len(fast_axis_galvo), cycle_length)
-        slow_axis_galvo[indices] = 1
-        slow_axis_galvo = np.cumsum(slow_axis_galvo) * self.dot_step_v + self.dot_starts[1]
-        slow_axis_galvo[-ramp_down_samples:] = np.linspace(slow_axis_galvo[-ramp_down_samples], self.dot_starts[1],
-                                                           ramp_down_samples)
-        _sqr = np.pad(np.ones(self.samples_high), (0, self.samples_low), 'constant', constant_values=(0, 0))
-        square_wave = np.pad(np.tile(_sqr, self.dot_pos.size),
-                             (self.samples_delay, self.samples_offset + ramp_down_samples), 'constant',
-                             constant_values=(0, 0))
-        laser_trigger = np.tile(square_wave, self.dot_pos.size)
-        # ON
-        galvo_sequences[0] = np.pad(fast_axis_galvo, (interval_samples, 0), 'constant',
-                                    constant_values=(self.galvo_starts[0], self.galvo_starts[0]))
-        galvo_sequences[1] = np.pad(slow_axis_galvo, (interval_samples, 0), 'constant',
-                                    constant_values=(self.dot_starts[1], self.dot_starts[1]))
-        digital_sequences[0] = np.pad(laser_trigger, (interval_samples, 0), 'constant', constant_values=(0, 0))
-        for i in range(6):
-            digital_sequences[i + 1] = np.zeros(digital_sequences[0].size)
-        # OFF
-        off_samples = self.digital_ends[1] - self.digital_starts[1]
-        galvo_sequences[0] = np.concatenate(
-            (galvo_sequences[0], self.galvo_starts[0] * np.ones(off_samples + self.initial_samples + interval_samples)))
-        galvo_sequences[1] = np.concatenate(
-            (galvo_sequences[1], self.dot_starts[1] * np.ones(off_samples + self.initial_samples + interval_samples)))
-        digital_sequences[0] = np.concatenate(
-            (digital_sequences[0], np.zeros(off_samples + self.initial_samples + interval_samples)))
-        digital_sequences[1] = np.concatenate(
-            (digital_sequences[1], np.concatenate((np.zeros(interval_samples), np.ones(off_samples)))))
-        digital_sequences[1] = np.concatenate(
-            (digital_sequences[1], np.zeros(self.initial_samples)))
-        for i in range(5):
-            digital_sequences[i + 2] = np.concatenate(
-                (digital_sequences[i + 2], np.zeros(off_samples + self.initial_samples + interval_samples)))
-        # Read
-        galvo_sequences[0] = np.concatenate(
-            (galvo_sequences[0], np.concatenate((self.galvo_starts[0] * np.ones(interval_samples), fast_axis_galvo))))
-        galvo_sequences[1] = np.concatenate(
-            (galvo_sequences[1], np.concatenate((self.dot_starts[1] * np.ones(interval_samples), slow_axis_galvo))))
-        for i in range(3):
-            digital_sequences[i] = np.concatenate(
-                (digital_sequences[i], np.zeros(laser_trigger.size + interval_samples)))
-        digital_sequences[3] = np.concatenate(
-            (digital_sequences[3], np.concatenate((np.zeros(interval_samples), laser_trigger))))
-        temp = np.pad(np.ones(laser_trigger.size - 2 * self.samples_delay + self.dot_step_s),
-                      (interval_samples + self.samples_delay, self.samples_delay - self.dot_step_s), 'constant',
-                      constant_values=(0, 0))
-        for i in range(3):
-            if i == camera:
-                digital_sequences[i + 4] = np.concatenate((digital_sequences[i + 4], temp))
-            else:
-                digital_sequences[i + 4] = np.concatenate(
-                    (digital_sequences[i + 4], np.zeros(laser_trigger.size + interval_samples)))
-        for i in range(2):
-            galvo_sequences[i][-interval_samples:] = smooth_ramp(galvo_sequences[i][-1], 0., interval_samples)
-        for i in range(2):
-            galvo_sequences[i] = np.concatenate((np.ones(interval_samples) * galvo_sequences[i][0], galvo_sequences[i]))
-        for i in range(7):
-            digital_sequences[i] = np.concatenate((np.zeros(interval_samples), digital_sequences[i]))
-        self.logg.info("\nGalvo start, and stop: {} \n"
-                       "Dot start, step, range, and numbers: {} \n".format([self.galvo_starts, self.galvo_stops],
-                                                                           [self.dot_starts, self.dot_step_v,
-                                                                            self.dot_ranges, self.dot_pos.size]))
-        return np.asarray(galvo_sequences), np.asarray(digital_sequences)
+        return np.asarray(galvo_sequences), np.asarray(piezo_sequences), np.asarray(digital_sequences), lasers, scan_pos
 
     def generate_monalisa_scan_2d(self, camera=0):
         cam_ind = camera + 4
@@ -614,6 +550,29 @@ def smooth_ramp(start, end, samples, curve_half=0.02):
     signal_first_half = np.sin(x) * (end - start) / np.sin(np.pi / 2) + start
     signal_second_half = np.full(samples - n, end)
     return np.concatenate((signal_first_half, signal_second_half))
+
+
+def shift_array(arr, shift_length, fill=None, direction='backward'):
+    if len(arr) == 0 or shift_length == 0:
+        return arr
+    shifted_array = np.empty_like(arr)
+    shift_length = abs(shift_length) % len(arr)
+    if fill is not None:
+        last_element = fill
+    else:
+        if direction == 'forward':
+            last_element = arr[0]
+        elif direction == 'backward':
+            last_element = arr[-1]
+    if direction == 'forward':
+        if shift_length < len(arr):
+            shifted_array[shift_length:] = arr[:-shift_length]
+        shifted_array[:shift_length] = last_element
+    elif direction == 'backward':
+        if shift_length < len(arr):
+            shifted_array[:-shift_length] = arr[shift_length:]
+        shifted_array[-shift_length:] = last_element
+    return shifted_array
 
 
 def safe_divide(numerator, denominator):

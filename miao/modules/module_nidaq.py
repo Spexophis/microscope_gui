@@ -133,7 +133,7 @@ class NIDAQ:
         try:
             with nidaqmx.Task() as task:
                 for ind in indices:
-                    task.ao_channels.add_ao_voltage_chan(self.galvo_channels[ind], min_val=-10., max_val=10.)
+                    task.ao_channels.add_ao_voltage_chan(self.galvo_channels[ind], min_val=-5., max_val=5.)
                 task.write(pos)
                 task.wait_until_done(WAIT_INFINITELY)
                 task.stop()
@@ -286,7 +286,7 @@ class NIDAQ:
         try:
             self.tasks["galvo"] = nidaqmx.Task("galvo")
             for ind in indices:
-                self.tasks["galvo"].ao_channels.add_ao_voltage_chan(self.galvo_channels[ind], min_val=-10., max_val=10.)
+                self.tasks["galvo"].ao_channels.add_ao_voltage_chan(self.galvo_channels[ind], min_val=-5., max_val=5.)
             self.tasks["galvo"].timing.cfg_samp_clk_timing(rate=self.sample_rate, source=self.clock[0],
                                                            active_edge=Edge.RISING, sample_mode=self.mode,
                                                            samps_per_chan=n_samples)
@@ -300,26 +300,8 @@ class NIDAQ:
             except AssertionError as ae:
                 self.logg.error("Assertion Error: %s", ae)
 
-    def write_switch_sequence(self, switch_sequence):
-        n_samples = switch_sequence.shape[0]
-        try:
-            self.tasks["switch"] = nidaqmx.Task("switch")
-            self.tasks["switch"].ao_channels.add_ao_voltage_chan(self.galvo_channels[2], min_val=-5., max_val=5.)
-            self.tasks["switch"].timing.cfg_samp_clk_timing(rate=self.sample_rate, source=self.clock[0],
-                                                           active_edge=Edge.RISING, sample_mode=self.mode,
-                                                           samps_per_chan=n_samples)
-            self.tasks["switch"].write(switch_sequence, auto_start=False)
-            self._active["switch"] = True
-        except nidaqmx.DaqWarning as e:
-            self.logg.warning("DaqWarning caught as exception: %s", e)
-            try:
-                assert e.error_code == DAQmxWarnings.STOPPED_BEFORE_DONE, "Unexpected error code: {}".format(
-                    e.error_code)
-            except AssertionError as ae:
-                self.logg.error("Assertion Error: %s", ae)
-
     def write_triggers(self, piezo_sequences=None, piezo_channels=None, galvo_sequences=None, galvo_channels=None,
-                       digital_sequences=None, digital_channels=None, switch_sequence=None, finite=True):
+                       digital_sequences=None, digital_channels=None, finite=True):
         self.write_clock_channel()
         if finite:
             self.mode = AcquisitionType.FINITE
@@ -328,8 +310,6 @@ class NIDAQ:
         try:
             if digital_sequences is not None:
                 self.write_digital_sequences(digital_sequences, indices=digital_channels)
-            if switch_sequence is not None:
-                self.write_switch_sequence(switch_sequence)
             if piezo_sequences is not None:
                 self.write_piezo_sequences(piezo_sequences, indices=piezo_channels)
             if galvo_sequences is not None:
