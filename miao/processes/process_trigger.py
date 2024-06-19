@@ -116,9 +116,6 @@ class TriggerSequence:
                                    zip(self.piezo_ranges, self.piezo_steps)]
             self.piezo_scan_positions = [np.arange(start, start + range_, step) for start, range_, step in
                                          zip(self.piezo_starts, self.piezo_ranges, self.piezo_steps)]
-            if any(np.any(np.logical_or(pos < 0., pos > 10.)) for pos in self.piezo_scan_positions):
-                self.logg.error("Invalid parameter combination.")
-                raise ValueError("Invalid Piezo scanning parameters.")
         except ValueError:
             for attr, value in original_values.items():
                 setattr(self, attr, value)
