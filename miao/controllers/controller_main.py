@@ -1379,6 +1379,7 @@ class MainController(QtCore.QObject):
                 za.extend(amprange)
                 mv.extend(dt)
                 self.logg.info(f"zernike mode #{mode}, ({amprange}), ({dt})")
+                self.view_controller.plot_update(data=dt, x=amprange)
                 try:
                     pmax = ipr.peak_find(amprange, dt)
                     zp[mode] = pmax

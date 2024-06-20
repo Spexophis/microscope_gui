@@ -61,11 +61,13 @@ class ViewWidget(QtWidgets.QWidget):
         return layout_view
 
     def _create_plot_widgets(self):
-        layout_plot = QtWidgets.QVBoxLayout()
-        self.canvas = MplCanvas(self, dpi=64)
-        toolbar = NavigationToolbar(self.canvas)
-        layout_plot.addWidget(toolbar)
-        layout_plot.addWidget(self.canvas)
+        layout_plot = QtWidgets.QGridLayout()
+        self.canvas_show = MplCanvas(self, dpi=64)
+        self.canvas_plot = MplCanvas(self, dpi=64)
+        toolbar = NavigationToolbar(self.canvas_plot)
+        layout_plot.addWidget(toolbar, 0, 0, 1, 2)
+        layout_plot.addWidget(self.canvas_show, 1, 0, 1, 1)
+        layout_plot.addWidget(self.canvas_plot, 1, 1, 1, 1)
         return layout_plot
 
     def _set_napari_layers(self):
@@ -88,37 +90,37 @@ class ViewWidget(QtWidgets.QWidget):
 
     def plot_image(self, data, axis_arrays=None, axis_labels=None):
         if axis_arrays is not None:
-            self.canvas.axes.imshow(X=data, vmin=data.min(), vmax=data.max(),
-                                    extent=(axis_arrays[0].min(), axis_arrays[0].max(),
-                                            axis_arrays[1].max(), axis_arrays[1].min()),
-                                    interpolation='none')
+            self.canvas_show.axes.imshow(X=data, vmin=data.min(), vmax=data.max(),
+                                         extent=(axis_arrays[0].min(), axis_arrays[0].max(),
+                                                 axis_arrays[1].max(), axis_arrays[1].min()),
+                                         interpolation='none')
         else:
-            self.canvas.axes.imshow(X=data, vmin=data.min(), vmax=data.max(), interpolation='none')
+            self.canvas_show.axes.imshow(X=data, vmin=data.min(), vmax=data.max(), interpolation='none')
         if axis_labels is not None:
             plt.xlabel(axis_labels[0])
             plt.ylabel(axis_labels[1])
-        self.canvas.draw()
+        self.canvas_show.draw()
 
     def plot(self, data, x=None, sp=None):
         if x is not None:
-            self.canvas.axes.plot(x, data)
+            self.canvas_plot.axes.plot(x, data)
         else:
-            self.canvas.axes.plot(data)
+            self.canvas_plot.axes.plot(data)
         if sp is not None:
-            self.canvas.axes.axhline(y=sp, color='r', linestyle='--')
-        self.canvas.axes.grid(True)
-        self.canvas.draw()
+            self.canvas_plot.axes.axhline(y=sp, color='r', linestyle='--')
+        self.canvas_plot.axes.grid(True)
+        self.canvas_plot.draw()
 
     def update_plot(self, data, x=None, sp=None):
-        self.canvas.axes.cla()
+        self.canvas_plot.axes.cla()
         if x is not None:
-            self.canvas.axes.plot(x, data)
+            self.canvas_plot.axes.plot(x, data)
         else:
-            self.canvas.axes.plot(data)
+            self.canvas_plot.axes.plot(data)
         if sp is not None:
-            self.canvas.axes.axhline(y=sp, color='r', linestyle='--')
-        self.canvas.axes.grid(True)
-        self.canvas.draw()
+            self.canvas_plot.axes.axhline(y=sp, color='r', linestyle='--')
+        self.canvas_plot.axes.grid(True)
+        self.canvas_plot.draw()
 
 
 if __name__ == "__main__":
