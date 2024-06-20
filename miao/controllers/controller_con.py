@@ -133,9 +133,9 @@ class ConController:
 
     def change_galvo_scan(self, x=None, y=None):
         if x is not None:
-            self.v.QDoubleSpinBox_dot_range_x.setValue(x)
+            self.v.QDoubleSpinBox_galvo_x.setValue(x)
         if y is not None:
-            self.v.QDoubleSpinBox_dot_range_y.setValue(y)
+            self.v.QDoubleSpinBox_galvo_y.setValue(y)
 
     def display_frequency(self, dsv):
         self.v.QLCDNumber_galvo_frequency.display(dsv)

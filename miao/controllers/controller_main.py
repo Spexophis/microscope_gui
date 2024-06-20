@@ -839,18 +839,18 @@ class MainController(QtCore.QObject):
             return
         try:
             galvo_positions, [galvo_ranges, dot_ranges], dot_pos = self.con_controller.get_galvo_scan_parameters()
-            scan_x = dot_ranges[0] + np.linspace(-1.2 * self.p.trigger.dot_step_v, 1.2 * self.p.trigger.dot_step_v, 10,
-                                                 endpoint=False, dtype=float)
-            scan_y = dot_ranges[1] + np.linspace(-1.2 * self.p.trigger.dot_step_y, 1.2 * self.p.trigger.dot_step_y, 10,
-                                                 endpoint=False, dtype=float)
+            scan_x = galvo_positions[0] + np.linspace(-1.2 * self.p.trigger.dot_step_v, 1.2 * self.p.trigger.dot_step_v,
+                                                      10, endpoint=False, dtype=float)
+            scan_y = galvo_positions[1] + np.linspace(-1.2 * self.p.trigger.dot_step_y, 1.2 * self.p.trigger.dot_step_y,
+                                                      10, endpoint=False, dtype=float)
             sx, sy = scan_x.shape[0], scan_y.shape[0]
             data = []
             mx = np.zeros((sy, sx))
             self.m.cam_set[self.cameras["imaging"]].start_live()
             for j in range(sy):
-                dot_ranges[1] = scan_y[j]
+                galvo_positions[1] = scan_y[j]
                 for i in range(sx):
-                    dot_ranges[0] = scan_x[i]
+                    galvo_positions[0] = scan_x[i]
                     self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions, foci=dot_pos,
                                                                 ranges=[galvo_ranges, dot_ranges])
                     dtr, gtr, chs = self.p.trigger.generate_digital_scanning_triggers(self.lasers,
@@ -1308,7 +1308,8 @@ class MainController(QtCore.QObject):
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
         if vd_mod == "Wide Field":
             dtr, sw, dch = self.generate_live_triggers("imaging")
-            self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2], digital_sequences=dtr, digital_channels=dch)
+            self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2], digital_sequences=dtr,
+                                      digital_channels=dch)
             self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
         elif vd_mod == "Dot Scan":
             dtr, gtr, chs = self.p.trigger.generate_digital_scanning_triggers(self.lasers, self.cameras["imaging"])
