@@ -838,21 +838,20 @@ class MainController(QtCore.QObject):
             self.logg.error(f"Error preparing focal array scanning: {e}")
             return
         try:
-            galvo_positions, [galvo_ranges, dot_ranges], dot_pos = self.con_controller.get_galvo_scan_parameters()
-            scan_x = galvo_positions[0] + np.linspace(-1.2 * self.p.trigger.dot_step_v, 1.2 * self.p.trigger.dot_step_v,
-                                                      10, endpoint=False, dtype=float)
-            scan_y = galvo_positions[1] + np.linspace(-1.2 * self.p.trigger.dot_step_y, 1.2 * self.p.trigger.dot_step_y,
-                                                      10, endpoint=False, dtype=float)
+            scan_x = self.p.trigger.galvo_origins[0] + np.linspace(-1.2 * self.p.trigger.dot_step_v,
+                                                                   1.2 * self.p.trigger.dot_step_v, 10,
+                                                                   endpoint=False, dtype=float)
+            scan_y = self.p.trigger.galvo_origins[1] + np.linspace(-1.2 * self.p.trigger.dot_step_y,
+                                                                   1.2 * self.p.trigger.dot_step_y, 10,
+                                                                   endpoint=False, dtype=float)
             sx, sy = scan_x.shape[0], scan_y.shape[0]
             data = []
             mx = np.zeros((sy, sx))
             self.m.cam_set[self.cameras["imaging"]].start_live()
+            time.sleep(0.2)
             for j in range(sy):
-                galvo_positions[1] = scan_y[j]
                 for i in range(sx):
-                    galvo_positions[0] = scan_x[i]
-                    self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions, foci=dot_pos,
-                                                                ranges=[galvo_ranges, dot_ranges])
+                    self.p.trigger.update_galvo_scan_parameters(origins=[scan_x[i], scan_y[j]])
                     dtr, gtr, chs = self.p.trigger.generate_digital_scanning_triggers(self.lasers,
                                                                                       self.cameras["imaging"])
                     self.m.daq.write_triggers(galvo_sequences=gtr, galvo_channels=[0, 1, 2],
@@ -919,6 +918,7 @@ class MainController(QtCore.QObject):
             sx, sy = scans[0].shape[0], scans[1].shape[0]
             mx = np.zeros((sy, sx))
             self.m.cam_set[self.cameras["imaging"]].start_live()
+            time.sleep(0.2)
             for j in range(sy):
                 self.m.daq.set_piezo_position([scans[1][j]], [1])
                 for i in range(sx):

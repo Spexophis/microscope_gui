@@ -339,7 +339,11 @@ class NIDAQ:
             self._running["clock"] = True
             self.tasks["clock"].start()
             if self.mode == AcquisitionType.FINITE:
-                self.tasks["digital"].wait_until_done(WAIT_INFINITELY)
+                for key, _task in self.tasks.items():
+                    if key != "clock":
+                        if self._active.get(key, False):
+                            if self._running.get(key, False):
+                                _task.wait_until_done(WAIT_INFINITELY)
         except nidaqmx.DaqWarning as e:
             self.logg.warning("DaqWarning caught as exception: %s", e)
             try:

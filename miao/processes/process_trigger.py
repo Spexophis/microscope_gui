@@ -194,6 +194,7 @@ class TriggerSequence:
         else:
             cam_sw = 0.
         cam_ind = camera + 4
+        lasers = lasers.copy()
         interval_samples = max(self.initial_samples, self.galvo_sw_settle_samples)
         if interval_samples > self.digital_starts[cam_ind]:
             offset_samples = interval_samples - self.digital_starts[cam_ind]
@@ -227,6 +228,7 @@ class TriggerSequence:
         else:
             cam_sw = 0.
         cam_ind = camera + 4
+        lasers = lasers.copy()
         interval_samples = max(self.initial_samples, self.galvo_sw_settle_samples)
         if interval_samples > self.digital_starts[cam_ind]:
             offset_samples = interval_samples - self.digital_starts[cam_ind]
@@ -267,6 +269,7 @@ class TriggerSequence:
         else:
             cam_sw = 0.
         cam_ind = camera + 4
+        lasers = lasers.copy()
         ramp_down = np.linspace(self.ramp_up[-1], self.ramp_up[0], num=self.ramp_down_samples, endpoint=True)
         extended_cycle = np.concatenate((self.ramp_up, ramp_down))
         fast_axis_galvo = np.tile(extended_cycle, self.dot_pos.size)
@@ -350,6 +353,7 @@ class TriggerSequence:
         else:
             cam_sw = 0.
         cam_ind = camera + 4
+        lasers = lasers.copy()
         ramp_down = np.linspace(self.ramp_up[-1], self.ramp_up[0], num=self.ramp_down_samples, endpoint=True)
         extended_cycle = np.concatenate((self.ramp_up, ramp_down))
         fast_axis_galvo = np.tile(extended_cycle, self.dot_pos.size)
@@ -459,6 +463,7 @@ class TriggerSequence:
         else:
             cam_sw = 0.
         cam_ind = camera + 4
+        lasers = lasers.copy()
         interval_samples = max(self.initial_samples, self.galvo_sw_settle_samples)
         if interval_samples > self.digital_starts[cam_ind]:
             offset_samples = interval_samples - self.digital_starts[cam_ind]
