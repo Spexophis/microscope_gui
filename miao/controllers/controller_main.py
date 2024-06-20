@@ -435,12 +435,12 @@ class MainController(QtCore.QObject):
 
     def stop_video(self):
         try:
-            if self.thread_video.isRunning():
-                self.thread_video.quit()
-                self.thread_video.wait()
             self.m.daq.stop_triggers()
             self.m.cam_set[self.cameras["imaging"]].stop_live()
             self.lasers_off()
+            if self.thread_video.isRunning():
+                self.thread_video.quit()
+                self.thread_video.wait()
         except Exception as e:
             self.logg.error(f"Error stopping imaging video: {e}")
 
@@ -1314,7 +1314,7 @@ class MainController(QtCore.QObject):
         elif vd_mod == "Dot Scan":
             dtr, gtr, chs = self.p.trigger.generate_digital_scanning_triggers(self.lasers, self.cameras["imaging"])
             self.m.daq.write_triggers(galvo_sequences=gtr, galvo_channels=[0, 1, 2],
-                                      digital_sequences=dtr, digital_channels=chs, finite=False)
+                                      digital_sequences=dtr, digital_channels=chs)
             self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
         else:
             self.m.cam_set[self.cameras["imaging"]].stop_live()
@@ -1344,6 +1344,7 @@ class MainController(QtCore.QObject):
             zp = [0] * self.dfm.n_zernike
             cmd = self.dfm.dm_cmd[self.dfm.current_cmd]
             self.m.cam_set[self.cameras["imaging"]].start_live()
+            time.sleep(0.2)
             self.logg.info("Sensorless AO iteration starts")
             self.dfm.set_dm(cmd)
             time.sleep(0.02)

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 wl = 0.5  # wavelength in microns
 na = 1.4  # numerical aperture
-dx = 0.0785  # pixel size in microns
+dx = 0.063  # pixel size in microns
 fs = 1 / dx  # Spatial sampling frequency, inverse microns
 
 
