@@ -378,12 +378,11 @@ class MainController(QtCore.QObject):
             positions = self.con_controller.get_piezo_positions()
             return_time = self.con_controller.get_piezo_return_time()
             self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, positions, return_time)
-            _t_clean = max(self.m.cam_set[self.cameras[cam_key]].t_clean, self.con_controller.get_ccd_clean())
-            self.p.trigger.update_camera_parameters(initial_time=_t_clean,
+            self.p.trigger.update_camera_parameters(initial_time=self.m.cam_set[self.cameras[cam_key]].t_clean,
                                                     standby_time=self.m.cam_set[self.cameras[cam_key]].t_readout,
                                                     cycle_time=self.m.cam_set[self.cameras[cam_key]].t_kinetic)
-            self.con_controller.display_camera_timings(clean=_t_clean,
-                                                       standby=self.m.cam_set[self.cameras[cam_key]].t_kinetic)
+            if self.cameras[cam_key] == 0:
+                self.con_controller.display_camera_timings(standby=self.m.cam_set[self.cameras[cam_key]].t_kinetic)
             self.logg.info(f"Trigger Updated")
         except Exception as e:
             self.logg.error(f"Trigger Error: {e}")
@@ -1023,21 +1022,6 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
-    def update_wfs_trigger_parameters(self, cam_key):
-        try:
-            digital_starts, digital_ends = self.con_controller.get_digital_parameters()
-            self.p.trigger.update_digital_parameters(digital_starts, digital_ends)
-            self.p.trigger.update_camera_parameters(self.m.cam_set[self.cameras[cam_key]].t_clean,
-                                                    self.m.cam_set[self.cameras[cam_key]].t_readout,
-                                                    self.m.cam_set[self.cameras[cam_key]].t_kinetic)
-            self.logg.info(f"Trigger Updated")
-        except Exception as e:
-            self.logg.error(f"Trigger Error: {e}")
-
-    def generate_wfs_trigger(self, cam_key):
-        self.update_wfs_trigger_parameters(cam_key)
-        return self.p.trigger.generate_digital_triggers(self.lasers, self.cameras[cam_key])
-
     def set_img_wfs(self):
         try:
             parameters = self.ao_controller.get_parameters_img()
@@ -1047,21 +1031,30 @@ class MainController(QtCore.QObject):
             self.logg.error(f"SHWFS Error: {e}")
 
     def prepare_img_wfs(self):
+        self.set_img_wfs()
         self.lasers = self.con_controller.get_lasers()
         self.set_lasers(self.lasers)
         self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
         self.set_camera_roi("wfs")
-        self.set_img_wfs()
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
-        dtr, sw, dch = self.generate_live_triggers("wfs")
-        self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=dch,
-                                  galvo_sequences=sw, galvo_channels=[2], finite=False)
+        self.update_trigger_parameters("wfs")
+        wfs = self.ao_controller.get_dm_selection()
+        dtr, sw, chs = self.p.trigger.generate_digital_triggers(self.lasers, self.cameras["wfs"])
+        if wfs == "ALPAO DM97":
+            self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs, finite=False)
+        elif wfs == "ALPAO DM69":
+            self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2],
+                                      digital_sequences=dtr, digital_channels=chs, finite=False)
+        else:
+            self.m.cam_set[self.cameras["wfs"]].stop_live()
+            self.lasers_off()
+            raise ValueError("Invalid wfs selection")
 
     def start_img_wfs(self):
         try:
             self.prepare_img_wfs()
         except Exception as e:
-            self.logg.error(f"Error starting wfs: {e}")
+            self.logg.error(f"Error preparing wfs: {e}")
             self.stop_img_wfs()
         try:
             self.m.cam_set[self.cameras["wfs"]].start_live()
@@ -1156,66 +1149,78 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"Error saving shwfs wavefront: {e}")
 
-    @QtCore.pyqtSlot()
-    def run_influence_function(self):
-        try:
-            self.prepare_influence_function()
-        except Exception as e:
-            self.logg.error(f"Error prepare influence function: {e}")
-            return
-        self.run_task(self.influence_function, callback=self.finish_influence_function)
-
     def prepare_influence_function(self):
+        self.set_img_wfs()
         self.lasers = self.con_controller.get_lasers()
         self.set_lasers(self.lasers)
         self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
         self.set_camera_roi("wfs")
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
-        dtr, sw, dch = self.generate_live_triggers("wfs")
-        self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2], digital_sequences=dtr, digital_channels=dch)
+        self.update_trigger_parameters("wfs")
+        wfs = self.ao_controller.get_dm_selection()
+        dtr, sw, chs = self.p.trigger.generate_digital_triggers(self.lasers, self.cameras["wfs"])
+        if wfs == "ALPAO DM97":
+            self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs)
+        elif wfs == "ALPAO DM69":
+            self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2],
+                                      digital_sequences=dtr, digital_channels=chs)
+        else:
+            self.m.cam_set[self.cameras["wfs"]].stop_live()
+            self.lasers_off()
+            raise ValueError("Invalid wfs selection")
 
     def influence_function(self):
+        try:
+            self.prepare_influence_function()
+        except Exception as e:
+            self.logg.error(f"Error preparing influence function: {e}")
+            return
         try:
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M") + '_influence_function')
             os.makedirs(fd, exist_ok=True)
             self.logg.info(f'Directory {fd} has been created successfully.')
         except Exception as er:
-            self.logg.error(f'Error creating directory: {er}')
+            self.logg.error(f'Error creating influence function directory: {er}')
             return
-        n, amp = self.ao_controller.get_actuator()
-        self.m.cam_set[self.cameras["wfs"]].start_live()
-        for i in range(self.dfm.n_actuator):
-            shimg = []
-            self.v.dialog_text.setText(f"actuator {i}")
-            values = [0.] * self.dfm.n_actuator
-            self.dfm.set_dm(values)
-            time.sleep(0.02)
-            self.m.daq.run_triggers()
-            time.sleep(0.04)
-            shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
-            self.m.daq.stop_triggers(_close=False)
-            values[i] = amp
-            self.dfm.set_dm(values)
-            time.sleep(0.02)
-            self.m.daq.run_triggers()
-            time.sleep(0.04)
-            shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
-            self.m.daq.stop_triggers(_close=False)
-            values = [0.] * self.dfm.n_actuator
-            self.dfm.set_dm(values)
-            time.sleep(0.02)
-            self.m.daq.run_triggers()
-            time.sleep(0.04)
-            shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
-            self.m.daq.stop_triggers(_close=False)
-            values[i] = - amp
-            self.dfm.set_dm(values)
-            time.sleep(0.02)
-            self.m.daq.run_triggers()
-            time.sleep(0.04)
-            shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
-            self.m.daq.stop_triggers(_close=False)
-            tf.imwrite(fd + r'/' + 'actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
+        try:
+            n, amp = self.ao_controller.get_actuator()
+            self.m.cam_set[self.cameras["wfs"]].start_live()
+            for i in range(self.dfm.n_actuator):
+                shimg = []
+                self.v.dialog_text.setText(f"actuator {i}")
+                values = [0.] * self.dfm.n_actuator
+                self.dfm.set_dm(values)
+                time.sleep(0.02)
+                self.m.daq.run_triggers()
+                time.sleep(0.04)
+                shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
+                self.m.daq.stop_triggers(_close=False)
+                values[i] = amp
+                self.dfm.set_dm(values)
+                time.sleep(0.02)
+                self.m.daq.run_triggers()
+                time.sleep(0.04)
+                shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
+                self.m.daq.stop_triggers(_close=False)
+                values = [0.] * self.dfm.n_actuator
+                self.dfm.set_dm(values)
+                time.sleep(0.02)
+                self.m.daq.run_triggers()
+                time.sleep(0.04)
+                shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
+                self.m.daq.stop_triggers(_close=False)
+                values[i] = - amp
+                self.dfm.set_dm(values)
+                time.sleep(0.02)
+                self.m.daq.run_triggers()
+                time.sleep(0.04)
+                shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
+                self.m.daq.stop_triggers(_close=False)
+                tf.imwrite(fd + r'/' + 'actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
+        except Exception as e:
+            self.logg.error(f"Error running influence function: {e}")
+            self.finish_influence_function()
+            return
         try:
             md = self.ao_controller.get_img_wfs_method()
             self.v.dialog_text.setText(f"computing influence function")
@@ -1223,19 +1228,9 @@ class MainController(QtCore.QObject):
                                                     method=md, sv=True)
         except Exception as e:
             self.logg.error(f"Error computing influence function: {e}")
+            self.finish_influence_function()
             return
-
-    def single_actuator(self, act_ind, p_amp):
-        self.logg.info(f"actuator # {act_ind}")
-        self.dfm.set_dm(self.dfm.dm_cmd[-1])
-        values = [0.] * self.dfm.n_actuator
-        values[act_ind] = p_amp
-        self.dfm.set_dm(values)
-        time.sleep(0.02)
-        self.m.daq.run_triggers()
-        time.sleep(0.02)
-        self.m.daq.stop_triggers(_close=False)
-        return self.m.cam_set[self.cameras["wfs"]].get_last_image()
+        self.finish_influence_function()
 
     def finish_influence_function(self):
         try:
@@ -1245,15 +1240,14 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"Error finishing influence function: {e}")
 
+    @QtCore.pyqtSlot()
+    def run_influence_function(self):
+        self.run_task(self.influence_function)
+
     @QtCore.pyqtSlot(int)
     def run_close_loop_correction(self, nlp: int):
         try:
-            self.prepare_close_loop_correction()
-        except Exception as e:
-            self.logg.error(f"Prepare CloseLoop Correction Error: {e}")
-            return
-        try:
-            self.run_task(task=self.close_loop_correction, iteration=nlp, callback=self.finish_close_loop_correction)
+            self.run_task(task=self.close_loop_correction, iteration=nlp)
         except Exception as e:
             self.logg.error(f"CloseLoop Correction Error: {e}")
 
@@ -1267,31 +1261,37 @@ class MainController(QtCore.QObject):
         self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2], digital_sequences=dtr, digital_channels=dch)
 
     def close_loop_correction(self):
-        self.m.cam_set[self.cameras["wfs"]].start_live()
-        self.m.daq.run_triggers()
-        time.sleep(0.04)
-        self.p.shwfsr.meas = self.m.cam_set[self.cameras["wfs"]].get_last_image()
-        self.m.daq.stop_triggers(_close=False)
-        if self.ao_controller.get_img_wfs_method() == "phase":
-            self.dfm.get_correction(self.p.shwfsr.wavefront_reconstruction(rt=True), method="phase")
-        else:
-            self.dfm.get_correction(self.p.shwfsr.get_gradient_xy(),
-                                    method=self.ao_controller.get_img_wfs_method())
-        self.dfm.set_dm(self.dfm.dm_cmd[-1])
-        self.ao_controller.update_cmd_index()
-        i = int(self.ao_controller.get_cmd_index())
-        self.dfm.current_cmd = i
+        try:
+            self.prepare_close_loop_correction()
+        except Exception as e:
+            self.logg.error(f"Prepare CloseLoop Correction Error: {e}")
+            return
+        try:
+            self.m.cam_set[self.cameras["wfs"]].start_live()
+            self.m.daq.run_triggers()
+            time.sleep(0.04)
+            self.p.shwfsr.meas = self.m.cam_set[self.cameras["wfs"]].get_last_image()
+            self.m.daq.stop_triggers(_close=False)
+            if self.ao_controller.get_img_wfs_method() == "phase":
+                self.dfm.get_correction(self.p.shwfsr.wavefront_reconstruction(rt=True), method="phase")
+            else:
+                self.dfm.get_correction(self.p.shwfsr.get_gradient_xy(),
+                                        method=self.ao_controller.get_img_wfs_method())
+            self.dfm.set_dm(self.dfm.dm_cmd[-1])
+            self.ao_controller.update_cmd_index()
+            i = int(self.ao_controller.get_cmd_index())
+            self.dfm.current_cmd = i
+        except Exception as e:
+            self.logg.error(f"Prepare CloseLoop Correction Error: {e}")
+            self.finish_close_loop_correction()
+            return
+        self.finish_close_loop_correction()
 
     def finish_close_loop_correction(self):
         try:
-            # self.p.shwfsr.ref = self.view_controller.get_image_data(4)
-            self.m.daq.run_triggers()
-            self.p.shwfsr.meas = self.m.cam_set[self.cameras["wfs"]].get_last_image()
+            self.lasers_off()
             self.m.cam_set[self.cameras["wfs"]].stop_live()
             self.m.daq.stop_triggers()
-            self.lasers_off()
-            self.img_wfr()
-            self.view_controller.plot_wf(self.p.shwfsr.wf)
         except Exception as e:
             self.logg.error(f"CloseLoop Correction Error: {e}")
 
