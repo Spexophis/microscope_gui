@@ -25,16 +25,18 @@ class WavefrontSensing:
         self.y_center_offset = 1097
         self.lenslet_spacing = 24  # spacing between each lenslet
         self.hsp = 12  # size of subimage is 2 * hsp
+        self.bg = 0.1
         self.pixel_size = .00345  # mm
         self.calfactor = (self.pixel_size / 5.2) * 150  # pixel size * focalLength * pitch
         self.method = 'correlation'
         self.mag = 1
         section = np.ones((2 * self.hsp, 2 * self.hsp))
-        sectioncorr = corr(1.0 * section, 1.0 * section[::-1, ::-1], mode='full')
-        self.CorrCenter = np.unravel_index(sectioncorr.argmax(), sectioncorr.shape)
+        section_corr = corr(1.0 * section, 1.0 * section[::-1, ::-1], mode='full')
+        self.CorrCenter = np.unravel_index(section_corr.argmax(), section_corr.shape)
         self._ref = None
         self._meas = None
-        self.wf = np.array([])
+        self.wf = None
+        self.im = None
 
     @staticmethod
     def setup_logging():
@@ -48,7 +50,6 @@ class WavefrontSensing:
 
     @ref.setter
     def ref(self, new_ref):
-        self.logg.info(f"Changing shwfs base")
         self._ref = new_ref
 
     @property
@@ -57,7 +58,6 @@ class WavefrontSensing:
 
     @meas.setter
     def meas(self, new_meas):
-        # self.logg.info(f"Changing shwfs offset")
         self._meas = new_meas
 
     def update_parameters(self, parameters):
@@ -71,8 +71,10 @@ class WavefrontSensing:
         self.lenslet_spacing = parameters[6]
         self.hsp = parameters[7]
         section = np.ones((2 * self.hsp, 2 * self.hsp))
-        sectioncorr = corr(1.0 * section, 1.0 * section[::-1, ::-1], mode='full')
-        self.CorrCenter = np.unravel_index(sectioncorr.argmax(), sectioncorr.shape)
+        section_corr = corr(1.0 * section, 1.0 * section[::-1, ::-1], mode='full')
+        self.CorrCenter = np.unravel_index(section_corr.argmax(), section_corr.shape)
+        self.bg = parameters[8]
+        self.calfactor = (self.pixel_size / 5.2) * 150
 
     def wavefront_reconstruction(self, md='correlation', rt=False):
         (gradx, grady) = self.get_gradient_xy(mtd=md)
@@ -99,8 +101,8 @@ class WavefrontSensing:
         left_base = self.x_center_base - rx * self.lenslet_spacing
         bot_offset = self.y_center_offset - ry * self.lenslet_spacing
         left_offset = self.x_center_offset - rx * self.lenslet_spacing
-        base = self._sub_back(self.ref, 0.2)
-        offset = self._sub_back(self.meas, 0.2)
+        base = self._sub_back(self.ref, self.bg)
+        offset = self._sub_back(self.meas, self.bg)
         self.im = np.zeros((2, 2 * self.hsp * ny, 2 * self.hsp * nx))
         gradx = np.zeros((ny, nx))
         grady = np.zeros((ny, nx))

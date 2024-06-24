@@ -698,8 +698,8 @@ class MainController(QtCore.QObject):
                 1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
                        metadata={'unit': 'um',
                                  'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
-            fp = ipr.peak_find(zps, pzs)
             self.view_controller.plot_update(pzs, x=zps)
+            fp = ipr.peak_find(zps, pzs)
             self.v.con_view.QDoubleSpinBox_stage_z.setValue(fp)
             time.sleep(0.06)
             data_calib.append(self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
@@ -1022,27 +1022,32 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
-    def set_img_wfs(self):
-        try:
+    def set_img_wfs(self, idx):
+        if idx == 1:
             parameters = self.ao_controller.get_parameters_img()
+            self.p.shwfsr.pixel_size = self.pixel_sizes[self.cameras["wfs"]]
             self.p.shwfsr.update_parameters(parameters)
             self.logg.info('SHWFS parameter updated')
-        except Exception as e:
-            self.logg.error(f"SHWFS Error: {e}")
+        elif idx == 2:
+            parameters = self.ao_controller.get_parameters_foc()
+            self.p.shwfsr.pixel_size = self.pixel_sizes[self.cameras["wfs"]]
+            self.p.shwfsr.update_parameters(parameters)
+            self.logg.info('SHWFS parameter updated')
+        else:
+            raise ValueError("Invalid wfs index")
 
     def prepare_img_wfs(self):
-        self.set_img_wfs()
         self.lasers = self.con_controller.get_lasers()
         self.set_lasers(self.lasers)
         self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
         self.set_camera_roi("wfs")
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
+        self.set_img_wfs(self.cameras["wfs"])
         self.update_trigger_parameters("wfs")
-        wfs = self.ao_controller.get_dm_selection()
         dtr, sw, chs = self.p.trigger.generate_digital_triggers(self.lasers, self.cameras["wfs"])
-        if wfs == "ALPAO DM97":
+        if self.cameras["wfs"] == 2:
             self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs, finite=False)
-        elif wfs == "ALPAO DM69":
+        elif self.cameras["wfs"] == 1:
             self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2],
                                       digital_sequences=dtr, digital_channels=chs, finite=False)
         else:
@@ -1150,12 +1155,12 @@ class MainController(QtCore.QObject):
             self.logg.error(f"Error saving shwfs wavefront: {e}")
 
     def prepare_influence_function(self):
-        self.set_img_wfs()
         self.lasers = self.con_controller.get_lasers()
         self.set_lasers(self.lasers)
         self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
         self.set_camera_roi("wfs")
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
+        self.set_img_wfs(self.cameras["wfs"])
         self.update_trigger_parameters("wfs")
         wfs = self.ao_controller.get_dm_selection()
         dtr, sw, chs = self.p.trigger.generate_digital_triggers(self.lasers, self.cameras["wfs"])
@@ -1173,6 +1178,7 @@ class MainController(QtCore.QObject):
         try:
             self.prepare_influence_function()
         except Exception as e:
+            self.finish_influence_function()
             self.logg.error(f"Error preparing influence function: {e}")
             return
         try:
@@ -1181,10 +1187,12 @@ class MainController(QtCore.QObject):
             self.logg.info(f'Directory {fd} has been created successfully.')
         except Exception as er:
             self.logg.error(f'Error creating influence function directory: {er}')
+            self.finish_influence_function()
             return
         try:
             n, amp = self.ao_controller.get_actuator()
             self.m.cam_set[self.cameras["wfs"]].start_live()
+            time.sleep(0.02)
             for i in range(self.dfm.n_actuator):
                 shimg = []
                 self.v.dialog_text.setText(f"actuator {i}")
@@ -1192,28 +1200,28 @@ class MainController(QtCore.QObject):
                 self.dfm.set_dm(values)
                 time.sleep(0.02)
                 self.m.daq.run_triggers()
-                time.sleep(0.04)
+                time.sleep(0.08)
                 shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
                 self.m.daq.stop_triggers(_close=False)
                 values[i] = amp
                 self.dfm.set_dm(values)
                 time.sleep(0.02)
                 self.m.daq.run_triggers()
-                time.sleep(0.04)
+                time.sleep(0.08)
                 shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
                 self.m.daq.stop_triggers(_close=False)
                 values = [0.] * self.dfm.n_actuator
                 self.dfm.set_dm(values)
                 time.sleep(0.02)
                 self.m.daq.run_triggers()
-                time.sleep(0.04)
+                time.sleep(0.08)
                 shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
                 self.m.daq.stop_triggers(_close=False)
                 values[i] = - amp
                 self.dfm.set_dm(values)
                 time.sleep(0.02)
                 self.m.daq.run_triggers()
-                time.sleep(0.04)
+                time.sleep(0.08)
                 shimg.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
                 self.m.daq.stop_triggers(_close=False)
                 tf.imwrite(fd + r'/' + 'actuator_' + str(i) + '_push_' + str(amp) + '.tif', np.asarray(shimg))
@@ -1244,32 +1252,21 @@ class MainController(QtCore.QObject):
     def run_influence_function(self):
         self.run_task(self.influence_function)
 
-    @QtCore.pyqtSlot(int)
-    def run_close_loop_correction(self, nlp: int):
-        try:
-            self.run_task(task=self.close_loop_correction, iteration=nlp)
-        except Exception as e:
-            self.logg.error(f"CloseLoop Correction Error: {e}")
-
     def prepare_close_loop_correction(self):
         self.lasers = self.con_controller.get_lasers()
         self.set_lasers(self.lasers)
         self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
         self.set_camera_roi("wfs")
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
+        self.set_img_wfs(self.cameras["wfs"])
         dtr, sw, dch = self.generate_live_triggers("wfs")
         self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2], digital_sequences=dtr, digital_channels=dch)
+        self.m.cam_set[self.cameras["wfs"]].start_live()
 
     def close_loop_correction(self):
         try:
-            self.prepare_close_loop_correction()
-        except Exception as e:
-            self.logg.error(f"Prepare CloseLoop Correction Error: {e}")
-            return
-        try:
-            self.m.cam_set[self.cameras["wfs"]].start_live()
             self.m.daq.run_triggers()
-            time.sleep(0.04)
+            time.sleep(0.08)
             self.p.shwfsr.meas = self.m.cam_set[self.cameras["wfs"]].get_last_image()
             self.m.daq.stop_triggers(_close=False)
             if self.ao_controller.get_img_wfs_method() == "phase":
@@ -1285,7 +1282,6 @@ class MainController(QtCore.QObject):
             self.logg.error(f"Prepare CloseLoop Correction Error: {e}")
             self.finish_close_loop_correction()
             return
-        self.finish_close_loop_correction()
 
     def finish_close_loop_correction(self):
         try:
@@ -1295,9 +1291,18 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"CloseLoop Correction Error: {e}")
 
-    @QtCore.pyqtSlot()
-    def run_sensorless_iteration(self):
-        self.run_task(task=self.sensorless_iteration)
+    @QtCore.pyqtSlot(int)
+    def run_close_loop_correction(self, nlp: int):
+        try:
+            self.prepare_close_loop_correction()
+        except Exception as e:
+            self.logg.error(f"Prepare CloseLoop Correction Error: {e}")
+            self.finish_close_loop_correction()
+            return
+        try:
+            self.run_task(task=self.close_loop_correction, iteration=nlp, callback=self.finish_close_loop_correction)
+        except Exception as e:
+            self.logg.error(f"CloseLoop Correction Error: {e}")
 
     def prepare_sensorless_iteration(self):
         vd_mod = self.con_controller.get_live_mode()
@@ -1417,13 +1422,8 @@ class MainController(QtCore.QObject):
             self.logg.error(f"Finish Sensorless AO Error: {e}")
 
     @QtCore.pyqtSlot()
-    def run_shwfs_acquisition(self):
-        try:
-            self.prepare_shwfs_acquisition()
-        except Exception as e:
-            self.logg.error(f"Error prepare shwfs acquisition: {e}")
-            return
-        self.run_task(self.shwfs_acquisition, callback=self.finish_shwfs_acquisition)
+    def run_sensorless_iteration(self):
+        self.run_task(task=self.sensorless_iteration)
 
     def prepare_shwfs_acquisition(self):
         self.lasers = self.con_controller.get_lasers()
@@ -1435,6 +1435,11 @@ class MainController(QtCore.QObject):
         self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2], digital_sequences=dtr, digital_channels=dch)
 
     def shwfs_acquisition(self):
+        try:
+            self.prepare_shwfs_acquisition()
+        except Exception as e:
+            self.logg.error(f"Error prepare shwfs acquisition: {e}")
+            return
         try:
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M") + '_shwfs_acquisition')
             os.makedirs(fd, exist_ok=True)
@@ -1489,6 +1494,10 @@ class MainController(QtCore.QObject):
             self.m.daq.stop_triggers()
         except Exception as e:
             self.logg.error(f"Error finishing influence function: {e}")
+
+    @QtCore.pyqtSlot()
+    def run_shwfs_acquisition(self):
+        self.run_task(self.shwfs_acquisition, callback=self.finish_shwfs_acquisition)
 
 
 class TaskWorkerSignals(QtCore.QObject):
