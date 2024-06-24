@@ -11,8 +11,8 @@ path_to_files = r"C:\Program Files\Thorlabs\Scientific Imaging\Scientific Camera
 class ThorCMOS:
     class CameraSettings:
         def __init__(self):
-            self.t_clean = 0
-            self.t_readout = 0
+            self.t_clean = 0.
+            self.t_readout = 0.004
             self.t_exposure = 0
             self.t_accumulate = 0
             self.t_kinetic = 0
@@ -93,6 +93,7 @@ class ThorCMOS:
 
     def _config_cam(self):
         self.camera.frame_rate_control_value = 50
+        self.t_kinetic = 1 / 50
         self.camera.is_frame_rate_control_enabled = True
         self.camera.frames_per_trigger_zero_for_unlimited = 1
         # self.camera.image_poll_timeout_ms = 0  # 1 second polling timeout
