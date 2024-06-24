@@ -32,9 +32,6 @@ class MainWidget(QtWidgets.QMainWindow):
         self.dock_con.setFloating(True)
         self.dock_ao.setFloating(True)
 
-        self.dock_con.hide()
-        self.dock_ao.hide()
-
         self.setWindowTitle("Microscope Control")
         self.setStyleSheet("background-color: #121212; color: #FFFFFF")
 

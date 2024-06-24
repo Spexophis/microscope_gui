@@ -4,8 +4,7 @@ class AOController:
         self.v = view
 
     def get_wfs_camera(self):
-        detection_device = self.v.QComboBox_wfs_camera_selection.currentIndex()
-        return detection_device
+        return self.v.QComboBox_wfs_camera_selection.currentIndex()
 
     def display_img_wf_properties(self, properties):
         self.v.lcdNumber_wfmin_img.display(properties[0])
@@ -29,6 +28,9 @@ class AOController:
 
     def get_zernike_mode(self):
         return self.v.QSpinBox_zernike_mode.value(), self.v.QDoubleSpinBox_zernike_mode_amp.value()
+
+    def get_dm_selection(self):
+        return self.v.QComboBox_dms.currentText()
 
     def get_cmd_index(self):
         return self.v.QComboBox_cmd.currentText()
