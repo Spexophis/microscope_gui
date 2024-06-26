@@ -145,8 +145,20 @@ def zernike_primes(size=None):
     phi = np.pi / 2 - phi
     phi = np.mod(phi, 2 * np.pi)
     msk = _elliptical_mask((y / 2, x / 2), (y, x))
-    cfs = [1., 2., 2., np.sqrt(3), np.sqrt(3), np.sqrt(6), np.sqrt(6), np.sqrt(8), np.sqrt(8), np.sqrt(5),
-           np.sqrt(8), np.sqrt(8), np.sqrt(10), np.sqrt(10), np.sqrt(12), np.sqrt(12), np.sqrt(12)]
+    indices = [[1, 0, 0],
+               [2, 1, 1], [3, 1, -1],
+               [4, 2, 0], [5, 2, -2], [6, 2, 2],
+               [7, 3, -1], [8, 3, 1], [9, 3, -3], [10, 3, 3],
+               [11, 4, 0], [12, 4, 2], [13, 4, -2],
+               [16, 5, 1], [17, 5, -1],
+               [22, 6, 0]]
+    rms = [1.,
+           2., 2.,
+           np.sqrt(3), np.sqrt(6), np.sqrt(6),
+           np.sqrt(8), np.sqrt(8), np.sqrt(8), np.sqrt(8),
+           np.sqrt(5), np.sqrt(10), np.sqrt(10),
+           np.sqrt(12), np.sqrt(12),
+           np.sqrt(7)]
     R = [np.zeros_like(rho),
          rho,
          rho,
@@ -155,9 +167,9 @@ def zernike_primes(size=None):
          rho ** 2,
          3 * (rho ** 3) - 2 * rho,
          3 * (rho ** 3) - 2 * rho,
+         rho ** 3,
+         rho ** 3,
          6 * (rho ** 4) - 6 * (rho ** 2) + 1,
-         rho ** 3,
-         rho ** 3,
          4 * (rho ** 4) - 3 * (rho ** 2),
          4 * (rho ** 4) - 3 * (rho ** 2),
          10 * (rho ** 5) - 12 * (rho ** 3) + 3 * rho,
@@ -171,9 +183,9 @@ def zernike_primes(size=None):
           rho * 2,
           9 * (rho ** 2) - 2,
           9 * (rho ** 2) - 2,
+          3 * rho ** 2,
+          3 * rho ** 2,
           24 * (rho ** 3) - 12 * rho,
-          3 * rho ** 2,
-          3 * rho ** 2,
           16 * (rho ** 3) - 6 * rho,
           16 * (rho ** 3) - 6 * rho,
           50 * (rho ** 4) - 36 * (rho ** 2) + 3,
@@ -187,9 +199,9 @@ def zernike_primes(size=None):
          np.cos(2 * phi),
          np.sin(phi),
          np.cos(phi),
-         np.zeros_like(phi) + 1.,
-         np.cos(3 * phi),
          np.sin(3 * phi),
+         np.cos(3 * phi),
+         np.zeros_like(phi) + 1.,
          np.cos(2 * phi),
          np.sin(2 * phi),
          np.cos(phi),
@@ -203,17 +215,33 @@ def zernike_primes(size=None):
           - 2 * np.sin(2 * phi),
           np.cos(phi),
           - np.sin(phi),
-          np.zeros_like(phi),
-          - 3 * np.sin(3 * phi),
           3 * np.cos(3 * phi),
+          - 3 * np.sin(3 * phi),
+          np.zeros_like(phi),
           - 2 * np.sin(2 * phi),
           2 * np.cos(2 * phi),
           -np.sin(phi),
           np.cos(phi),
           np.zeros_like(phi)]
-
-    zls = [zk * msk for zk in zls]
-    return np.asarray(zls)
+    zdx = []
+    zdy = []
+    for j in range(len(indices)):
+        N = np.sqrt(2 * (indices[j][1] + 1)) if indices[j][2] != 0 else np.sqrt(indices[j][1] + 1)
+        if indices[j][2] == 0:
+            O = 1
+            dO = 0
+        else:
+            if indices[j][2] % 2 == 0:
+                O = np.cos(np.abs(indices[j][2]) * phi)
+                dO = - np.abs(indices[j][2]) * np.sin(np.abs(indices[j][2]) * phi)
+            else:
+                O = np.sin(np.abs(indices[j][2]) * phi)
+                dO = np.abs(indices[j][2]) * np.cos(np.abs(indices[j][2]) * phi)
+        zdx.append(msk * (dR[j] * O * np.cos(phi) - np.divide(R[j], rho, out=np.zeros_like(R[j], dtype=float),
+                                                              where=rho != 0.) * dO * np.sin(phi)))
+        zdy.append(msk * (dR[j] * O * np.sin(phi) + np.divide(R[j], rho, out=np.zeros_like(R[j], dtype=float),
+                                                              where=rho != 0.) * dO * np.cos(phi)))
+    return zdx, zdy
 
 
 def _gs_orthogonalisation(arrays):
