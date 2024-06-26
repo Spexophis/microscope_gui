@@ -102,9 +102,20 @@ def zernike_polys(size=None):
     phi = np.pi / 2 - phi
     phi = np.mod(phi, 2 * np.pi)
     msk = _elliptical_mask((y / 2, x / 2), (y, x))
-    indices = [[1, 0, 0], [2, 1, -1], ]
-    cfs = [1., 2., 2., np.sqrt(3), np.sqrt(3), np.sqrt(6), np.sqrt(6), np.sqrt(8), np.sqrt(8), np.sqrt(5),
-           np.sqrt(8), np.sqrt(8), np.sqrt(10), np.sqrt(10), np.sqrt(12), np.sqrt(12), np.sqrt(12)]
+    indices = [[1, 0, 0],
+               [2, 1, 1], [3, 1, -1],
+               [4, 2, 0], [5, 2, -2], [6, 2, 2],
+               [7, 3, -1], [8, 3, 1], [9, 3, -3], [10, 3, 3],
+               [11, 4, 0], [12, 4, 2], [13, 4, -2],
+               [16, 5, 1], [17, 5, -1],
+               [22, 6, 0]]
+    rms = [1.,
+           2., 2.,
+           np.sqrt(3), np.sqrt(6), np.sqrt(6),
+           np.sqrt(8), np.sqrt(8), np.sqrt(8), np.sqrt(8),
+           np.sqrt(5), np.sqrt(10), np.sqrt(10),
+           np.sqrt(12), np.sqrt(12),
+           np.sqrt(7)]
     zls = [np.zeros_like(rho) + 1.,
            rho * np.cos(phi),
            rho * np.sin(phi),
@@ -113,15 +124,15 @@ def zernike_polys(size=None):
            (rho ** 2) * np.cos(2 * phi),
            (3 * (rho ** 3) - 2 * rho) * np.sin(phi),
            (3 * (rho ** 3) - 2 * rho) * np.cos(phi),
-           6 * (rho ** 4) - 6 * (rho ** 2) + 1,
            (rho ** 3) * np.sin(3 * phi),
            (rho ** 3) * np.cos(3 * phi),
+           6 * (rho ** 4) - 6 * (rho ** 2) + 1,
            (4 * (rho ** 4) - 3 * (rho ** 2)) * np.cos(2 * phi),
            (4 * (rho ** 4) - 3 * (rho ** 2)) * np.sin(2 * phi),
            (10 * (rho ** 5) - 12 * (rho ** 3) + 3 * rho) * np.cos(phi),
            (10 * (rho ** 5) - 12 * (rho ** 3) + 3 * rho) * np.sin(phi),
            20 * (rho ** 6) - 30 * (rho ** 4) + 12 * (rho ** 2) - 1]
-    zls = [zk * cf * msk for zk, cf in zip(zls, cfs)]
+    zls = [zk * rm * msk for zk, rm in zip(zls, rms)]
     return _gs_orthogonalisation(np.asarray(zls))
 
 
