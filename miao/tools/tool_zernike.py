@@ -55,10 +55,9 @@ def _zernike(n, m, rho, phi):
     else:
         _C = np.sqrt(2 * n + 1)
     for k in range(kmax + 1):
-        _R += ((-1) ** k * factorial(n - k) /
-               (factorial(k) * factorial(0.5 * (n + abs(m)) - k) *
-                factorial(0.5 * (n - abs(m)) - k)) *
-               rho ** (n - 2 * k))
+        _R += (-1) ** k * factorial(n - k) / (
+                factorial(k) * factorial(0.5 * (n + abs(m)) - k) * factorial(0.5 * (n - abs(m)) - k)) * rho ** (
+                      n - 2 * k)
     if m >= 0:
         _O = np.cos(m * phi)
     if m < 0:
@@ -75,23 +74,135 @@ def _zernike_derivatives(n, m, rho, phi):
     _O = 0
     _dO = 0
     for k in range(kmax + 1):
-        _R += ((-1) ** k * factorial(n - k) /
-               (factorial(k) * factorial(0.5 * (n + abs(m)) - k) *
-                factorial(0.5 * (n - abs(m)) - k)) *
-               rho ** (n - 2 * k))
-        _dR += ((-1) ** k * factorial(n - k) /
-                (factorial(k) * factorial(0.5 * (n + abs(m)) - k) *
-                 factorial(0.5 * (n - abs(m)) - k)) *
-                rho ** (n - 2 * k - 1)) * (n - 2 * k)
+        _R += (-1) ** k * factorial(n - k) / (
+                factorial(k) * factorial(0.5 * (n + abs(m)) - k) * factorial(0.5 * (n - abs(m)) - k)) * rho ** (
+                      n - 2 * k)
+        _dR += (-1) ** k * factorial(n - k) / (
+                factorial(k) * factorial(0.5 * (n + abs(m)) - k) * factorial(0.5 * (n - abs(m)) - k)) * (
+                       n - 2 * k) * rho ** (n - 2 * k - 1)
     if m >= 0:
         _O = np.cos(m * phi)
         _dO = - m * np.sin(m * phi)
     if m < 0:
         _O = - np.sin(m * phi)
         _dO = - m * np.cos(m * phi)
-    zdx = _dR * _O * np.cos(phi) - (_R / rho) * _dO * np.sin(phi)
-    zdy = _dR * _O * np.sin(phi) + (_R / rho) * _dO * np.cos(phi)
-    return _O, _dO
+    zdx = _dR * _O * np.cos(phi) - np.divide(_R, rho, out=np.zeros_like(_R, dtype=float),
+                                             where=rho != 0.) * _dO * np.sin(phi)
+    zdy = _dR * _O * np.sin(phi) + np.divide(_R, rho, out=np.zeros_like(_R, dtype=float),
+                                             where=rho != 0.) * _dO * np.cos(phi)
+    return zdx, zdy
+
+
+def zernike_polys(size=None):
+    if size is None:
+        size = [16, 16]
+    y, x = size
+    yv, xv = _cartesian_grid(x, y)
+    rho, phi = _polar_grid(xv, yv)
+    phi = np.pi / 2 - phi
+    phi = np.mod(phi, 2 * np.pi)
+    msk = _elliptical_mask((y / 2, x / 2), (y, x))
+    indices = [[1, 0, 0], [2, 1, -1], ]
+    cfs = [1., 2., 2., np.sqrt(3), np.sqrt(3), np.sqrt(6), np.sqrt(6), np.sqrt(8), np.sqrt(8), np.sqrt(5),
+           np.sqrt(8), np.sqrt(8), np.sqrt(10), np.sqrt(10), np.sqrt(12), np.sqrt(12), np.sqrt(12)]
+    zls = [np.zeros_like(rho) + 1.,
+           rho * np.cos(phi),
+           rho * np.sin(phi),
+           2 * (rho ** 2) - 1,
+           (rho ** 2) * np.sin(2 * phi),
+           (rho ** 2) * np.cos(2 * phi),
+           (3 * (rho ** 3) - 2 * rho) * np.sin(phi),
+           (3 * (rho ** 3) - 2 * rho) * np.cos(phi),
+           6 * (rho ** 4) - 6 * (rho ** 2) + 1,
+           (rho ** 3) * np.sin(3 * phi),
+           (rho ** 3) * np.cos(3 * phi),
+           (4 * (rho ** 4) - 3 * (rho ** 2)) * np.cos(2 * phi),
+           (4 * (rho ** 4) - 3 * (rho ** 2)) * np.sin(2 * phi),
+           (10 * (rho ** 5) - 12 * (rho ** 3) + 3 * rho) * np.cos(phi),
+           (10 * (rho ** 5) - 12 * (rho ** 3) + 3 * rho) * np.sin(phi),
+           20 * (rho ** 6) - 30 * (rho ** 4) + 12 * (rho ** 2) - 1]
+    zls = [zk * cf * msk for zk, cf in zip(zls, cfs)]
+    return _gs_orthogonalisation(np.asarray(zls))
+
+
+def zernike_primes(size=None):
+    if size is None:
+        size = [16, 16]
+    y, x = size
+    yv, xv = _cartesian_grid(x, y)
+    rho, phi = _polar_grid(xv, yv)
+    phi = np.pi / 2 - phi
+    phi = np.mod(phi, 2 * np.pi)
+    msk = _elliptical_mask((y / 2, x / 2), (y, x))
+    cfs = [1., 2., 2., np.sqrt(3), np.sqrt(3), np.sqrt(6), np.sqrt(6), np.sqrt(8), np.sqrt(8), np.sqrt(5),
+           np.sqrt(8), np.sqrt(8), np.sqrt(10), np.sqrt(10), np.sqrt(12), np.sqrt(12), np.sqrt(12)]
+    R = [np.zeros_like(rho),
+         rho,
+         rho,
+         2 * (rho ** 2) - 1,
+         rho ** 2,
+         rho ** 2,
+         3 * (rho ** 3) - 2 * rho,
+         3 * (rho ** 3) - 2 * rho,
+         6 * (rho ** 4) - 6 * (rho ** 2) + 1,
+         rho ** 3,
+         rho ** 3,
+         4 * (rho ** 4) - 3 * (rho ** 2),
+         4 * (rho ** 4) - 3 * (rho ** 2),
+         10 * (rho ** 5) - 12 * (rho ** 3) + 3 * rho,
+         10 * (rho ** 5) - 12 * (rho ** 3) + 3 * rho,
+         20 * (rho ** 6) - 30 * (rho ** 4) + 12 * (rho ** 2) - 1]
+    dR = [np.zeros_like(rho),
+          np.zeros_like(phi) + 1.,
+          np.zeros_like(phi) + 1.,
+          4 * rho,
+          rho * 2,
+          rho * 2,
+          9 * (rho ** 2) - 2,
+          9 * (rho ** 2) - 2,
+          24 * (rho ** 3) - 12 * rho,
+          3 * rho ** 2,
+          3 * rho ** 2,
+          16 * (rho ** 3) - 6 * rho,
+          16 * (rho ** 3) - 6 * rho,
+          50 * (rho ** 4) - 36 * (rho ** 2) + 3,
+          50 * (rho ** 4) - 36 * (rho ** 2) + 3,
+          120 * (rho ** 5) - 120 * (rho ** 4) + 24 * rho]
+    A = [np.zeros_like(phi) + 1.,
+         np.cos(phi),
+         np.sin(phi),
+         np.zeros_like(phi) + 1,
+         np.sin(2 * phi),
+         np.cos(2 * phi),
+         np.sin(phi),
+         np.cos(phi),
+         np.zeros_like(phi) + 1.,
+         np.cos(3 * phi),
+         np.sin(3 * phi),
+         np.cos(2 * phi),
+         np.sin(2 * phi),
+         np.cos(phi),
+         np.sin(phi),
+         np.zeros_like(phi) + 1.]
+    dA = [np.zeros_like(phi),
+          -np.sin(phi),
+          np.cos(phi),
+          np.zeros_like(phi),
+          2 * np.cos(2 * phi),
+          - 2 * np.sin(2 * phi),
+          np.cos(phi),
+          - np.sin(phi),
+          np.zeros_like(phi),
+          - 3 * np.sin(3 * phi),
+          3 * np.cos(3 * phi),
+          - 2 * np.sin(2 * phi),
+          2 * np.cos(2 * phi),
+          -np.sin(phi),
+          np.cos(phi),
+          np.zeros_like(phi)]
+
+    zls = [zk * msk for zk in zls]
+    return np.asarray(zls)
 
 
 def _gs_orthogonalisation(arrays):
