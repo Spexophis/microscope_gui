@@ -1025,12 +1025,12 @@ class MainController(QtCore.QObject):
     def set_img_wfs(self, idx):
         if idx == 1:
             parameters = self.ao_controller.get_parameters_img()
-            self.p.shwfsr.pixel_size = self.pixel_sizes[self.cameras["wfs"]]
+            self.p.shwfsr.pixel_size = self.pixel_sizes[self.cameras["wfs"]] / 1000
             self.p.shwfsr.update_parameters(parameters)
             self.logg.info('SHWFS parameter updated')
         elif idx == 2:
             parameters = self.ao_controller.get_parameters_foc()
-            self.p.shwfsr.pixel_size = self.pixel_sizes[self.cameras["wfs"]]
+            self.p.shwfsr.pixel_size = self.pixel_sizes[self.cameras["wfs"]] / 1000
             self.p.shwfsr.update_parameters(parameters)
             self.logg.info('SHWFS parameter updated')
         else:
