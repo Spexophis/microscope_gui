@@ -225,15 +225,15 @@ class WavefrontSensing:
         y -= size[1] / 2.
         return (x * x / (radius[0] * radius[0])) + (y * y / (radius[1] * radius[1])) <= 1
 
-    def generate_influence_matrix(self, data_folder, dm_info, method='phase', sv=False, verbose=False):
-        n_actuators, amp = dm_info
+    def generate_influence_matrix(self, data_folder, dm, method='phase', sv=False, verbose=False):
+        n_actuators, amp = dm.n_actuator, dm.amp
         if method == 'phase':
             _influence_matrix = np.zeros((self.n_lenslets, n_actuators))
             wfs = np.zeros((n_actuators, self.n_lenslets_y, self.n_lenslets_x))
         elif method == 'zonal':
             _influence_matrix = np.zeros((2 * self.n_lenslets, n_actuators))
-        # elif method == 'modal':
-        #     _influence_matrix = np.zeros((n_zernikes, n_actuators))
+        elif method == 'modal':
+            _influence_matrix = np.zeros((dm.n_zernike, n_actuators))
         else:
             raise ValueError("Invalid method")
         _msk = self._elliptical_mask((self.n_lenslets_y / 2, self.n_lenslets_x / 2),
@@ -265,10 +265,10 @@ class WavefrontSensing:
                     if method == 'zonal':
                         _influence_matrix[:self.n_lenslets, ind] = ((gdxp - gdxn) / (2 * amp)).reshape(self.n_lenslets)
                         _influence_matrix[self.n_lenslets:, ind] = ((gdyp - gdyn) / (2 * amp)).reshape(self.n_lenslets)
-                    # if method == 'modal':
-                    #     a1 = ipr.get_eigen_coefficients(np.concatenate((gdxp.flatten(), gdyp.flatten())), zslopes)
-                    #     a2 = ipr.get_eigen_coefficients(np.concatenate((gdxn.flatten(), gdyn.flatten())), zslopes)
-                    #     _influence_matrix[:, ind] = ((a1 - a2) / (2 * amp)).flatten()
+                    if method == 'modal':
+                        a1 = ipr.get_eigen_coefficients(np.concatenate((gdxp.flatten(), gdyp.flatten())), dm.zslopes, 14)
+                        a2 = ipr.get_eigen_coefficients(np.concatenate((gdxn.flatten(), gdyn.flatten())), dm.zslopes, 14)
+                        _influence_matrix[:, ind] = ((a1 - a2) / (2 * amp)).flatten()
         _control_matrix = ipr.pseudo_inverse(_influence_matrix, n=32)
         if sv:
             t = time.strftime("%Y%m%d")

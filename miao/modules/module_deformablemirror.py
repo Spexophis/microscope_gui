@@ -8,6 +8,7 @@ import pandas as pd
 import tifffile as tf
 
 from miao.tools import tool_zernike as tz
+from miao.tools import tool_improc as ipr
 
 sys.path.append(r'C:\Program Files\Alpao\SDK\Samples\Python3')
 if (8 * struct.calcsize("P")) == 32:
@@ -87,10 +88,10 @@ class DeformableMirror:
             self.correction = []
             self.temp_cmd = []
             self.amp = 0.1
-            self.n_zernike = 60
+            self.n_zernike = tz.num_znk
             self.az = None
-            self.zernike = tz.get_zernike_polynomials(nz=self.n_zernike, size=[self.nly, self.nlx])
-            # self.zslopes = tz.get_zernike_slopes(nz=self.n_zernike, size=[self.nly, self.nlx])
+            self.zernike = tz.zernike_polynomials(size=[self.nly, self.nlx])
+            self.zslopes = tz.zernike_derivatives(size=[self.nly, self.nlx])
             # self.z2c = self.zernike_modes()
         else:
             self.dm_cmd = [[0.] * self.n_actuator]
@@ -128,9 +129,9 @@ class DeformableMirror:
             measurement = np.concatenate((gradx.reshape(self.nls), grady.reshape(self.nls)))
             if method == 'zonal':
                 self.correction.append(list(np.dot(self.control_matrix_zonal, -measurement)))
-            # elif method == 'modal':
-            #     a = ipr.get_eigen_coefficients(-measurement, self.zslopes)
-            #     self.correction.append(list(np.dot(self.control_matrix_modal, a)))
+            elif method == 'modal':
+                a = ipr.get_eigen_coefficients(-measurement, self.zslopes)
+                self.correction.append(list(np.dot(self.control_matrix_modal, a)))
             else:
                 self.logg.error(f"Invalid AO correction method")
                 return
@@ -160,9 +161,13 @@ class DeformableMirror:
                 Z2C[i][j] = float(Z2C[i][j])
         return Z2C
 
-    def get_zernike_cmd(self, j, a):
-        zerphs = a * self.zernike[j]
-        return list(np.dot(self.control_matrix_phase, zerphs.reshape(self.nls)))
+    def get_zernike_cmd(self, j, a, method="modal"):
+        if method == 'modal':
+            a_s = a * ipr.get_eigen_coefficients(self.zslopes[j], self.zslopes)
+            return list(np.dot(self.control_matrix_modal, a_s))
+        else:
+            zerphs = a * self.zernike[j].reshape(self.nls)
+            return list(np.dot(self.control_matrix_phase, zerphs))
 
     @staticmethod
     def cmd_add(cmd_0, cmd_1):

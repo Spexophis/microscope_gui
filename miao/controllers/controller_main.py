@@ -1232,8 +1232,7 @@ class MainController(QtCore.QObject):
         try:
             md = self.ao_controller.get_img_wfs_method()
             self.v.dialog_text.setText(f"computing influence function")
-            self.p.shwfsr.generate_influence_matrix(data_folder=fd, dm_info=(self.dfm.n_actuator, self.dfm.amp),
-                                                    method=md, sv=True)
+            self.p.shwfsr.generate_influence_matrix(data_folder=fd, dm=self.dfm, method=md, sv=True)
         except Exception as e:
             self.logg.error(f"Error computing influence function: {e}")
             self.finish_influence_function()

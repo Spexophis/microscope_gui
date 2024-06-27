@@ -1,6 +1,24 @@
 import numpy as np
 from scipy.special import factorial
 
+num_znk = 16
+
+indices = [[1, 0, 0],
+           [2, 1, 1], [3, 1, -1],
+           [4, 2, 0], [5, 2, -2], [6, 2, 2],
+           [7, 3, -1], [8, 3, 1], [9, 3, -3], [10, 3, 3],
+           [11, 4, 0], [12, 4, 2], [13, 4, -2],
+           [16, 5, 1], [17, 5, -1],
+           [22, 6, 0]]
+
+rms = [1.,
+       2., 2.,
+       np.sqrt(3), np.sqrt(6), np.sqrt(6),
+       np.sqrt(8), np.sqrt(8), np.sqrt(8), np.sqrt(8),
+       np.sqrt(5), np.sqrt(10), np.sqrt(10),
+       np.sqrt(12), np.sqrt(12),
+       np.sqrt(7)]
+
 
 def _polar_grid(x, y):
     return np.sqrt(x ** 2 + y ** 2), np.arctan2(y, x)
@@ -102,20 +120,6 @@ def zernike_polynomials(size=None):
     phi = np.pi / 2 - phi
     phi = np.mod(phi, 2 * np.pi)
     msk = _elliptical_mask((y / 2, x / 2), (y, x))
-    indices = [[1, 0, 0],
-               [2, 1, 1], [3, 1, -1],
-               [4, 2, 0], [5, 2, -2], [6, 2, 2],
-               [7, 3, -1], [8, 3, 1], [9, 3, -3], [10, 3, 3],
-               [11, 4, 0], [12, 4, 2], [13, 4, -2],
-               [16, 5, 1], [17, 5, -1],
-               [22, 6, 0]]
-    rms = [1.,
-           2., 2.,
-           np.sqrt(3), np.sqrt(6), np.sqrt(6),
-           np.sqrt(8), np.sqrt(8), np.sqrt(8), np.sqrt(8),
-           np.sqrt(5), np.sqrt(10), np.sqrt(10),
-           np.sqrt(12), np.sqrt(12),
-           np.sqrt(7)]
     zls = [np.zeros_like(rho) + 1.,
            rho * np.cos(phi),
            rho * np.sin(phi),
@@ -142,13 +146,6 @@ def zernike_derivatives(size=None):
     y, x = size
     yv, xv = _cartesian_grid(x, y)
     msk = _elliptical_mask((y / 2, x / 2), (y, x))
-    indices = [[1, 0, 0],
-               [2, 1, 1], [3, 1, -1],
-               [4, 2, 0], [5, 2, -2], [6, 2, 2],
-               [7, 3, -1], [8, 3, 1], [9, 3, -3], [10, 3, 3],
-               [11, 4, 0], [12, 4, 2], [13, 4, -2],
-               [16, 5, 1], [17, 5, -1],
-               [22, 6, 0]]
     zdx = [np.zeros(size),
            np.zeros(size),
            2 * np.ones(size),
@@ -164,7 +161,7 @@ def zernike_derivatives(size=None):
            2 * np.sqrt(10) * yv * (12 * (xv ** 2) + 4 * (yv ** 2) - 3),
            16 * np.sqrt(3) * xv * yv * (5 * (xv ** 2) + 5 * (yv ** 2) - 3),
            2 * np.sqrt(3) * (
-                       50 * (xv ** 4) + 12 * (xv ** 2) * (5 * (yv ** 2) - 3) + 2 * (yv ** 2) * (5 * (yv ** 2) - 6) + 3),
+                   50 * (xv ** 4) + 12 * (xv ** 2) * (5 * (yv ** 2) - 3) + 2 * (yv ** 2) * (5 * (yv ** 2) - 6) + 3),
            24 * np.sqrt(7) * xv * (1 + 5 * ((xv ** 2) + (yv ** 2)) * ((xv ** 2) + (yv ** 2) - 1))
            ]
     zdy = [np.zeros(size),
@@ -181,13 +178,17 @@ def zernike_derivatives(size=None):
            2 * np.sqrt(10) * yv * (3 - 8 * (yv ** 2)),
            2 * np.sqrt(10) * xv * (12 * (yv ** 2) + 4 * (xv ** 2) - 3),
            2 * np.sqrt(3) * (
-                       50 * (xv ** 4) + 12 * (xv ** 2) * (5 * (yv ** 2) - 3) + 2 * (yv ** 2) * (5 * (yv ** 2) - 6) + 3),
+                   50 * (xv ** 4) + 12 * (xv ** 2) * (5 * (yv ** 2) - 3) + 2 * (yv ** 2) * (5 * (yv ** 2) - 6) + 3),
            16 * np.sqrt(3) * xv * yv * (5 * (xv ** 2) + 5 * (yv ** 2) - 3),
            24 * np.sqrt(7) * yv * (1 + 5 * ((xv ** 2) + (yv ** 2)) * ((xv ** 2) + (yv ** 2) - 1))
            ]
     zdx = [zd * msk for zd in zdx]
     zdy = [zd * msk for zd in zdy]
-    return np.asarray(zdx), np.asarray(zdy)
+    zs = np.zeros((2 * x * y, num_znk))
+    for j in range(num_znk):
+        zs[:x * y, j] = zdx[j].flatten()
+        zs[x * y:, j] = zdy[j].flatten()
+    return zs
 
 
 def zernike_primes(size=None):
@@ -199,20 +200,6 @@ def zernike_primes(size=None):
     phi = np.pi / 2 - phi
     phi = np.mod(phi, 2 * np.pi)
     msk = _elliptical_mask((y / 2, x / 2), (y, x))
-    indices = [[1, 0, 0],
-               [2, 1, 1], [3, 1, -1],
-               [4, 2, 0], [5, 2, -2], [6, 2, 2],
-               [7, 3, -1], [8, 3, 1], [9, 3, -3], [10, 3, 3],
-               [11, 4, 0], [12, 4, 2], [13, 4, -2],
-               [16, 5, 1], [17, 5, -1],
-               [22, 6, 0]]
-    rms = [1.,
-           2., 2.,
-           np.sqrt(3), np.sqrt(6), np.sqrt(6),
-           np.sqrt(8), np.sqrt(8), np.sqrt(8), np.sqrt(8),
-           np.sqrt(5), np.sqrt(10), np.sqrt(10),
-           np.sqrt(12), np.sqrt(12),
-           np.sqrt(7)]
     R = [np.zeros_like(rho),
          rho,
          rho,
@@ -279,13 +266,13 @@ def zernike_primes(size=None):
           np.zeros_like(phi)]
     zdx = []
     zdy = []
-    for j in range(len(indices)):
+    for j in range(num_znk):
         N = np.sqrt(2 * (indices[j][1] + 1)) if indices[j][2] != 0 else np.sqrt(indices[j][1] + 1)
         if indices[j][2] == 0:
             O = 1
             dO = 0
         else:
-            if indices[j][2] % 2 != 0:
+            if indices[j][2] % 2 == 0:
                 O = np.cos(np.abs(indices[j][2]) * phi)
                 dO = - np.abs(indices[j][2]) * np.sin(np.abs(indices[j][2]) * phi)
             else:
