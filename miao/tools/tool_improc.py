@@ -1,7 +1,6 @@
 import numpy as np
-from numpy.fft import fft2, ifft2, fftshift
+from numpy.fft import fft2, fftshift
 from scipy.optimize import curve_fit
-import cv2
 from skimage import filters
 import matplotlib.pyplot as plt
 
@@ -146,33 +145,33 @@ def snr(img, lpr, hpr, gau=False):
     _ny, _nx = img.shape
     df = fs / _nx
     radius = (na / wl) / df
-    m = img.min()
-    img[img <= m] = 0.
-    img[img > m] = img[img > m] - m
+    msk = disc_array(shape=(_nx, _ny), radi=0.9 * radius)
     if gau:
-        lp = gaussian_filter(shape=(_nx, _ny), sigma=lpr * radius, pv=1, orig=None)
-        hp = 1 - gaussian_filter(shape=(_nx, _ny), sigma=hpr * radius, pv=1, orig=None)
+        lp = msk * gaussian_filter(shape=(_nx, _ny), sigma=lpr * radius, pv=1, orig=None)
+        hp = (1 - gaussian_filter(shape=(_nx, _ny), sigma=hpr * radius, pv=1, orig=None)) * msk
     else:
         lp = disc_array(shape=(_nx, _ny), radi=lpr * radius)
-        hp = disc_array(shape=(_nx, _ny), radi=0.9 * radius) - disc_array(shape=(_nx, _ny), radi=hpr * radius)
+        hp = msk - disc_array(shape=(_nx, _ny), radi=hpr * radius)
     aft = np.fft.fftshift(np.fft.fft2(img))
     return (np.abs(hp * aft)).sum() / (np.abs(lp * aft)).sum()
 
 
-def hpf(img, hpr, gau=True):
+def hpf(img, hpr, relative=True, gau=True):
     _nx, _ny = img.shape
     df = fs / _nx
     radius = (na / wl) / df
-    m = img.min()
-    img[img <= m] = 0.
-    img[img > m] = img[img > m] - m
+    msk = disc_array(shape=(_nx, _ny), radi=0.9 * radius)
     if gau:
-        hp = 1 - gaussian_filter(shape=(_nx, _ny), sigma=hpr * radius, pv=1, orig=None)
+        hp = (1 - gaussian_filter(shape=(_nx, _ny), sigma=hpr * radius, pv=1, orig=None)) * msk
     else:
-        hp = disc_array(shape=(_nx, _ny), radi=0.9 * radius) - disc_array(shape=(_nx, _ny), radi=hpr * radius)
+        hp = msk - disc_array(shape=(_nx, _ny), radi=hpr * radius)
     aft = np.fft.fftshift(np.fft.fft2(img))
     aft = aft * hp
-    return (np.abs(aft)).sum()
+    if relative:
+        wft = np.fft.fftshift(np.fft.fft2(img))
+        return (np.abs(aft)).sum() / (np.abs(wft)).sum()
+    else:
+        return (np.abs(aft)).sum()
 
 
 def peak_find(x, y):
@@ -229,11 +228,6 @@ def pseudo_inverse(A, n=32):
 def get_eigen_coefficients(mta, mtb, ng=32):
     mp = pseudo_inverse(mtb, n=ng)
     return np.matmul(mp, mta)
-
-
-def calculate_focus_measure(image):
-    laplacian_var = cv2.Laplacian(image, cv2.CV_64F).var()
-    return laplacian_var
 
 
 def calculate_focus_measure_with_sobel(image):
