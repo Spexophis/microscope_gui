@@ -130,7 +130,7 @@ class DeformableMirror:
             if method == 'zonal':
                 self.correction.append(list(np.dot(self.control_matrix_zonal, -measurement)))
             elif method == 'modal':
-                a = ipr.get_eigen_coefficients(-measurement, self.zslopes)
+                a = ipr.get_eigen_coefficients(-measurement, self.zslopes, 14)
                 self.correction.append(list(np.dot(self.control_matrix_modal, a)))
             else:
                 self.logg.error(f"Invalid AO correction method")
@@ -163,7 +163,7 @@ class DeformableMirror:
 
     def get_zernike_cmd(self, j, a, method="modal"):
         if method == 'modal':
-            a_s = a * ipr.get_eigen_coefficients(self.zslopes[j], self.zslopes)
+            a_s = a * ipr.get_eigen_coefficients(self.zslopes[:,j], self.zslopes, 14)
             return list(np.dot(self.control_matrix_modal, a_s))
         else:
             zerphs = a * self.zernike[j].reshape(self.nls)

@@ -250,13 +250,17 @@ class WavefrontSensing:
                 if method == 'phase':
                     self.ref, self.meas = data_stack[0], data_stack[1]
                     wfp = self.wavefront_reconstruction(rt=True)
-                    wfs[ind] = wfp
-                    # wfn = self.wavefront_reconstruction(data_stack[2], data_stack[3], rt=True)
-                    # _influence_matrix[:, ind] = ((wfp - wfn) / (2 * amp)).reshape(self.n_lenslets)
+                    self.ref, self.meas = data_stack[2], data_stack[3]
+                    wfn = self.wavefront_reconstruction(rt=True)
                     msk = (wfp != 0.0).astype(np.float32)
                     mn = wfp.sum() / msk.sum()
                     wfp = msk * (wfp - mn)
-                    _influence_matrix[:, ind] = wfp.reshape(self.n_lenslets)
+                    msk = (wfn != 0.0).astype(np.float32)
+                    mn = wfn.sum() / msk.sum()
+                    wfn = msk * (wfn - mn)
+                    wfg = (wfp - wfn) / (2 * amp)
+                    wfs[ind] = wfg
+                    _influence_matrix[:, ind] = wfg.reshape(self.n_lenslets)
                 else:
                     self.ref, self.meas = data_stack[0], data_stack[1]
                     gdxp, gdyp = self.get_gradient_xy()
@@ -269,7 +273,7 @@ class WavefrontSensing:
                         a1 = ipr.get_eigen_coefficients(np.concatenate((gdxp.flatten(), gdyp.flatten())), dm.zslopes, 14)
                         a2 = ipr.get_eigen_coefficients(np.concatenate((gdxn.flatten(), gdyn.flatten())), dm.zslopes, 14)
                         _influence_matrix[:, ind] = ((a1 - a2) / (2 * amp)).flatten()
-        _control_matrix = ipr.pseudo_inverse(_influence_matrix, n=32)
+        _control_matrix = ipr.pseudo_inverse(_influence_matrix, n=14)
         if sv:
             t = time.strftime("%Y%m%d")
             tf.imwrite(os.path.join(data_folder, f"influence_function_{method}_{t}.tif"), _influence_matrix)
