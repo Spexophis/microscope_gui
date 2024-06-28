@@ -29,7 +29,7 @@ class DeformableMirror:
         self.dm, self.n_actuator = self._initialize_dm(self.dm_serial)
         if self.dm is not None:
             self._configure_dm()
-            self.ctrl = syct.DynamicControl(n_states=self.n_zernike, n_inputs=self.n_actuator, n_outputs=self.n_zernike,
+            self.ctrl = syct.DynamicControl(n_states=self.n_zernike, n_inputs=self.n_zernike, n_outputs=self.n_zernike,
                                             calib=self.ctrl_calib)
         else:
             raise RuntimeError(f"Error Initializing DM {self.dm_name}")
@@ -134,15 +134,18 @@ class DeformableMirror:
             if method == 'zonal':
                 self.correction.append(list(np.dot(self.control_matrix_zonal, -measurement)))
             elif method == 'modal':
-                a = ipr.get_eigen_coefficients(-measurement, self.zslopes, 14)
-                self.correction.append(list(np.dot(self.control_matrix_modal, a)))
+                temp = self.get_zernike_coffs(gradx, grady)
+                a = np.zeros((self.n_zernike, 1))
+                a[:, 0] = temp
+                _, u = self.ctrl.compute_control(a, False)
+                self.correction.append(list(np.dot(self.control_matrix_modal, u)))
             else:
                 self.logg.error(f"Invalid AO correction method")
                 return
         _c = self.cmd_add(self.dm_cmd[self.current_cmd], self.correction[-1])
         self.dm_cmd.append(_c)
 
-    def get_dynamic_correction(self, measurements, method="phase"):
+    def get_dynamic_correction(self, measurements, method="modal"):
         if method == 'modal':
             gradx, grady = measurements
             temp = self.get_zernike_coffs(gradx, grady)

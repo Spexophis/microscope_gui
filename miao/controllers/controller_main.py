@@ -1260,9 +1260,17 @@ class MainController(QtCore.QObject):
         self.set_camera_roi("wfs")
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
         self.set_img_wfs(self.cameras["wfs"])
-        dtr, sw, dch = self.generate_live_triggers("wfs")
-        self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2], digital_sequences=dtr, digital_channels=dch)
-        self.m.cam_set[self.cameras["wfs"]].start_live()
+        self.update_trigger_parameters("wfs")
+        dtr, sw, chs = self.p.trigger.generate_digital_triggers(self.lasers, self.cameras["wfs"])
+        if self.cameras["wfs"] == 2:
+            self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs, finite=True)
+        elif self.cameras["wfs"] == 1:
+            self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2],
+                                      digital_sequences=dtr, digital_channels=chs, finite=True)
+        else:
+            self.m.cam_set[self.cameras["wfs"]].stop_live()
+            self.lasers_off()
+            raise ValueError("Invalid wfs selection")
 
     def close_loop_correction(self):
         try:
@@ -1270,17 +1278,14 @@ class MainController(QtCore.QObject):
             time.sleep(0.08)
             self.p.shwfsr.meas = self.m.cam_set[self.cameras["wfs"]].get_last_image()
             self.m.daq.stop_triggers(_close=False)
-            if self.ao_controller.get_img_wfs_method() == "phase":
-                self.dfm.get_correction(self.p.shwfsr.wavefront_reconstruction(rt=True), method="phase")
-            else:
-                self.dfm.get_correction(self.p.shwfsr.get_gradient_xy(),
-                                        method=self.ao_controller.get_img_wfs_method())
+            md = self.ao_controller.get_img_wfs_method()
+            self.dfm.get_correction(self.p.shwfsr.get_gradient_xy(), method="modal")
             self.dfm.set_dm(self.dfm.dm_cmd[-1])
             self.ao_controller.update_cmd_index()
             i = int(self.ao_controller.get_cmd_index())
             self.dfm.current_cmd = i
         except Exception as e:
-            self.logg.error(f"Prepare CloseLoop Correction Error: {e}")
+            self.logg.error(f"Error Run CloseLoop Correction Error: {e}")
             self.finish_close_loop_correction()
             return
 
@@ -1301,9 +1306,14 @@ class MainController(QtCore.QObject):
             self.finish_close_loop_correction()
             return
         try:
-            self.run_task(task=self.close_loop_correction, iteration=nlp, callback=self.finish_close_loop_correction)
+            self.m.cam_set[self.cameras["wfs"]].start_live()
+            time.sleep(0.02)
+            self.run_task(task=self.close_loop_correction, iteration=nlp)
         except Exception as e:
+            self.finish_close_loop_correction()
             self.logg.error(f"CloseLoop Correction Error: {e}")
+            return
+        self.finish_close_loop_correction()
 
     def prepare_sensorless_iteration(self):
         vd_mod = self.con_controller.get_live_mode()
