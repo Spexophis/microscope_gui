@@ -116,7 +116,7 @@ class MainController(QtCore.QObject):
         self.v.ao_view.Signal_img_shwfs_base.connect(self.set_reference_wf)
         self.v.ao_view.Signal_img_wfs.connect(self.img_wfs)
         self.v.ao_view.Signal_img_shwfr_run.connect(self.run_img_wfr)
-        self.v.ao_view.Signal_img_shwfs_compute_wf.connect(self.compute_img_wf)
+        self.v.ao_view.Signal_img_shwfs_compute_wf.connect(self.run_compute_img_wf)
         self.v.ao_view.Signal_img_shwfs_save_wf.connect(self.save_img_wf)
         self.v.ao_view.Signal_img_shwfs_acquisition.connect(self.run_shwfs_acquisition)
         # AO
@@ -1111,8 +1111,6 @@ class MainController(QtCore.QObject):
     def img_wfr(self):
         try:
             self.p.shwfsr.method = self.ao_controller.get_gradient_method_img()
-            # self.p.shwfsr.ref = self.view_controller.get_image_data(4)
-            # self.p.shwfsr.meas = self.view_controller.get_image_data(self.cameras["wfs"])
             self.p.shwfsr.wavefront_reconstruction()
         except Exception as e:
             self.logg.error(f"SHWFS Reconstruction Error: {e}")
@@ -1125,10 +1123,14 @@ class MainController(QtCore.QObject):
             self.logg.error(f"SHWFS Wavefront Show Error: {e}")
 
     @QtCore.pyqtSlot()
+    def run_compute_img_wf(self):
+        self.run_task(task=self.compute_img_wf)
+
     def compute_img_wf(self):
-        # self.dfm.run_wf_modal_recon()
-        # self.view_controller.plot_update(self.dfm.az)
-        self.imshow_img_wfr()
+        md = self.ao_controller.get_gradient_method_img()
+        gradx, grady = self.p.shwfsr.get_gradient_xy(mtd=md)
+        a = self.dfm.get_zernike_coffs(gradx, grady)
+        self.view_controller.plot_update(a)
 
     @QtCore.pyqtSlot()
     def save_img_wf(self):
@@ -1430,14 +1432,25 @@ class MainController(QtCore.QObject):
         self.cameras["wfs"] = self.ao_controller.get_wfs_camera()
         self.set_camera_roi("wfs")
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
-        dtr, sw, dch = self.generate_live_triggers("wfs")
-        self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2], digital_sequences=dtr, digital_channels=dch)
+        self.set_img_wfs(self.cameras["wfs"])
+        self.update_trigger_parameters("wfs")
+        dtr, sw, chs = self.p.trigger.generate_digital_triggers(self.lasers, self.cameras["wfs"])
+        if self.cameras["wfs"] == 2:
+            self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs, finite=True)
+        elif self.cameras["wfs"] == 1:
+            self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2],
+                                      digital_sequences=dtr, digital_channels=chs, finite=True)
+        else:
+            self.m.cam_set[self.cameras["wfs"]].stop_live()
+            self.lasers_off()
+            raise ValueError("Invalid wfs selection")
 
     def shwfs_acquisition(self):
         try:
             self.prepare_shwfs_acquisition()
         except Exception as e:
             self.logg.error(f"Error prepare shwfs acquisition: {e}")
+            self.finish_shwfs_acquisition()
             return
         try:
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M") + '_shwfs_acquisition')
@@ -1445,46 +1458,52 @@ class MainController(QtCore.QObject):
             self.logg.info(f'Directory {fd} has been created successfully.')
         except Exception as er:
             self.logg.error(f'Error creating directory: {er}')
+            self.finish_shwfs_acquisition()
             return
-        modes = np.arange(4, 22)
-        self.m.cam_set[self.cameras["wfs"]].start_live()
-        for i in range(64):
-            self.v.dialog_text.setText(f"Acquisition #{i}")
-            data = []
-            cmd = self.dfm.dm_cmd[self.dfm.current_cmd]
-            self.dfm.set_dm(cmd)
+        try:
+            modes = np.arange(16)
+            self.m.cam_set[self.cameras["wfs"]].start_live()
             time.sleep(0.02)
-            self.m.daq.run_triggers()
-            time.sleep(0.04)
-            data.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
-            self.m.daq.stop_triggers(_close=False)
-            amps = np.random.rand(modes.shape[0]) / 5
-            for m, mode in enumerate(modes):
-                amp = amps[m]
-                cmd = self.dfm.cmd_add(self.dfm.get_zernike_cmd(mode, amp), cmd)
-            self.dfm.set_dm(cmd)
-            time.sleep(0.02)
-            self.m.daq.run_triggers()
-            time.sleep(0.04)
-            data.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
-            self.m.daq.stop_triggers(_close=False)
-            try:
-                self.p.shwfsr.method = self.ao_controller.get_gradient_method_img()
+            for i in range(64):
+                self.v.dialog_text.setText(f"Acquisition #{i}")
+                data = []
+                amps = np.zeros((modes.shape[0], 2))
+                cmd = self.dfm.dm_cmd[self.dfm.current_cmd]
+                self.dfm.set_dm(cmd)
+                time.sleep(0.02)
+                self.m.daq.run_triggers()
+                time.sleep(0.08)
+                data.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
+                self.m.daq.stop_triggers(_close=False)
+                amps[:, 0] = np.random.rand(modes.shape[0]) / 128
+                for m, mode in enumerate(modes):
+                    amp = amps[m, 0]
+                    cmd = self.dfm.cmd_add(self.dfm.get_zernike_cmd(mode, amp), cmd)
+                self.dfm.set_dm(cmd)
+                time.sleep(0.02)
+                self.m.daq.run_triggers()
+                time.sleep(0.08)
+                data.append(self.m.cam_set[self.cameras["wfs"]].get_last_image())
+                self.m.daq.stop_triggers(_close=False)
                 self.p.shwfsr.ref = data[0]
                 self.p.shwfsr.meas = data[1]
-                self.p.shwfsr.wavefront_reconstruction()
-            except Exception as e:
-                self.logg.error(f"SHWFS Reconstruction Error: {e}")
-                return
-            t = time.strftime("%Y%m%d_%H%M%S_")
-            fn = os.path.join(fd, t + "shwfs_proc_images.tif")
-            tf.imwrite(fn, self.p.shwfsr.im)
-            fn = os.path.join(fd, t + "shwfs_recon_wf.tif")
-            tf.imwrite(fn, self.p.shwfsr.wf)
-            fn = os.path.join(fd, t + "shwfs_wf_zcoffs.xlsx")
-            df = pd.DataFrame(amps, index=modes, columns=['Amplitudes'])
-            with pd.ExcelWriter(fn, engine='xlsxwriter') as writer:
-                df.to_excel(writer, sheet_name='Zernike Amplitudes')
+                md = self.ao_controller.get_gradient_method_img()
+                gradx, grady = self.p.shwfsr.get_gradient_xy(mtd=md)
+                amps[:, 1] = self.dfm.get_zernike_coffs(gradx, grady)
+                t = time.strftime("%Y%m%d_%H%M%S_")
+                # fn = os.path.join(fd, t + "shwfs_proc_images.tif")
+                # tf.imwrite(fn, self.p.shwfsr.im)
+                # fn = os.path.join(fd, t + "shwfs_recon_wf.tif")
+                # tf.imwrite(fn, self.p.shwfsr.wf)
+                fn = os.path.join(fd, t + "shwfs_wf_zcoffs.xlsx")
+                df = pd.DataFrame(amps, index=modes, columns=['Amp_Inpt', 'Amp_Meas'])
+                with pd.ExcelWriter(fn, engine='xlsxwriter') as writer:
+                    df.to_excel(writer, sheet_name='Zernike Amplitudes')
+        except Exception as er:
+            self.finish_shwfs_acquisition()
+            self.logg.error(f'Error running shwfs acquisition: {er}')
+            return
+        self.finish_shwfs_acquisition()
 
     def finish_shwfs_acquisition(self):
         try:
@@ -1492,11 +1511,11 @@ class MainController(QtCore.QObject):
             self.m.cam_set[self.cameras["wfs"]].stop_live()
             self.m.daq.stop_triggers()
         except Exception as e:
-            self.logg.error(f"Error finishing influence function: {e}")
+            self.logg.error(f"Error finishing shwfs acquisition: {e}")
 
     @QtCore.pyqtSlot()
     def run_shwfs_acquisition(self):
-        self.run_task(self.shwfs_acquisition, callback=self.finish_shwfs_acquisition)
+        self.run_task(self.shwfs_acquisition)
 
 
 class TaskWorkerSignals(QtCore.QObject):

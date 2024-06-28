@@ -9,6 +9,7 @@ import tifffile as tf
 
 from miao.tools import tool_zernike as tz
 from miao.tools import tool_improc as ipr
+from miao.tools import tool_sysctrl as syct
 
 sys.path.append(r'C:\Program Files\Alpao\SDK\Samples\Python3')
 if (8 * struct.calcsize("P")) == 32:
@@ -28,6 +29,7 @@ class DeformableMirror:
         self.dm, self.n_actuator = self._initialize_dm(self.dm_serial)
         if self.dm is not None:
             self._configure_dm()
+            self.ctrl = syct.DynamicControl(n_states=self.n_zernike, n_inputs=self.n_actuator, n_outputs=self.n_zernike)
         else:
             raise RuntimeError(f"Error Initializing DM {self.dm_name}")
         try:
@@ -138,6 +140,20 @@ class DeformableMirror:
         _c = self.cmd_add(self.dm_cmd[self.current_cmd], self.correction[-1])
         self.dm_cmd.append(_c)
 
+    def get_dynamic_correction(self, measurements, method="phase"):
+        if method == 'modal':
+            gradx, grady = measurements
+            temp = self.get_zernike_coffs(gradx, grady)
+            a = np.zeros((self.n_zernike, 1))
+            a[:, 0] = temp
+            _, u = self.ctrl.compute_control(a, False)
+            self.correction.append(list(np.dot(self.control_matrix_modal, u)))
+            _c = self.cmd_add(self.dm_cmd[self.current_cmd], self.correction[-1])
+            self.dm_cmd.append(_c)
+        else:
+            self.logg.error(f"Invalid AO correction method")
+            return
+
     def zernike_modes(self):
         """
         z2c index:
@@ -163,11 +179,14 @@ class DeformableMirror:
 
     def get_zernike_cmd(self, j, a, method="modal"):
         if method == 'modal':
-            a_s = a * ipr.get_eigen_coefficients(self.zslopes[:,j], self.zslopes, 14)
+            a_s = a * ipr.get_eigen_coefficients(self.zslopes[:, j], self.zslopes, 14)
             return list(np.dot(self.control_matrix_modal, a_s))
         else:
             zerphs = a * self.zernike[j].reshape(self.nls)
             return list(np.dot(self.control_matrix_phase, zerphs))
+
+    def get_zernike_coffs(self, gdx, gdy):
+        return ipr.get_eigen_coefficients(np.concatenate((gdx.flatten(), gdy.flatten())), self.zslopes, 14)
 
     @staticmethod
     def cmd_add(cmd_0, cmd_1):
