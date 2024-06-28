@@ -3,18 +3,17 @@ Linear quadratic Gaussian (LQG) control based on Kalman filter
 """
 
 import numpy as np
-import tifffile as tf
 from scipy.linalg import solve_continuous_are, svd
 
 
 class DynamicControl:
 
-    def __init__(self, n_states=16, n_inputs=97, n_outputs=16, logg=None):
+    def __init__(self, n_states=16, n_inputs=16, n_outputs=16, calib=None, logg=None):
         self.logg = logg or self.setup_logging()
         self.n_states = n_states
         self.n_inputs = n_inputs
         self.n_outputs = n_outputs
-        self._initialize_control()
+        self._initialize_control(calib)
 
     @staticmethod
     def setup_logging():
@@ -22,14 +21,19 @@ class DynamicControl:
         logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
         return logging
 
-    def _initialize_control(self):
+    def _initialize_control(self, calib):
         # Define the state-space model with appropriate dimensions
-        self.A = 0.1 * np.random.randn(self.n_states, self.n_states)  # State transition matrix
-        # Control matrix
-        self.B = 0.1 * np.random.randn(self.n_states, self.n_inputs)
-        self.B = self.B.swapaxes(0, 1)
-        self.C = 0.1 * np.random.randn(self.n_outputs, self.n_states)  # Measurement matrix
-        self.D = np.zeros((self.n_outputs, self.n_inputs))  # Direct transmission matrix
+        if calib is not None:
+            clb = np.load(calib)
+            self.A = clb['A']
+            self.B = clb['B']
+            self.C = clb['C']
+            self.D = clb['D']
+        else:
+            self.A = 0.1 * np.random.randn(self.n_states, self.n_states)  # State transition matrix
+            self.B = np.random.randn(self.n_states, self.n_inputs)  # Control input matrix
+            self.C = 0.1 * np.random.randn(self.n_outputs, self.n_states)  # Measurement matrix
+            self.D = np.zeros((self.n_outputs, self.n_inputs))  # Direct transmission matrix
         # Initial state and covariance
         self.x = 0.1 * np.random.randn(self.n_states, 1)
         self.p = np.eye(self.n_states)
@@ -89,32 +93,49 @@ class DynamicControl:
     def get_simulated_measurement(self):
         return 0.1 * np.random.randn(self.n_outputs, 1)
 
-    def subspace_identification(self, inputs, outputs):
+    @staticmethod
+    def subspace_identification(inputs, outputs, n_states):
+        # Assuming inputs and outputs are numpy arrays of shape (N_steps, n_inputs) and (N_steps, n_outputs)
         U = inputs.T  # Input matrix (n_inputs x N_steps)
         Y = outputs.T  # Output matrix (n_outputs x N_steps)
         N_steps = U.shape[1]
+        n_inputs = U.shape[0]
+        n_outputs = Y.shape[0]
         # Form data matrices
-        L = 2 * self.n_states
+        L = 2 * n_states
+        if N_steps <= L:
+            raise ValueError(f"Not enough data points to form the Hankel matrix with given state dimension. "
+                             f"Got {N_steps} data points, but need more than {L}.")
+        # Construct Hankel matrices
         H0 = np.hstack([Y[:, i:N_steps - L + i + 1] for i in range(L)])  # Hankel matrix of outputs
         H1 = np.hstack([U[:, i:N_steps - L + i + 1] for i in range(L)])  # Hankel matrix of inputs
+        # Ensure that H0 and H1 are properly formed
+        if H0.shape[1] != H1.shape[1]:
+            raise ValueError("Hankel matrices H0 and H1 must have the same number of columns.")
         H = np.vstack((H0, H1))
         # SVD decomposition
-        U, s, Vh = svd(H, full_matrices=False)
-        U1 = U[:self.n_states, :]
+        U_svd, s, Vh = svd(H, full_matrices=False)
+        U1 = U_svd[:, :n_states]
         # Form state sequence
-        X = U1 @ np.diag(np.sqrt(s))
-        # Estimate A, B, C, D matrices
+        X = U1 @ np.diag(np.sqrt(s[:n_states]))
+        # Ensure proper dimensions for least squares
         X1 = X[:, :-1]
         X2 = X[:, 1:]
-        Y1 = Y[:, L:N_steps]
-        U1 = U[:, L:N_steps]
+        Y1 = Y[:, L:L + X1.shape[1]]
+        U1 = U[:, L:L + X1.shape[1]]
+        # Check dimensions before solving
+        assert X1.shape[1] == U1.shape[1], "Mismatch in the number of columns between X1 and U1."
+        assert X1.shape[1] == X2.shape[1], "Mismatch in the number of columns between X1 and X2."
+        assert X1.shape[1] == Y1.shape[1], "Mismatch in the number of columns between X1 and Y1."
         # Solve for system matrices
+        # Dimensions: X2 (n_states, k-1), [X1; U1].T (k-1, n_states + n_inputs)
         AB = np.linalg.lstsq(np.vstack((X1, U1)).T, X2.T, rcond=None)[0].T
-        A = AB[:, :self.n_states]
-        B = AB[:, self.n_states:]
+        A = AB[:n_states, :n_states]
+        B = AB[:n_states, n_states:n_states + n_inputs]
+        # Dimensions: Y1 (n_outputs, k-1), [X1; U1].T (k-1, n_states + n_inputs)
         CD = np.linalg.lstsq(np.vstack((X1, U1)).T, Y1.T, rcond=None)[0].T
-        C = CD[:, :self.n_states]
-        D = CD[:, self.n_states:]
+        C = CD[:, :n_states]
+        D = CD[:, n_states:n_states + n_inputs]
         return A, B, C, D
 
 

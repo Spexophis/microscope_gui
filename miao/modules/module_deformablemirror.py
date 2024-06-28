@@ -29,7 +29,8 @@ class DeformableMirror:
         self.dm, self.n_actuator = self._initialize_dm(self.dm_serial)
         if self.dm is not None:
             self._configure_dm()
-            self.ctrl = syct.DynamicControl(n_states=self.n_zernike, n_inputs=self.n_actuator, n_outputs=self.n_zernike)
+            self.ctrl = syct.DynamicControl(n_states=self.n_zernike, n_inputs=self.n_actuator, n_outputs=self.n_zernike,
+                                            calib=self.ctrl_calib)
         else:
             raise RuntimeError(f"Error Initializing DM {self.dm_name}")
         try:
@@ -76,6 +77,7 @@ class DeformableMirror:
                 self.config.configs["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Zonal Control Matrix"])
             self.initial_flat = self.config.configs["Adaptive Optics"]["Deformable Mirrors"][self.dm_name][
                 "Initial Flat"]
+            self.ctrl_calib = self.config.configs["Adaptive Optics"]["Deformable Mirrors"][self.dm_name]["Control Calibration"]
         except Exception as e:
             self.logg.error(f"Error Loading DM {self.dm_name} files: {e}")
         try:
