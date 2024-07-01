@@ -35,7 +35,7 @@ class DynamicControl:
             self.C = 0.1 * np.random.randn(self.n_outputs, self.n_states)  # Measurement matrix
             self.D = np.zeros((self.n_outputs, self.n_inputs))  # Direct transmission matrix
         # Initial state and covariance
-        self.x = 0.1 * np.random.randn(self.n_states, 1)
+        self.x = np.zeros((self.n_states, 1))
         self.p = np.eye(self.n_states)
         # Desired state
         self.x_desired = np.zeros((self.n_states, 1))
@@ -48,6 +48,11 @@ class DynamicControl:
         self.K = self.lqr()
         self.step = 0.02
         self.residuals = []
+
+    def reset_control(self):
+        # Initial state and covariance
+        self.x = np.zeros((self.n_states, 1))
+        self.p = np.eye(self.n_states)
 
     def compute_control(self, measurement, adaptive=True):
         # Run the Kalman filter for the current measurement

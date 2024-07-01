@@ -138,7 +138,7 @@ class DeformableMirror:
                 a = np.zeros((self.n_zernike, 1))
                 a[:, 0] = temp
                 _, u = self.ctrl.compute_control(a, False)
-                self.correction.append(list(np.dot(self.control_matrix_modal, u)))
+                self.correction.append(list(np.dot(self.control_matrix_modal, u[:, 0])))
             else:
                 self.logg.error(f"Invalid AO correction method")
                 return

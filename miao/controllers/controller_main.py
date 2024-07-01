@@ -1261,6 +1261,7 @@ class MainController(QtCore.QObject):
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
         self.set_img_wfs(self.cameras["wfs"])
         self.update_trigger_parameters("wfs")
+        self.dfm.ctrl.reset_control()
         dtr, sw, chs = self.p.trigger.generate_digital_triggers(self.lasers, self.cameras["wfs"])
         if self.cameras["wfs"] == 2:
             self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs, finite=True)
