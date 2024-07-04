@@ -10,16 +10,16 @@ class ImageReconstruction:
         self.resolution = self.wl / (2 * self.na)
         self.pixel_size = 0.063
         # Gaussian kernel
-        self.sigma = to_sigma(self.resolution, self.pixel_size)
+        self.sigma = (self.resolution / self.pixel_size) / (2 * np.sqrt(2 * np.log(2)))
         self.threshold = 0.5
         self.kernel_size = 6 * int(self.sigma) + 1
         
     def load_data(self, fd):
-        data_stack = tf.imread(fd)
-        self.n, self.ny, self.nx = data_stack.shape
+        self.data_stack = tf.imread(fd)
+        self.n, self.ny, self.nx = self.data_stack.shape
         self.dfx, self.dfy = 1 / (self.nx * self.pixel_size), 1 / (self.ny * self.pixel_size)
         self.rbx, self.rby = (self.na / self.wl) / self.dfx, (self.na / self.wl) / self.dfy
-        
+
     def set_parameters(self, periods=(0.83, 0.83), ranges=((20.26, 43.504), (20.26, 43.504))):
         self.period_x_um, self.period_y_um = periods  # micrometer
         self.range_x_um, self.range_y_um = ranges  # micrometers
@@ -42,7 +42,7 @@ class ImageReconstruction:
             for y_center in self.y_coords:
                 # Calculate sub-pixel offset for Gaussian center
                 center = (x_center % 1, y_center % 1)
-                gaussian_k = gaussian_kernel(self.kernel_size, self.sigma, center)
+                gaussian_k = self.gaussian_kernel(self.kernel_size, self.sigma, center)
                 x_idx = int(x_center)
                 y_idx = int(y_center)
                 # Place the Gaussian in the array, handling edges
@@ -56,9 +56,6 @@ class ImageReconstruction:
                                                        (self.kernel_size // 2 - (x_idx - x_start)):(
                                                                self.kernel_size // 2 + (x_end - x_idx))
                                                        ]
-
-        # Apply the threshold
-        array[array < self.threshold] = 0
         return array
 
     def stack_subarray(self, array):
@@ -85,18 +82,13 @@ class ImageReconstruction:
         center_positions = np.array(center_positions)
         return stacked_subarrays, center_positions
 
-
-def gaussian_kernel(size, sigma, center):
-    """Returns a 2D Gaussian kernel with a given center."""
-    x = np.linspace(-size // 2, size // 2, size) - center[0]
-    y = np.linspace(-size // 2, size // 2, size) - center[1]
-    x, y = np.meshgrid(x, y)
-    kernel = np.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2))
-    return kernel
-
-
-def to_sigma(fw, pixel_size):
-    return (fw / pixel_size) / (2 * np.sqrt(2 * np.log(2)))
+    def gaussian_kernel(self, size, sigma, center):
+        x = np.linspace(-size // 2, size // 2, size) - center[0]
+        y = np.linspace(-size // 2, size // 2, size) - center[1]
+        x, y = np.meshgrid(x, y)
+        kernel = np.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2))
+        kernel[kernel < self.threshold] = 0
+        return kernel
 
 
 if __name__ == "__main__":
