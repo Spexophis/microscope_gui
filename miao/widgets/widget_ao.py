@@ -225,9 +225,9 @@ class AOWidget(QtWidgets.QWidget):
 
         self.QSpinBox_zernike_mode_start = cw.spinbox_widget(1, 64, 1, 4)
         self.QSpinBox_zernike_mode_stop = cw.spinbox_widget(1, 64, 1, 10)
-        self.QDoubleSpinBox_zernike_mode_amps_start = cw.doublespinbox_widget(-50, 0, 0.1, 2, -0.4)
-        self.QSpinBox_zernike_mode_amps_stepnum = cw.spinbox_widget(0, 50, 2, 5)
-        self.QDoubleSpinBox_zernike_mode_amps_step = cw.doublespinbox_widget(0, 50, 0.05, 2, 0.2)
+        self.QDoubleSpinBox_zernike_mode_amps_start = cw.doublespinbox_widget(-50, 50, 0.005, 3, -0.01)
+        self.QSpinBox_zernike_mode_amps_stepnum = cw.spinbox_widget(0, 50, 2, 3)
+        self.QDoubleSpinBox_zernike_mode_amps_step = cw.doublespinbox_widget(-50, 50, 0.005, 3, 0.01)
         self.QDoubleSpinBox_lpf = cw.doublespinbox_widget(0, 1, 0.05, 2, 0.1)
         self.QDoubleSpinBox_hpf = cw.doublespinbox_widget(0, 1, 0.05, 2, 0.6)
         self.QComboBox_metric = cw.combobox_widget(list_items=['Max(Intensity)', 'SNR(FFT)', 'HighPass(FFT)'])
