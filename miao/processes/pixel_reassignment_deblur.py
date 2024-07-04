@@ -1,102 +1,121 @@
-import tifffile as tf
 import numpy as np
-from scipy.ndimage import gaussian_filter, convolve
+import tifffile as tf
 from scipy.interpolate import RectBivariateSpline
+from scipy.ndimage import gaussian_filter, convolve
 
-gain_value = 2.5
-window_radius = int(1 * np.ceil((0.5 / 2.8) / 0.0785))
 
-I_in = tf.imread(r"C:\Users\ruizhe.lin\Desktop\20240530161327_dot_scanning_crop-1.tif")
+class ImageReconstruction:
 
-# Upscale factor calculation
-number_row_initial, number_column_initial = I_in.shape
-scale_factor = 2.5
-number_row_scaleup = int(scale_factor * number_row_initial)
-number_column_scaleup = int(scale_factor * number_column_initial)
+    def __init__(self):
+        self.gain_value = 2.5
+        self.scale_factor = 2.5
+        self.na = 1.4
+        self.wl = 0.5
+        self.pixel_size = 0.063
+        self.window_radius = int(1 * np.ceil((self.wl / (2 * self.na)) / self.pixel_size))
 
-x0 = np.linspace(-0.5, 0.5, number_column_initial)
-y0 = np.linspace(-0.5, 0.5, number_row_initial)
-X0, Y0 = np.meshgrid(x0, y0)
-x = np.linspace(-0.5, 0.5, number_column_scaleup)
-y = np.linspace(-0.5, 0.5, number_row_scaleup)
-X, Y = np.meshgrid(x, y)
+    def load_data(self):
+        self.I_in = tf.imread(r"C:\Users\ruizhe.lin\Desktop\20240530161327_dot_scanning_crop-1.tif")
 
-# DPR on single frames
-single_frame_I_in = I_in - np.min(I_in)
-local_minimum = np.zeros_like(single_frame_I_in)
-single_frame_I_in_localmin = np.zeros_like(single_frame_I_in)
+    def calculate_coordinates(self):
+        self.number_row_initial, self.number_column_initial = self.I_in.shape
+        self.number_row_scaleup = int(self.scale_factor * self.number_row_initial)
+        self.number_column_scaleup = int(self.scale_factor * self.number_column_initial)
+        self.x0 = np.linspace(-0.5, 0.5, self.number_column_initial)
+        self.y0 = np.linspace(-0.5, 0.5, self.number_row_initial)
+        self.X0, self.Y0 = np.meshgrid(self.x0, self.y0)
+        self.x = np.linspace(-0.5, 0.5, self.number_column_scaleup)
+        self.y = np.linspace(-0.5, 0.5, self.number_row_scaleup)
+        self.X, self.Y = np.meshgrid(self.x, self.y)
 
-for u in range(number_row_initial):
-    for v in range(number_column_initial):
-        sub_window = single_frame_I_in[
-                     max(0, u - window_radius):min(number_row_initial, u + window_radius + 1),
-                     max(0, v - window_radius):min(number_column_initial, v + window_radius + 1)
-                     ]
-        local_minimum[u, v] = np.min(sub_window)
-        single_frame_I_in_localmin[u, v] = single_frame_I_in[u, v] - local_minimum[u, v]
+    def dpr_single(self):
+        # DPR on single frames
+        self.single_frame_I_in = self.I_in - np.min(self.I_in)
+        self.local_minimum = np.zeros_like(self.single_frame_I_in)
+        self.single_frame_I_in_localmin = np.zeros_like(self.single_frame_I_in)
 
-# Upscale using spline interpolation
-interp_localmin = RectBivariateSpline(y0, x0, single_frame_I_in_localmin)
-single_frame_localmin_magnified = interp_localmin(y, x, grid=True)
-single_frame_localmin_magnified[single_frame_localmin_magnified < 0] = 0
-single_frame_localmin_magnified = np.pad(single_frame_localmin_magnified, ((10, 10), (10, 10)), mode='constant')
+        for u in range(self.number_row_initial):
+            for v in range(self.number_column_initial):
+                sub_window = self.single_frame_I_in[
+                             max(0, u - self.window_radius):min(self.number_row_initial, u + self.window_radius + 1),
+                             max(0, v - self.window_radius):min(self.number_column_initial, v + self.window_radius + 1)
+                             ]
+                self.local_minimum[u, v] = np.min(sub_window)
+                self.single_frame_I_in_localmin[u, v] = self.single_frame_I_in[u, v] - self.local_minimum[u, v]
 
-interp_in = RectBivariateSpline(y0, x0, single_frame_I_in)
-single_frame_I_magnified = interp_in(y, x, grid=True)
-single_frame_I_magnified[single_frame_I_magnified < 0] = 0
-single_frame_I_magnified = np.pad(single_frame_I_magnified, ((10, 10), (10, 10)), mode='constant')
+    def upscale_interp(self):
+        # Upscale using spline interpolation
+        interp_localmin = RectBivariateSpline(self.y0, self.x0, self.single_frame_I_in_localmin)
+        single_frame_localmin_magnified = interp_localmin(self.y, self.x, grid=True)
+        single_frame_localmin_magnified[single_frame_localmin_magnified < 0] = 0
+        self.single_frame_localmin_magnified = np.pad(single_frame_localmin_magnified, ((10, 10), (10, 10)),
+                                                      mode='constant')
 
-number_row, number_column = single_frame_I_magnified.shape
+        interp_in = RectBivariateSpline(self.y0, self.x0, self.single_frame_I_in)
+        single_frame_I_magnified = interp_in(self.y, self.x, grid=True)
+        single_frame_I_magnified[single_frame_I_magnified < 0] = 0
+        self.single_frame_I_magnified = np.pad(single_frame_I_magnified, ((10, 10), (10, 10)), mode='constant')
 
-# Local normalization
-I_normalized = single_frame_localmin_magnified / (gaussian_filter(single_frame_localmin_magnified, 8) + 1e-5)
+        self.number_row, self.number_column = single_frame_I_magnified.shape
 
-# Calculate normalized gradients
-sobelX = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]])
-sobelY = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
-gradient_y = convolve(I_normalized, sobelX, mode='reflect')
-gradient_x = convolve(I_normalized, sobelY, mode='reflect')
+    def local_norm(self):
+        # Local normalization
+        self.I_normalized = self.single_frame_localmin_magnified / (
+                    gaussian_filter(self.single_frame_localmin_magnified, 8) + 1e-5)
 
-gradient_x = gradient_x / (I_normalized + 1e-5)
-gradient_y = gradient_y / (I_normalized + 1e-5)
+    def calculate_gradients(self):
+        # Calculate normalized gradients
+        sobelX = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]])
+        sobelY = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
+        gradient_y = convolve(self.I_normalized, sobelX, mode='reflect')
+        gradient_x = convolve(self.I_normalized, sobelY, mode='reflect')
 
-# Calculate pixel displacements
-displacement_x = gain_value * gradient_x
-displacement_y = gain_value * gradient_y
-displacement_x[np.abs(displacement_x) > 10] = 0
-displacement_y[np.abs(displacement_y) > 10] = 0
+        self.gradient_x = gradient_x / (self.I_normalized + 1e-5)
+        self.gradient_y = gradient_y / (self.I_normalized + 1e-5)
 
-# Calculate I_out with weighted pixel displacements
-single_frame_I_out = np.zeros((number_row, number_column))
-for nx in range(10, number_row - 10):
-    for ny in range(10, number_column - 10):
-        weighted1 = (1 - np.abs(displacement_x[nx, ny] - np.fix(displacement_x[nx, ny]))) * (
-                1 - np.abs(displacement_y[nx, ny] - np.fix(displacement_y[nx, ny])))
-        weighted2 = (1 - np.abs(displacement_x[nx, ny] - np.fix(displacement_x[nx, ny]))) * (
-            np.abs(displacement_y[nx, ny] - np.fix(displacement_y[nx, ny])))
-        weighted3 = (np.abs(displacement_x[nx, ny] - np.fix(displacement_x[nx, ny]))) * (
-                1 - np.abs(displacement_y[nx, ny] - np.fix(displacement_y[nx, ny])))
-        weighted4 = (np.abs(displacement_x[nx, ny] - np.fix(displacement_x[nx, ny]))) * (
-            np.abs(displacement_y[nx, ny] - np.fix(displacement_y[nx, ny])))
+    def calculate_displacement(self):
+        # Calculate pixel displacements
+        self.displacement_x = self.gain_value * self.gradient_x
+        self.displacement_y = self.gain_value * self.gradient_y
+        self.displacement_x[np.abs(self.displacement_x) > 10] = 0
+        self.displacement_y[np.abs(self.displacement_y) > 10] = 0
 
-        coordinate1 = [int(np.fix(displacement_x[nx, ny])), int(np.fix(displacement_y[nx, ny]))]
-        coordinate2 = [int(np.fix(displacement_x[nx, ny])),
-                       int(np.fix(displacement_y[nx, ny]) + np.sign(displacement_y[nx, ny]))]
-        coordinate3 = [int(np.fix(displacement_x[nx, ny]) + np.sign(displacement_x[nx, ny])),
-                       int(np.fix(displacement_y[nx, ny]))]
-        coordinate4 = [int(np.fix(displacement_x[nx, ny]) + np.sign(displacement_x[nx, ny])),
-                       int(np.fix(displacement_y[nx, ny]) + np.sign(displacement_y[nx, ny]))]
+    def calcualte_output(self):
+        # Calculate I_out with weighted pixel displacements
+        self.single_frame_I_out = np.zeros((self.number_row, self.number_column))
+        for nx in range(10, self.number_row - 10):
+            for ny in range(10, self.number_column - 10):
+                weighted1 = (1 - np.abs(self.displacement_x[nx, ny] - np.fix(self.displacement_x[nx, ny]))) * (
+                            1 - np.abs(self.displacement_y[nx, ny] - np.fix(self.displacement_y[nx, ny])))
+                weighted2 = (1 - np.abs(self.displacement_x[nx, ny] - np.fix(self.displacement_x[nx, ny]))) * (
+                    np.abs(self.displacement_y[nx, ny] - np.fix(self.displacement_y[nx, ny])))
+                weighted3 = (np.abs(self.displacement_x[nx, ny] - np.fix(self.displacement_x[nx, ny]))) * (
+                            1 - np.abs(self.displacement_y[nx, ny] - np.fix(self.displacement_y[nx, ny])))
+                weighted4 = (np.abs(self.displacement_x[nx, ny] - np.fix(self.displacement_x[nx, ny]))) * (
+                    np.abs(self.displacement_y[nx, ny] - np.fix(self.displacement_y[nx, ny])))
 
-        single_frame_I_out[nx + coordinate1[0], ny + coordinate1[1]] += weighted1 * single_frame_I_magnified[
-            nx, ny]
-        single_frame_I_out[nx + coordinate2[0], ny + coordinate2[1]] += weighted2 * single_frame_I_magnified[
-            nx, ny]
-        single_frame_I_out[nx + coordinate3[0], ny + coordinate3[1]] += weighted3 * single_frame_I_magnified[
-            nx, ny]
-        single_frame_I_out[nx + coordinate4[0], ny + coordinate4[1]] += weighted4 * single_frame_I_magnified[
-            nx, ny]
+                coordinate1 = [int(np.fix(self.displacement_x[nx, ny])), int(np.fix(self.displacement_y[nx, ny]))]
+                coordinate2 = [int(np.fix(self.displacement_x[nx, ny])),
+                               int(np.fix(self.displacement_y[nx, ny]) + np.sign(self.displacement_y[nx, ny]))]
+                coordinate3 = [int(np.fix(self.displacement_x[nx, ny]) + np.sign(self.displacement_x[nx, ny])),
+                               int(np.fix(self.displacement_y[nx, ny]))]
+                coordinate4 = [int(np.fix(self.displacement_x[nx, ny]) + np.sign(self.displacement_x[nx, ny])),
+                               int(np.fix(self.displacement_y[nx, ny]) + np.sign(self.displacement_y[nx, ny]))]
 
-single_frame_I_out = single_frame_I_out[10:-10, 10:-10]
-single_frame_I_magnified = single_frame_I_magnified[10:-10, 10:-10]
-result = [single_frame_I_out, single_frame_I_magnified]
-tf.imwrite(r"C:\Users\ruizhe.lin\Desktop\result.tif", np.asarray(result))
+                self.single_frame_I_out[nx + coordinate1[0], ny + coordinate1[1]] += weighted1 * \
+                                                                                     self.single_frame_I_magnified[
+                                                                                         nx, ny]
+                self.single_frame_I_out[nx + coordinate2[0], ny + coordinate2[1]] += weighted2 * \
+                                                                                     self.single_frame_I_magnified[
+                                                                                         nx, ny]
+                self.single_frame_I_out[nx + coordinate3[0], ny + coordinate3[1]] += weighted3 * \
+                                                                                     self.single_frame_I_magnified[
+                                                                                         nx, ny]
+                self.single_frame_I_out[nx + coordinate4[0], ny + coordinate4[1]] += weighted4 * \
+                                                                                     self.single_frame_I_magnified[
+                                                                                         nx, ny]
+
+        self.single_frame_I_out = self.single_frame_I_out[10:-10, 10:-10]
+        self.single_frame_I_magnified = self.single_frame_I_magnified[10:-10, 10:-10]
+        result = [self.single_frame_I_out, self.single_frame_I_magnified]
+        tf.imwrite(r"C:\Users\ruizhe.lin\Desktop\result.tif", np.asarray(result))
