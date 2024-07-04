@@ -974,13 +974,14 @@ class MainController(QtCore.QObject):
 
     def set_zernike(self, factory=False):
         try:
+            md = self.ao_controller.get_img_wfs_method()
             indz, amp = self.ao_controller.get_zernike_mode()
             if factory:
                 self.dfm.set_dm(
                     self.dfm.cmd_add([i * amp for i in self.dfm.z2c[indz]], self.dfm.dm_cmd[self.dfm.current_cmd]))
             else:
                 self.dfm.set_dm(
-                    self.dfm.cmd_add(self.dfm.get_zernike_cmd(indz, amp), self.dfm.dm_cmd[self.dfm.current_cmd]))
+                    self.dfm.cmd_add(self.dfm.get_zernike_cmd(indz, amp, md), self.dfm.dm_cmd[self.dfm.current_cmd]))
         except Exception as e:
             self.logg.error(f"DM Error: {e}")
 
@@ -1355,6 +1356,7 @@ class MainController(QtCore.QObject):
             return
         try:
             mode_start, mode_stop, amp_start, amp_step, amp_step_number = self.ao_controller.get_ao_iteration()
+            md = self.ao_controller.get_img_wfs_method()
             results = [('Mode', 'Amp', 'Metric')]
             za = []
             mv = []
@@ -1377,7 +1379,7 @@ class MainController(QtCore.QObject):
                 for stnm in range(amp_step_number):
                     amp = amp_start + stnm * amp_step
                     amprange.append(amp)
-                    self.dfm.set_dm(self.dfm.cmd_add(self.dfm.get_zernike_cmd(mode, amp), cmd))
+                    self.dfm.set_dm(self.dfm.cmd_add(self.dfm.get_zernike_cmd(mode, amp, method=md), cmd))
                     # self.dfm.set_dm(self.dfm.cmd_add([i * amp for i in self.dfm.z2c[mode]], cmd))
                     time.sleep(0.02)
                     self.m.daq.run_triggers()
@@ -1401,7 +1403,7 @@ class MainController(QtCore.QObject):
                     pmax = ipr.peak_find(amprange, dt)
                     zp[mode] = pmax
                     self.logg.info("setting mode %d at value of %.4f" % (mode, pmax))
-                    cmd = self.dfm.cmd_add(self.dfm.get_zernike_cmd(mode, pmax), cmd)
+                    cmd = self.dfm.cmd_add(self.dfm.get_zernike_cmd(mode, pmax, method=md), cmd)
                     self.dfm.set_dm(cmd)
                 except ValueError as e:
                     self.logg.error(f"mode {mode} error {e}")
@@ -1472,6 +1474,7 @@ class MainController(QtCore.QObject):
             self.finish_shwfs_acquisition()
             return
         try:
+            mtd = self.ao_controller.get_img_wfs_method()
             modes = np.arange(16)
             self.m.cam_set[self.cameras["wfs"]].start_live()
             time.sleep(0.02)
@@ -1489,7 +1492,7 @@ class MainController(QtCore.QObject):
                 amps[:, 0] = np.random.rand(modes.shape[0]) / 128
                 for m, mode in enumerate(modes):
                     amp = amps[m, 0]
-                    cmd = self.dfm.cmd_add(self.dfm.get_zernike_cmd(mode, amp), cmd)
+                    cmd = self.dfm.cmd_add(self.dfm.get_zernike_cmd(mode, amp, method=mtd), cmd)
                 self.dfm.set_dm(cmd)
                 time.sleep(0.02)
                 self.m.daq.run_triggers()
