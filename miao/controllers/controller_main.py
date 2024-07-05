@@ -102,6 +102,7 @@ class MainController(QtCore.QObject):
         # Main Data Recording
         self.v.con_view.Signal_focal_array_scan.connect(self.run_focal_array_scan)
         self.v.con_view.Signal_grid_pattern_scan.connect(self.run_grid_pattern_scan)
+        self.v.con_view.Signal_alignment.connect(self.run_pattern_alignment)
         self.v.con_view.Signal_data_acquire.connect(self.data_acquisition)
         # DM
         self.v.ao_view.Signal_dm_selection.connect(self.select_dm)
@@ -793,7 +794,7 @@ class MainController(QtCore.QObject):
         try:
             self.prepare_monalisa_scan()
         except Exception as e:
-            self.logg.error(f"Error preparing beads scanning: {e}")
+            self.logg.error(f"Error preparing monalisa scanning: {e}")
             return
         try:
             self.m.cam_set[self.cameras["imaging"]].start_data_acquisition()
@@ -806,7 +807,7 @@ class MainController(QtCore.QObject):
                        metadata={'unit': 'um', 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
         except Exception as e:
             self.finish_monalisa_scan()
-            self.logg.error(f"Error running beads scanning: {e}")
+            self.logg.error(f"Error running monalisa scanning: {e}")
             return
         self.finish_monalisa_scan()
 
@@ -815,12 +816,74 @@ class MainController(QtCore.QObject):
             self.m.cam_set[self.cameras["imaging"]].stop_data_acquisition()
             self.m.daq.stop_triggers()
             self.lasers_off()
-            self.logg.info("Beads scanning image acquired")
+            self.logg.info("Monalisa scanning image acquired")
         except Exception as e:
-            self.logg.error(f"Error stopping confocal scanning: {e}")
+            self.logg.error(f"Error stopping monalisa scanning: {e}")
 
     def run_monalisa_scan(self, n: int):
         self.run_task(task=self.monalisa_scan_2d, iteration=n)
+
+    def pattern_alignment(self):
+        ax = self.con_controller.get_profile_axis()
+
+        try:
+            # grid pattern
+            self.lasers = [1]
+            self.set_lasers(self.lasers)
+            self.cameras["imaging"] = self.con_controller.get_imaging_camera()
+            self.set_camera_roi("imaging")
+            self.m.cam_set[self.cameras["imaging"]].prepare_live()
+            self.update_trigger_parameters("imaging")
+            dtr, sw, chs = self.p.trigger.generate_digital_triggers(self.lasers, self.cameras["imaging"])
+            self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2],
+                                      digital_sequences=dtr, digital_channels=chs, finite=True)
+            self.m.cam_set[self.cameras["imaging"]].start_live()
+            time.sleep(0.1)
+            data = []
+            for i in range(10):
+                self.m.daq.run_triggers()
+                time.sleep(0.08)
+                data.append(self.m.cam_set[self.cameras["imaging"]].get_last_image())
+                self.m.daq.stop_triggers(_close=False)
+            self.m.daq.stop_triggers()
+            self.m.cam_set[self.cameras["imaging"]].stop_live()
+            self.view_controller.plot_update(ipr.get_profile(np.average(np.asarray(data), axis=0), ax, norm=True))
+            # dot array
+            self.lasers = [3]
+            self.set_lasers(self.lasers)
+            self.cameras["imaging"] = self.con_controller.get_imaging_camera()
+            self.set_camera_roi("imaging")
+            self.m.cam_set[self.cameras["imaging"]].prepare_live()
+            self.update_trigger_parameters("imaging")
+            dtr, gtr, chs = self.p.trigger.generate_digital_scanning_triggers(self.lasers, self.cameras["imaging"])
+            self.m.daq.write_triggers(galvo_sequences=gtr, galvo_channels=[0, 1, 2],
+                                      digital_sequences=dtr, digital_channels=chs, finite=True)
+            self.m.cam_set[self.cameras["imaging"]].start_live()
+            time.sleep(0.1)
+            data = []
+            for i in range(10):
+                self.m.daq.run_triggers()
+                time.sleep(0.08)
+                data.append(self.m.cam_set[self.cameras["imaging"]].get_last_image())
+                self.m.daq.stop_triggers(_close=False)
+            self.view_controller.plot(ipr.get_profile(np.average(np.asarray(data), axis=0), ax, norm=True))
+        except Exception as e:
+            self.finish_pattern_alignment()
+            self.logg.error(f"Error running pattern alignment: {e}")
+            return
+        self.finish_pattern_alignment()
+
+    def finish_pattern_alignment(self):
+        try:
+            self.m.cam_set[self.cameras["imaging"]].stop_live()
+            self.m.daq.stop_triggers()
+            self.lasers_off()
+            self.logg.info("Pattern alignment finished")
+        except Exception as e:
+            self.logg.error(f"Error stopping pattern alignment: {e}")
+
+    def run_pattern_alignment(self):
+        self.run_task(task=self.pattern_alignment)
 
     def prepare_focal_array_scan(self):
         self.lasers = self.con_controller.get_lasers()

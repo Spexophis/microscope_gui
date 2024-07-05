@@ -25,6 +25,7 @@ class ConWidget(QtWidgets.QWidget):
     Signal_add_profile = QtCore.pyqtSignal()
     Signal_focal_array_scan = QtCore.pyqtSignal()
     Signal_grid_pattern_scan = QtCore.pyqtSignal()
+    Signal_alignment = QtCore.pyqtSignal()
     Signal_data_acquire = QtCore.pyqtSignal(str, int)
     Signal_save_file = QtCore.pyqtSignal(str)
 
@@ -384,6 +385,7 @@ class ConWidget(QtWidgets.QWidget):
                                                                           "Monalisa Scan 2D", "Monalisa Scan 3D",
                                                                           "Dot Scan 2D", "Dot Scan 3D"])
         self.QSpinBox_acquisition_number = cw.spinbox_widget(1, 50000, 1, 1)
+        self.QPushButton_alignment = cw.pushbutton_widget('Alignment')
         self.QPushButton_acquire = cw.pushbutton_widget('Acquire')
         self.QPushButton_focal_array_scan = cw.pushbutton_widget('FocalArray Scan')
         self.QPushButton_grid_pattern_scan = cw.pushbutton_widget('GridPattern Scan')
@@ -391,6 +393,7 @@ class ConWidget(QtWidgets.QWidget):
         layout_acquisition.addWidget(self.QComboBox_acquisition_modes, 1, 0, 1, 1)
         layout_acquisition.addWidget(cw.label_widget(str('Acq Number')), 0, 1, 1, 1)
         layout_acquisition.addWidget(self.QSpinBox_acquisition_number, 1, 1, 1, 1)
+        layout_acquisition.addWidget(self.QPushButton_alignment, 0, 2, 1, 1)
         layout_acquisition.addWidget(self.QPushButton_acquire, 1, 2, 1, 1)
         layout_acquisition.addWidget(self.QPushButton_grid_pattern_scan, 0, 3, 1, 1)
         layout_acquisition.addWidget(self.QPushButton_focal_array_scan, 1, 3, 1, 1)
@@ -425,6 +428,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QPushButton_plot_profile.clicked.connect(self.run_plot_profile)
         self.QPushButton_add_profile.clicked.connect(self.run_add_profile)
         self.QPushButton_acquire.clicked.connect(self.run_acquisition)
+        self.QPushButton_alignment.clicked.connect(self.run_alignment)
         self.QPushButton_focal_array_scan.clicked.connect(self.run_array_scan)
         self.QPushButton_grid_pattern_scan.clicked.connect(self.run_pattern_scan)
         self.QComboBox_live_modes.currentIndexChanged[str].connect(self.update_live_parameter_sets)
@@ -577,6 +581,10 @@ class ConWidget(QtWidgets.QWidget):
         acq_mode = self.QComboBox_acquisition_modes.currentText()
         acq_num = self.QSpinBox_acquisition_number.value()
         self.Signal_data_acquire.emit(acq_mode, acq_num)
+
+    @QtCore.pyqtSlot()
+    def run_alignment(self):
+        self.Signal_alignment.emit()
 
     @QtCore.pyqtSlot()
     def run_array_scan(self):
