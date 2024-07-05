@@ -11,10 +11,7 @@ class ImageReconstruction:
         self.wl = 0.5
         self.resolution = self.wl / (2 * self.na)
         self.pixel_size = 0.063
-        # Gaussian kernel
         self.sigma = self.resolution / (2 * np.sqrt(2 * np.log(2)))
-        self.threshold = 0.5
-        self.kernel_size = 6 * int(self.sigma) + 1
 
     def load_data(self, fd):
         self.data_stack = tf.imread(fd)
@@ -33,9 +30,9 @@ class ImageReconstruction:
         self.x_centers = np.arange(self.range_x_um[0], self.range_x_um[1], self.period_x_um)
         self.y_centers = np.arange(self.range_y_um[0], self.range_y_um[1], self.period_y_um)
 
-    def create_gaussian_1d_array(self, x=True):
+    def create_gaussian_1d_array(self, x_=True):
         array = np.zeros((self.ny, self.nx))
-        if x:
+        if x_:
             for x_center in self.x_centers:
                 array += self.gaussian_1d(self.xv, x_center, self.sigma)
         else:
@@ -49,6 +46,12 @@ class ImageReconstruction:
             for y_center in self.y_centers:
                 array += self.gaussian_2d(self.xv, self.yv, x_center, y_center, self.sigma)
         return array
+
+    def apply_gaussian(self, stack):
+        mask = self.create_gaussian_2d_array()
+        assert stack.shape[1:] == mask.shape, "Gaussian mask shape must match the shape of each 2D slice in the stack"
+        masked_stack = stack * mask[np.newaxis, :, :]
+        return masked_stack
 
     def stack_subarray(self, array_stack):
         subarray_stack = []
@@ -69,7 +72,8 @@ class ImageReconstruction:
 
     def get_result(self, substack):
         assert substack.shape == (
-        self.x_centers.shape[0] * self.y_centers.shape[0], self.step_y, self.step_x), f"Input stack has the wrong shape"
+            self.x_centers.shape[0] * self.y_centers.shape[0], self.step_y,
+            self.step_x), f"Input stack has the wrong shape"
         reshaped_stack = substack.reshape(self.y_centers.shape[0], self.x_centers.shape[0], self.step_y, self.step_x)
         transposed_stack = reshaped_stack.transpose(0, 2, 1, 3)
         tiled_array = transposed_stack.reshape(self.y_centers.shape[0] * self.step_y,
@@ -114,6 +118,7 @@ class ImageReconstruction:
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
+
     r = ImageReconstruction()
     r.pixel_size = 0.0785
     r.load_data(r"C:\Users\ruizhe.lin\Desktop\20240605223219_dot_scanning_crop.tif")
