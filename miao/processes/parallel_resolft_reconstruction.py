@@ -19,13 +19,9 @@ class ImageReconstruction:
     def load_data(self, fd):
         self.data_stack = tf.imread(fd)
         self.n, self.ny, self.nx = self.data_stack.shape
-        self.dfx, self.dfy = 1 / (self.nx * self.pixel_size), 1 / (self.ny * self.pixel_size)
-        self.rbx, self.rby = (self.na / self.wl) / self.dfx, (self.na / self.wl) / self.dfy
-        x = np.linspace(0, self.nx - 1, self.nx)
-        y = np.linspace(0, self.ny - 1, self.ny)
-        xv, yv = np.meshgrid(x, y)
-        self.xv = self.pixel_size * xv
-        self.yv = self.pixel_size * yv
+        self.xv, self.yv = np.meshgrid(np.linspace(0, self.nx - 1, self.nx), np.linspace(0, self.ny - 1, self.ny))
+        self.xv = self.pixel_size * self.xv
+        self.yv = self.pixel_size * self.yv
 
     def set_scanning_parameters(self, step_nums=(32, 32)):
         assert step_nums[0] * step_nums[1] == self.n, f"Scanning step numbers does not match the data size"
@@ -117,4 +113,16 @@ class ImageReconstruction:
 
 
 if __name__ == "__main__":
-    pass
+    import matplotlib.pyplot as plt
+    r = ImageReconstruction()
+    r.pixel_size = 0.0785
+    r.load_data(r"C:\Users\ruizhe.lin\Desktop\20240605223219_dot_scanning_crop.tif")
+    r.set_focal_parameters(periods=(0.821, 0.8), ranges=((0.12, r.nx * r.pixel_size), (0.5, r.ny * r.pixel_size)))
+    x = np.repeat(r.x_centers, r.y_centers.shape[0])
+    y = np.tile(r.y_centers, r.x_centers.shape[0])
+    data_avg = np.average(r.data_stack, axis=0)
+    plt.figure()
+    plt.imshow(data_avg, interpolation='none', vmin=data_avg.min(), vmax=data_avg.max(),
+               extent=(0., r.nx * r.pixel_size, 0., r.ny * r.pixel_size))
+    plt.scatter(x, y, marker='.', c='r')
+    plt.show()
