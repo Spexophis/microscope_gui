@@ -16,8 +16,8 @@ class TriggerSequence:
             self.exposure_time = self.exposure_samples / self.sample_rate
             # piezo scanner
             self.piezo_conv_factors = [10., 10., 10.]
-            self.piezo_steps = [0.03, 0.03, 0.15]
-            self.piezo_ranges = [0.12, 0.12, 0.0]
+            self.piezo_steps = [0.025, 0.025, 0.15]
+            self.piezo_ranges = [0.4, 0.4, 0.0]
             self.piezo_positions = [50., 50., 50.]
             self.piezo_return_time = 0.08
             self.return_samples = int(np.ceil(self.piezo_return_time * self.sample_rate))
@@ -30,8 +30,8 @@ class TriggerSequence:
             self.piezo_starts = [i - j for i, j in zip(self.piezo_positions, [k / 2 for k in self.piezo_ranges])]
             self.piezo_scan_pos = [int(np.ceil(safe_divide(scan_range, scan_step))) for scan_range, scan_step in
                                    zip(self.piezo_ranges, self.piezo_steps)]
-            self.piezo_scan_positions = [np.arange(start, start + range_, step) for start, range_, step in
-                                         zip(self.piezo_starts, self.piezo_ranges, self.piezo_steps)]
+            self.piezo_scan_positions = [start + step * np.arange(ns) for start, step, ns in
+                                         zip(self.piezo_starts, self.piezo_steps, self.piezo_scan_pos)]
             # galvo switcher
             self.galvo_sw_settle = 0.0025  # s
             self.galvo_sw_settle_samples = int(np.ceil(self.galvo_sw_settle * self.sample_rate))
@@ -114,8 +114,8 @@ class TriggerSequence:
             self.piezo_starts = [i - j for i, j in zip(self.piezo_positions, [k / 2 for k in self.piezo_ranges])]
             self.piezo_scan_pos = [int(np.ceil(safe_divide(scan_range, scan_step))) for scan_range, scan_step in
                                    zip(self.piezo_ranges, self.piezo_steps)]
-            self.piezo_scan_positions = [np.arange(start, start + range_, step) for start, range_, step in
-                                         zip(self.piezo_starts, self.piezo_ranges, self.piezo_steps)]
+            self.piezo_scan_positions = [start + step * np.arange(ns) for start, step, ns in
+                                         zip(self.piezo_starts, self.piezo_steps, self.piezo_scan_pos)]
         except ValueError:
             for attr, value in original_values.items():
                 setattr(self, attr, value)
