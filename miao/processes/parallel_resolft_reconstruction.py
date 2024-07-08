@@ -30,6 +30,15 @@ class ImageReconstruction:
         self.x_centers = np.arange(self.range_x_um[0], self.range_x_um[1], self.period_x_um)
         self.y_centers = np.arange(self.range_y_um[0], self.range_y_um[1], self.period_y_um)
 
+    def generate_center_array(self):
+        center_array = np.zeros_like(self.xv)
+        for xc in self.x_centers:
+            for yc in self.y_centers:
+                x_idx = (np.abs(self.xv[0, :] - xc)).argmin()
+                y_idx = (np.abs(self.yv[:, 0] - yc)).argmin()
+                center_array[y_idx, x_idx] = 1
+        return center_array
+
     def create_gaussian_1d_array(self, x_=True):
         array = np.zeros((self.ny, self.nx))
         if x_:
@@ -55,12 +64,12 @@ class ImageReconstruction:
 
     def stack_subarray(self, array_stack):
         subarray_stack = []
-        for x_center in self.x_centers:
-            for y_center in self.y_centers:
-                x_start = max(0, x_center - self.period_x / 2)
-                y_start = max(0, y_center - self.period_y / 2)
-                x_end = min(self.nx * self.pixel_size, x_start + self.period_x)
-                y_end = min(self.ny * self.pixel_size, y_start + self.period_y)
+        for y_center in self.y_centers:
+            for x_center in self.x_centers:
+                x_start = max(0, x_center - self.period_x_um / 2)
+                y_start = max(0, y_center - self.period_y_um / 2)
+                x_end = min(self.nx * self.pixel_size, x_start + self.period_x_um)
+                y_end = min(self.ny * self.pixel_size, y_start + self.period_y_um)
                 x_start = int(x_start / self.pixel_size)
                 y_start = int(y_start / self.pixel_size)
                 x_end = int(x_end / self.pixel_size)
@@ -68,7 +77,7 @@ class ImageReconstruction:
                 subarray = array_stack[:, y_start:y_end, x_start:x_end]
                 subarray = np.sum(subarray, axis=(1, 2)).reshape(self.step_y, self.step_x)
                 subarray_stack.append(subarray)
-        return subarray_stack
+        return np.asarray(subarray_stack)
 
     def get_result(self, substack):
         assert substack.shape == (
@@ -102,16 +111,16 @@ class ImageReconstruction:
         return periods, normalized_spectrum, sorted_peaks[1:5]
 
     @staticmethod
-    def gaussian_1d(x, mu_x, sigma):
-        g = np.exp(-((x - mu_x) ** 2) / (2 * sigma ** 2))
-        msk = ((x - mu_x) ** 2) / (2 * sigma ** 2)
+    def gaussian_1d(x_, mu_x, sigma):
+        g = np.exp(-((x_ - mu_x) ** 2) / (2 * sigma ** 2))
+        msk = ((x_ - mu_x) ** 2) / (2 * sigma ** 2)
         msk = msk <= 1.
         return g * msk
 
     @staticmethod
-    def gaussian_2d(x, y, mu_x, mu_y, sigma):
-        g = np.exp(-((x - mu_x) ** 2 + (y - mu_y) ** 2) / (2 * sigma ** 2))
-        msk = ((x - mu_x) ** 2 + (y - mu_y) ** 2) / (2 * sigma ** 2)
+    def gaussian_2d(x_, y_, mu_x, mu_y, sigma):
+        g = np.exp(-((x_ - mu_x) ** 2 + (y_ - mu_y) ** 2) / (2 * sigma ** 2))
+        msk = ((x_ - mu_x) ** 2 + (y_ - mu_y) ** 2) / (2 * sigma ** 2)
         msk = msk <= 1.
         return g * msk
 
@@ -123,11 +132,9 @@ if __name__ == "__main__":
     r.pixel_size = 0.0785
     r.load_data(r"C:\Users\ruizhe.lin\Desktop\20240605223219_dot_scanning_crop.tif")
     r.set_focal_parameters(periods=(0.821, 0.8), ranges=((0.12, r.nx * r.pixel_size), (0.5, r.ny * r.pixel_size)))
-    x = np.repeat(r.x_centers, r.y_centers.shape[0])
-    y = np.tile(r.y_centers, r.x_centers.shape[0])
+    array = r.generate_center_array()
     data_avg = np.average(r.data_stack, axis=0)
     plt.figure()
-    plt.imshow(data_avg, interpolation='none', vmin=data_avg.min(), vmax=data_avg.max(),
-               extent=(0., r.nx * r.pixel_size, 0., r.ny * r.pixel_size))
-    plt.scatter(x, y, marker='.', c='r')
-    plt.show()
+    plt.imshow(array, cmap='viridis', interpolation='none')
+    plt.imshow(data_avg, cmap='plasma', interpolation='none', alpha=0.4)
+    plt.show(block=False)
