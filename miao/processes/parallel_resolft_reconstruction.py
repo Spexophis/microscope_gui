@@ -133,14 +133,19 @@ class ImageReconstruction:
 
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
     r = ImageReconstruction()
     r.pixel_size = 0.0785
-    r.load_data(r"C:\Users\ruizhe.lin\Desktop\20240605223219_dot_scanning_crop.tif")
+    r.load_data(r"C:\Users\ruizhe.lin\Desktop\20240605215333_dot_scanning_crop.tif")
     r.set_scanning_parameters(step_nums=(31, 31))
     data_avg = np.average(r.data_stack, axis=0)
-    r.set_focal_parameters(periods=(0.813, 0.79), ranges=((0.18, r.nx * r.pixel_size), (-0.02, r.ny * r.pixel_size)))
+    r.set_focal_parameters(periods=(0.813, 0.79), ranges=((0.12, r.nx * r.pixel_size), (0.16, r.ny * r.pixel_size)))
+    array = r.generate_center_array()
+    plt.figure()
+    plt.imshow(array, cmap='viridis', interpolation='none')
+    plt.imshow(data_avg, cmap='plasma', interpolation='none', alpha=0.2)
+    plt.show(block=False)
     gd = r.apply_gaussian(r.data_stack)
-    result = []
     sub = r.stack_subarray(gd, direction=3)
-    result.append(r.get_result(np.asarray(sub)))
-    tf.imwrite(r'C:\Users\ruizhe.lin\Desktop\result_arrays.tif', np.asarray(result))
+    result = r.get_result(np.asarray(sub))
+    tf.imwrite(r'C:\Users\ruizhe.lin\Desktop\result_array.tif', result)
