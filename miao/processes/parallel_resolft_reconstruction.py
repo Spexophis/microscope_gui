@@ -12,6 +12,7 @@ class ImageReconstruction:
         self.resolution = self.wl / (2 * self.na)
         self.pixel_size = 0.063
         self.sigma = self.resolution / (2 * np.sqrt(2 * np.log(2)))
+        self.wd = 3
 
     def load_data(self, fd):
         self.data_stack = tf.imread(fd)
@@ -117,17 +118,15 @@ class ImageReconstruction:
             periods.append(period)
         return periods, normalized_spectrum, sorted_peaks[1:5]
 
-    @staticmethod
-    def gaussian_1d(x_, mu_x, sigma):
+    def gaussian_1d(self, x_, mu_x, sigma):
         g = np.exp(-((x_ - mu_x) ** 2) / (2 * sigma ** 2))
-        msk = ((x_ - mu_x) ** 2) / (2 * sigma ** 2)
+        msk = ((x_ - mu_x) ** 2) / (self.wd * sigma ** 2)
         msk = msk <= 1.
         return g * msk
 
-    @staticmethod
-    def gaussian_2d(x_, y_, mu_x, mu_y, sigma):
+    def gaussian_2d(self, x_, y_, mu_x, mu_y, sigma):
         g = np.exp(-((x_ - mu_x) ** 2 + (y_ - mu_y) ** 2) / (2 * sigma ** 2))
-        msk = ((x_ - mu_x) ** 2 + (y_ - mu_y) ** 2) / (2 * sigma ** 2)
+        msk = ((x_ - mu_x) ** 2 + (y_ - mu_y) ** 2) / (self.wd * sigma ** 2)
         msk = msk <= 1.
         return g * msk
 
@@ -140,9 +139,9 @@ if __name__ == "__main__":
     r.set_scanning_parameters(step_nums=(31, 31))
     data_avg = np.average(r.data_stack, axis=0)
     r.set_focal_parameters(periods=(0.813, 0.79), ranges=((0.12, r.nx * r.pixel_size), (0.16, r.ny * r.pixel_size)))
-    array = r.generate_center_array()
+    arr = r.generate_center_array()
     plt.figure()
-    plt.imshow(array, cmap='viridis', interpolation='none')
+    plt.imshow(arr, cmap='viridis', interpolation='none')
     plt.imshow(data_avg, cmap='plasma', interpolation='none', alpha=0.2)
     plt.show(block=False)
     gd = r.apply_gaussian(r.data_stack)
