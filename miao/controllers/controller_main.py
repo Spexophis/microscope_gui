@@ -9,10 +9,12 @@ from PyQt5 import QtCore
 
 from miao.controllers import controller_ao, controller_con, controller_view
 from miao.tools import tool_improc as ipr
+from miao.tools import tool_zernike as tz
 
 
 class MainController(QtCore.QObject):
     sada = QtCore.pyqtSignal(str, np.ndarray, list)
+    sazf = QtCore.pyqtSignal(list, np.ndarray)
 
     def __init__(self, view, module, process, config, logg, path, parent=None):
         super().__init__(parent)
@@ -74,6 +76,7 @@ class MainController(QtCore.QObject):
 
     def _set_signal_connections(self):
         self.sada.connect(self.save_data)
+        self.sazf.connect(self.save_zernike_coeffs)
         # MCL Piezo
         self.v.con_view.Signal_piezo_move.connect(self.set_piezo_positions)
         self.v.con_view.Signal_focus_finding.connect(self.run_focus_finding)
@@ -1071,9 +1074,11 @@ class MainController(QtCore.QObject):
         filename = self.v.get_file_dialog(sw="Open File")
         if filename is not None:
             try:
-                self.dfm.dm_cmd.append(self.dfm.read_cmd(filename))
-                self.dfm.set_dm(self.dfm.dm_cmd[-1])
+                self.dfm.read_cmd(filename)
                 self.logg.info('New DM cmd loaded')
+                self.v.ao_view.QComboBox_cmd.clear()
+                self.v.ao_view.QComboBox_cmd.addItems([str(i) for i in range(len(self.dfm.dm_cmd))])
+                self.v.ao_view.QComboBox_cmd.setCurrentIndex(self.dfm.current_cmd)
             except Exception as e:
                 self.logg.error(f"DM Error: {e}")
 
@@ -1194,7 +1199,18 @@ class MainController(QtCore.QObject):
         md = self.ao_controller.get_gradient_method_img()
         gradx, grady = self.p.shwfsr.get_gradient_xy(mtd=md)
         a = self.dfm.get_zernike_coffs(gradx, grady)
-        self.view_controller.plot_update(a)
+        self.view_controller.plot_update(a, x=np.asarray(tz.modes))
+        self.sazf.emit(tz.modes, a)
+
+    @QtCore.pyqtSlot(list, np.ndarray)
+    def save_zernike_coeffs(self, zdx: list, za: np.ndarray):
+        df = pd.DataFrame({'mods': zdx, 'amps': za})
+        fn = self.v.get_file_dialog()
+        if fn is not None:
+            file_path = fn + '_' + time.strftime("%Y%m%d%H%M%S")
+        else:
+            file_path = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S"))
+        df.to_excel(file_path + '_zernike_coefficients.xlsx', index=False)
 
     @QtCore.pyqtSlot()
     def save_img_wf(self):

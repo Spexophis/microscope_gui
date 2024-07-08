@@ -87,7 +87,7 @@ class DeformableMirror:
             self.logg.error(f"Error Loading DM {self.dm_name} modal control file: {e}")
         if hasattr(self, "initial_flat"):
             self.dm_cmd = [[0.] * self.n_actuator]
-            self.dm_cmd.append(self.read_cmd(self.initial_flat))
+            self.read_cmd(self.initial_flat)
             self.current_cmd = 1
             self.correction = []
             self.temp_cmd = []
@@ -197,10 +197,10 @@ class DeformableMirror:
     def cmd_add(cmd_0, cmd_1):
         return list(np.asarray(cmd_0) + np.asarray(cmd_1))
 
-    @staticmethod
-    def read_cmd(fnd):
-        df = pd.read_excel(fnd)
-        return df['Push'].tolist()
+    def read_cmd(self, fnd):
+        df = pd.read_excel(fnd, sheet_name=None)
+        for key, cmd in df.items():
+            self.dm_cmd.append(df[key]['Push'].tolist())
 
     def write_cmd(self, path, t, flatfile=False):
         if flatfile:

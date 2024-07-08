@@ -49,10 +49,11 @@ class AOController:
     def get_cmd_index(self):
         return self.v.QComboBox_cmd.currentText()
 
-    def update_cmd_index(self):
+    def update_cmd_index(self, wst=True):
         item = '{}'.format(self.v.QComboBox_cmd.count())
         self.v.QComboBox_cmd.addItem(item)
-        self.v.QComboBox_cmd.setCurrentIndex(self.v.QComboBox_cmd.count() - 1)
+        if wst:
+            self.v.QComboBox_cmd.setCurrentIndex(self.v.QComboBox_cmd.count() - 1)
 
     def get_file_name(self):
         return self.v.QLineEdit_filename.text()
