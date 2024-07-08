@@ -63,49 +63,56 @@ def plot_colortable(colors, *, ncols=4, sort_colors=True):
 # Read the Excel file
 file_path = r"C:\Users\Ruiz\Desktop\New folder\corr_1_20240708141707zernike_coefficients.xlsx"
 df = pd.read_excel(file_path)
-
-# Extract the data for plotting
 labels = df['mods']
 values = df['amps']
 str_labels = labels.astype(str)
-
 # Plot the bar graph
 plt.ion()
 plt.figure(figsize=(5, 3))  # High resolution
 plt.bar(str_labels, values, color='deepskyblue')
-# Display the plot
 plt.xlabel('Zernike Modes', fontsize=12)
 plt.ylabel('Amplitudes', fontsize=12)
 plt.grid(True, linestyle='--', linewidth=0.4)
 plt.xticks(rotation=45, ha='center', fontsize=10)
-# Tight layout for better spacing
 plt.tight_layout()
-# Save the figure
-plt.savefig(r'C:\Users\Ruiz\Desktop\New folder\zernike_coefficients_c_1.png', dpi=600)  # High-resolution output
+plt.savefig(r'C:\Users\Ruiz\Desktop\New folder\zernike_coefficients_c_1.png', dpi=600)
 plt.show()
 
 # Read the Excel file
 file_path = r"C:\Users\Ruiz\Desktop\New folder\corr_2_20240708141822zernike_coefficients.xlsx"
 df = pd.read_excel(file_path)
-
-# Extract the data for plotting
 labels = df['mods']
 values = df['amps']
 str_labels = labels.astype(str)
-
 # Plot the bar graph
 plt.ion()
 plt.figure(figsize=(5, 3))  # High resolution
 plt.bar(str_labels, values, color='deepskyblue')
-# Display the plot
 plt.xlabel('Zernike Modes', fontsize=12)
 plt.ylabel('Amplitudes', fontsize=12)
 plt.grid(True, linestyle='--', linewidth=0.4)
 plt.xticks(rotation=45, ha='center', fontsize=10)
-# Tight layout for better spacing
 plt.tight_layout()
-# Save the figure
-plt.savefig(r'C:\Users\Ruiz\Desktop\New folder\zernike_coefficients_c_2.png', dpi=600)  # High-resolution output
+plt.savefig(r'C:\Users\Ruiz\Desktop\New folder\zernike_coefficients_c_2.png', dpi=600)
 plt.show()
 
 
+# Read the Excel file
+file_path = r"C:\Users\Ruiz\Desktop\New folder\fwhms.xlsx"
+df = pd.read_excel(file_path)
+labels = df['x']
+values = df['w AO']
+values_2 = df['w/o AO']
+# Plot the profile graph
+plt.ion()
+plt.figure(figsize=(5, 3))
+plt.plot(labels/1000 - 0.5*labels.max()/1000, values, label="w AO")
+plt.plot(labels/1000 - 0.5*labels.max()/1000, values_2, label="w/o AO")
+plt.xlabel(r'x / $\mu$m', fontsize=12)
+plt.ylabel('Intensity', fontsize=12)
+plt.grid(True, linestyle='--', linewidth=0.4)
+plt.xticks(ha='center', fontsize=10)
+plt.legend()
+plt.tight_layout()
+plt.savefig(r'C:\Users\Ruiz\Desktop\New folder\fwhm.png', dpi=600)
+plt.show()
