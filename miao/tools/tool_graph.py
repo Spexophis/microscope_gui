@@ -103,16 +103,17 @@ df = pd.read_excel(file_path)
 labels = df['x']
 values = df['w AO']
 values_2 = df['w/o AO']
+adjusted_labels = labels / 1000 - 0.5 * labels.max() / 1000
 # Plot the profile graph
 plt.ion()
 plt.figure(figsize=(5, 3))
-plt.plot(labels/1000 - 0.5*labels.max()/1000, values, label="w AO")
-plt.plot(labels/1000 - 0.5*labels.max()/1000, values_2, label="w/o AO")
+plt.plot(adjusted_labels, values, label="w AO", linewidth=2, linestyle='-', marker='o', markersize=5)
+plt.plot(adjusted_labels, values_2, label="w/o AO", linewidth=2, linestyle='--', marker='s', markersize=5)
 plt.xlabel(r'x / $\mu$m', fontsize=12)
 plt.ylabel('Intensity', fontsize=12)
-plt.grid(True, linestyle='--', linewidth=0.4)
+plt.grid(True, linestyle='--', linewidth=0.4, alpha=0.7)
 plt.xticks(ha='center', fontsize=10)
-plt.legend()
+plt.legend(fontsize=12, loc='best')
 plt.tight_layout()
 plt.savefig(r'C:\Users\Ruiz\Desktop\New folder\fwhm.png', dpi=600)
 plt.show()
