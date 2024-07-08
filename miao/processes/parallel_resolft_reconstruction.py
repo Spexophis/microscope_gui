@@ -62,7 +62,7 @@ class ImageReconstruction:
         masked_stack = stack * mask[np.newaxis, :, :]
         return masked_stack
 
-    def stack_subarray(self, array_stack):
+    def stack_subarray(self, array_stack, direction=0):
         subarray_stack = []
         for y_center in self.y_centers:
             for x_center in self.x_centers:
@@ -76,7 +76,14 @@ class ImageReconstruction:
                 y_end = int(y_end / self.pixel_size)
                 subarray = array_stack[:, y_start:y_end, x_start:x_end]
                 subarray = np.sum(subarray, axis=(1, 2)).reshape(self.step_y, self.step_x)
-                subarray_stack.append(subarray)
+                if direction == 0:
+                    subarray_stack.append(subarray)
+                elif direction == 1:
+                    subarray_stack.append(np.transpose(subarray)[::-1])
+                elif direction == 2:
+                    subarray_stack.append(np.transpose(subarray[::-1]))
+                elif direction == 3:
+                    subarray_stack.append(subarray[::-1, ::-1])
         return np.asarray(subarray_stack)
 
     def get_result(self, substack):
