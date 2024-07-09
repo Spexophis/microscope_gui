@@ -12,7 +12,7 @@ class ImageReconstruction:
         self.resolution = self.wl / (2 * self.na)
         self.pixel_size = 0.063
         self.sigma = self.resolution / (2 * np.sqrt(2 * np.log(2)))
-        self.wd = 3
+        self.wd = 2
 
     def load_data(self, fd):
         self.data_stack = tf.imread(fd)
@@ -147,4 +147,4 @@ if __name__ == "__main__":
     gd = r.apply_gaussian(r.data_stack)
     sub = r.stack_subarray(gd, direction=3)
     result = r.get_result(np.asarray(sub))
-    tf.imwrite(r'C:\Users\ruizhe.lin\Desktop\result_array.tif', result)
+    tf.imwrite(r'C:\Users\ruizhe.lin\Desktop\result_image.tif', result)
