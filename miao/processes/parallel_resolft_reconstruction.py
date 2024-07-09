@@ -10,16 +10,29 @@ class ImageReconstruction:
         self.na = 1.4
         self.wl = 0.5
         self.resolution = self.wl / (2 * self.na)
-        self.pixel_size = 0.063
+        self.pixel_size_x = 0.063
+        self.pixel_size_y = 0.063
         self.sigma = self.resolution / (2 * np.sqrt(2 * np.log(2)))
         self.wd = 2
 
     def load_data(self, fd):
-        self.data_stack = tf.imread(fd)
+        data = tf.TiffFile(fd)
+        self.data_stack = data.asarray()
+        page = data.pages[0]
+        x_resolution = page.tags.get('XResolution')
+        y_resolution = page.tags.get('YResolution')
+        if x_resolution is not None and y_resolution is not None:
+            x_res_value = x_resolution.value[0] / x_resolution.value[1]
+            y_res_value = y_resolution.value[0] / y_resolution.value[1]
+            factor = 10.0 ** 4
+            self.pixel_size_x = int(factor / x_res_value) / factor
+            self.pixel_size_y = int(factor / y_res_value) / factor
+
+    def generate_coordinates(self):
         self.n, self.ny, self.nx = self.data_stack.shape
         self.xv, self.yv = np.meshgrid(np.linspace(0, self.nx - 1, self.nx), np.linspace(0, self.ny - 1, self.ny))
-        self.xv = self.pixel_size * self.xv
-        self.yv = self.pixel_size * self.yv
+        self.xv = self.pixel_size_x * self.xv
+        self.yv = self.pixel_size_y * self.yv
 
     def set_scanning_parameters(self, step_nums=(32, 32)):
         assert step_nums[0] * step_nums[1] == self.n, f"Scanning step numbers does not match the data size"
@@ -69,12 +82,12 @@ class ImageReconstruction:
             for x_center in self.x_centers:
                 x_start = max(0, x_center - self.period_x_um / 2)
                 y_start = max(0, y_center - self.period_y_um / 2)
-                x_end = min(self.nx * self.pixel_size, x_start + self.period_x_um)
-                y_end = min(self.ny * self.pixel_size, y_start + self.period_y_um)
-                x_start = int(x_start / self.pixel_size)
-                y_start = int(y_start / self.pixel_size)
-                x_end = int(x_end / self.pixel_size)
-                y_end = int(y_end / self.pixel_size)
+                x_end = min(self.nx * self.pixel_size_x, x_start + self.period_x_um)
+                y_end = min(self.ny * self.pixel_size_y, y_start + self.period_y_um)
+                x_start = int(x_start / self.pixel_size_x)
+                y_start = int(y_start / self.pixel_size_y)
+                x_end = int(x_end / self.pixel_size_x)
+                y_end = int(y_end / self.pixel_size_y)
                 subarray = array_stack[:, y_start:y_end, x_start:x_end]
                 subarray = np.sum(subarray, axis=(1, 2)).reshape(self.step_y, self.step_x)
                 if direction == 0:
@@ -114,7 +127,7 @@ class ImageReconstruction:
         periods = []
         for peak in sorted_peaks[1:5]:  # Consider the two most prominent peaks
             distance = np.sqrt((peak[0] - center[0]) ** 2 + (peak[1] - center[1]) ** 2)
-            period = (image.shape[0] / distance) * self.pixel_size
+            period = (image.shape[0] / distance) * self.pixel_size_x
             periods.append(period)
         return periods, normalized_spectrum, sorted_peaks[1:5]
 
@@ -134,16 +147,18 @@ class ImageReconstruction:
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     r = ImageReconstruction()
-    r.pixel_size = 0.0785
+    r.pixel_size_x = 0.0785
+    r.pixel_size_y = 0.0785
     r.load_data(r"C:\Users\ruizhe.lin\Desktop\20240605215333_dot_scanning_crop.tif")
+    r.generate_coordinates()
     r.set_scanning_parameters(step_nums=(31, 31))
     data_avg = np.average(r.data_stack, axis=0)
-    r.set_focal_parameters(periods=(0.813, 0.79), ranges=((0.12, r.nx * r.pixel_size), (0.16, r.ny * r.pixel_size)))
+    r.set_focal_parameters(periods=(0.82, 0.79), ranges=((0.124, r.nx * r.pixel_size_x), (0.16, r.ny * r.pixel_size_y)))
     arr = r.generate_center_array()
     plt.figure()
     plt.imshow(arr, cmap='viridis', interpolation='none')
     plt.imshow(data_avg, cmap='plasma', interpolation='none', alpha=0.2)
-    plt.show(block=False)
+    plt.savefig(r'C:\Users\ruizhe.lin\Desktop\alignment.png', dpi=600)
     gd = r.apply_gaussian(r.data_stack)
     sub = r.stack_subarray(gd, direction=3)
     result = r.get_result(np.asarray(sub))
