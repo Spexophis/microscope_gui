@@ -3,7 +3,8 @@ import math
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import matplotlib
-
+from miao.tools import tool_zernike
+import numpy as np
 matplotlib.use('Qt5Agg')
 
 
@@ -95,6 +96,15 @@ plt.xticks(rotation=45, ha='center', fontsize=10)
 plt.tight_layout()
 plt.savefig(r'C:\Users\Ruiz\Desktop\New folder\zernike_coefficients_c_2.png', dpi=600)
 plt.show()
+# Plot the wavefront
+zernike = tool_zernike.zernike_polynomials(size=[512, 512])
+wf = np.zeros((512, 512))
+for i in range(16):
+    wf += values[i] * zernike[i]
+plt.ion()
+plt.figure(figsize=(5, 5))
+plt.imshow(wf, interpolation='none')
+plt.show(block=False)
 
 
 # Read the Excel file
