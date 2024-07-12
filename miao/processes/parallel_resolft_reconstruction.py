@@ -1,6 +1,7 @@
 import numpy as np
 import tifffile as tf
 from numpy.fft import fft2, fftshift
+from scipy.ndimage import convolve
 from skimage.feature import peak_local_max
 
 
@@ -146,6 +147,7 @@ class ImageReconstruction:
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
+
     r = ImageReconstruction()
     r.pixel_size_x = 0.0785
     r.pixel_size_y = 0.0785
@@ -153,7 +155,11 @@ if __name__ == "__main__":
     r.generate_coordinates()
     r.set_scanning_parameters(step_nums=(31, 31))
     data_avg = np.average(r.data_stack, axis=0)
-    r.set_focal_parameters(periods=(0.82, 0.79), ranges=((0.124, r.nx * r.pixel_size_x), (0.16, r.ny * r.pixel_size_y)))
+    kernel = - np.ones((5, 5))
+    kernel[2, 2] = 25
+    convolved_image = convolve(data_avg, kernel)
+    r.set_focal_parameters(periods=(0.816, 0.794),
+                           ranges=((0.10, r.nx * r.pixel_size_x), (0.11, r.ny * r.pixel_size_y)))
     arr = r.generate_center_array()
     plt.figure()
     plt.imshow(arr, cmap='viridis', interpolation='none')
