@@ -144,6 +144,15 @@ class ImageReconstruction:
         msk = msk <= 1.
         return g * msk
 
+    def fft_frequency_map(self):
+        rows, cols = self.ny, self.nx
+        freq_x = np.fft.fftfreq(cols, self.pixel_size_x)
+        freq_y = np.fft.fftfreq(rows, self.pixel_size_y)
+        fx, fy = np.meshgrid(freq_x, freq_y)
+        fxy = np.sqrt(fx ** 2 + fy ** 2)
+        frequency_map = np.divide(1.0, fxy, where=fxy != 0, out=np.zeros_like(fxy))
+        return frequency_map
+
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
