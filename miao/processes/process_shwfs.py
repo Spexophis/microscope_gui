@@ -16,17 +16,17 @@ class WavefrontSensing:
 
     def __init__(self, logg=None):
         self.logg = logg or self.setup_logging()
-        self.n_lenslets_x = 16
-        self.n_lenslets_y = 16
+        self.n_lenslets_x = 18
+        self.n_lenslets_y = 18
         self.n_lenslets = self.n_lenslets_x * self.n_lenslets_y
-        self.x_center_base = 1385
-        self.y_center_base = 1097
-        self.x_center_offset = 1385
-        self.y_center_offset = 1097
-        self.lenslet_spacing = 24  # spacing between each lenslet
-        self.hsp = 12  # size of subimage is 2 * hsp
+        self.x_center_base = 1231
+        self.y_center_base = 926
+        self.x_center_offset = 1231
+        self.y_center_offset = 926
+        self.lenslet_spacing = 23  # spacing between each lenslet
+        self.hsp = 16  # size of subimage is 2 * hsp
         self.bg = 0.1
-        self.pixel_size = .00345  # mm
+        self.pixel_size = .0065  # mm
         self.calfactor = (self.pixel_size / 5.2) * 150  # pixel size * focalLength * pitch
         self.method = 'correlation'
         self.mag = 1

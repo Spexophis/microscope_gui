@@ -365,18 +365,17 @@ class MainController(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def update_galvo_scanner(self):
-        galvo_positions, [galvo_ranges, dot_ranges], dot_pos = self.con_controller.get_galvo_scan_parameters()
-        self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions, ranges=[galvo_ranges, dot_ranges],
-                                                    foci=dot_pos)
+        galvo_positions, galvo_ranges, dot_pos, sws = self.con_controller.get_galvo_scan_parameters()
+        self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions, ranges=galvo_ranges, foci=dot_pos, sws=sws)
         self.con_controller.display_frequency(self.p.trigger.frequency)
 
     def update_trigger_parameters(self, cam_key):
         try:
             digital_starts, digital_ends = self.con_controller.get_digital_parameters()
             self.p.trigger.update_digital_parameters(digital_starts, digital_ends)
-            galvo_positions, [galvo_ranges, dot_ranges], dot_pos = self.con_controller.get_galvo_scan_parameters()
-            self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions, ranges=[galvo_ranges, dot_ranges],
-                                                        foci=dot_pos)
+            galvo_positions, galvo_ranges, dot_pos, sws = self.con_controller.get_galvo_scan_parameters()
+            self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions, ranges=galvo_ranges, foci=dot_pos,
+                                                        sws=sws)
             self.con_controller.display_frequency(self.p.trigger.frequency)
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             positions = self.con_controller.get_piezo_positions()
@@ -403,9 +402,9 @@ class MainController(QtCore.QObject):
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
         self.update_trigger_parameters("imaging")
         if vd_mod == "Wide Field":
+            self.set_switch(self.p.trigger.galvo_sw_states[self.cameras["imaging"]])
             dtr, sw, chs = self.p.trigger.generate_digital_triggers(self.lasers, self.cameras["imaging"])
-            self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2],
-                                      digital_sequences=dtr, digital_channels=chs, finite=False)
+            self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs, finite=False)
             self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
         elif vd_mod == "Dot Scan":
             dtr, gtr, chs = self.p.trigger.generate_digital_scanning_triggers(self.lasers, self.cameras["imaging"])
@@ -618,12 +617,13 @@ class MainController(QtCore.QObject):
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
         self.update_trigger_parameters("imaging")
+        self.set_switch(self.p.trigger.galvo_sw_states[self.cameras["imaging"]])
         dtr, sw, pz, dch, pos = self.p.trigger.generate_widefield_zstack_triggers(self.lasers, self.cameras["imaging"])
-        self.set_piezo_position_z(pz[0])
+        self.set_piezo_position_z(pz[0] * 10)
         self.m.cam_set[self.cameras["imaging"]].acq_num = pos
         self.m.cam_set[self.cameras["imaging"]].prepare_data_acquisition()
-        self.m.daq.write_triggers(piezo_sequences=pz, piezo_channels=[2], galvo_sequences=sw, galvo_channels=[2],
-                                  digital_sequences=dtr, digital_channels=dch, finite=True)
+        self.m.daq.write_triggers(piezo_sequences=pz, piezo_channels=[2], digital_sequences=dtr, digital_channels=dch,
+                                  finite=True)
         self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
 
     def widefield_zstack(self):
@@ -665,7 +665,8 @@ class MainController(QtCore.QObject):
         self.set_camera_roi("imaging")
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
         dtr, sw, dch = self.generate_live_triggers("imaging")
-        self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=dch, galvo_sequences=sw, galvo_channels=[2])
+        self.set_switch(self.p.trigger.galvo_sw_states[self.cameras["imaging"]])
+        self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=dch)
         self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
         self.m.cam_set[self.cameras["focus_lock"]].set_exposure(self.con_controller.get_tis_expo())
         self.m.cam_set[self.cameras["focus_lock"]].prepare_live()
@@ -837,9 +838,9 @@ class MainController(QtCore.QObject):
             self.set_camera_roi("imaging")
             self.m.cam_set[self.cameras["imaging"]].prepare_live()
             self.update_trigger_parameters("imaging")
+            self.set_switch(self.p.trigger.galvo_sw_states[self.cameras["imaging"]])
             dtr, sw, chs = self.p.trigger.generate_digital_triggers(self.lasers, self.cameras["imaging"])
-            self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2],
-                                      digital_sequences=dtr, digital_channels=chs, finite=True)
+            self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs, finite=True)
             self.m.cam_set[self.cameras["imaging"]].start_live()
             time.sleep(0.1)
             data = []
@@ -1114,15 +1115,8 @@ class MainController(QtCore.QObject):
         self.set_img_wfs(self.cameras["wfs"])
         self.update_trigger_parameters("wfs")
         dtr, sw, chs = self.p.trigger.generate_digital_triggers(self.lasers, self.cameras["wfs"])
-        if self.cameras["wfs"] == 2:
-            self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs, finite=False)
-        elif self.cameras["wfs"] == 1:
-            self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2],
-                                      digital_sequences=dtr, digital_channels=chs, finite=False)
-        else:
-            self.m.cam_set[self.cameras["wfs"]].stop_live()
-            self.lasers_off()
-            raise ValueError("Invalid wfs selection")
+        self.set_switch(self.p.trigger.galvo_sw_states[self.cameras["wfs"]])
+        self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs, finite=False)
 
     def start_img_wfs(self):
         try:
@@ -1245,16 +1239,9 @@ class MainController(QtCore.QObject):
         self.set_img_wfs(self.cameras["wfs"])
         self.update_trigger_parameters("wfs")
         wfs = self.ao_controller.get_dm_selection()
+        self.set_switch(self.p.trigger.galvo_sw_states[self.cameras["wfs"]])
         dtr, sw, chs = self.p.trigger.generate_digital_triggers(self.lasers, self.cameras["wfs"])
-        if wfs == "ALPAO DM97":
-            self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs)
-        elif wfs == "ALPAO DM69":
-            self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2],
-                                      digital_sequences=dtr, digital_channels=chs)
-        else:
-            self.m.cam_set[self.cameras["wfs"]].stop_live()
-            self.lasers_off()
-            raise ValueError("Invalid wfs selection")
+        self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs)
 
     def influence_function(self):
         try:
@@ -1342,16 +1329,9 @@ class MainController(QtCore.QObject):
         self.set_img_wfs(self.cameras["wfs"])
         self.update_trigger_parameters("wfs")
         self.dfm.ctrl.reset_control()
+        self.set_switch(self.p.trigger.galvo_sw_states[self.cameras["wfs"]])
         dtr, sw, chs = self.p.trigger.generate_digital_triggers(self.lasers, self.cameras["wfs"])
-        if self.cameras["wfs"] == 2:
-            self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs, finite=True)
-        elif self.cameras["wfs"] == 1:
-            self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2],
-                                      digital_sequences=dtr, digital_channels=chs, finite=True)
-        else:
-            self.m.cam_set[self.cameras["wfs"]].stop_live()
-            self.lasers_off()
-            raise ValueError("Invalid wfs selection")
+        self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs, finite=True)
 
     def close_loop_correction(self):
         try:
@@ -1526,16 +1506,9 @@ class MainController(QtCore.QObject):
         self.m.cam_set[self.cameras["wfs"]].prepare_live()
         self.set_img_wfs(self.cameras["wfs"])
         self.update_trigger_parameters("wfs")
+        self.set_switch(self.p.trigger.galvo_sw_states[self.cameras["wfs"]])
         dtr, sw, chs = self.p.trigger.generate_digital_triggers(self.lasers, self.cameras["wfs"])
-        if self.cameras["wfs"] == 2:
-            self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs, finite=True)
-        elif self.cameras["wfs"] == 1:
-            self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2],
-                                      digital_sequences=dtr, digital_channels=chs, finite=True)
-        else:
-            self.m.cam_set[self.cameras["wfs"]].stop_live()
-            self.lasers_off()
-            raise ValueError("Invalid wfs selection")
+        self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs, finite=True)
 
     def shwfs_acquisition(self):
         try:

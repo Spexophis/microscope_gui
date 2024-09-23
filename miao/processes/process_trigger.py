@@ -35,7 +35,7 @@ class TriggerSequence:
             # galvo switcher
             self.galvo_sw_settle = 0.0025  # s
             self.galvo_sw_settle_samples = int(np.ceil(self.galvo_sw_settle * self.sample_rate))
-            self.galvo_sw_states = [0., 5., -5.]
+            self.galvo_sw_states = [5., -2., 0.]
             # galvo scanner
             self.galvo_origins = [0.0, 0.0]  # V
             self.galvo_ranges = [1.0, 1.0]  # V
@@ -122,7 +122,7 @@ class TriggerSequence:
             self.logg.info("Piezo scanning parameters reverted to original values.")
             return
 
-    def update_galvo_scan_parameters(self, origins=None, ranges=None, foci=None):
+    def update_galvo_scan_parameters(self, origins=None, ranges=None, foci=None, sws=None):
         original_values = {
             "frequency": self.frequency,
             "galvo_origins": self.galvo_origins,
@@ -137,7 +137,8 @@ class TriggerSequence:
             "dot_pos": self.dot_pos,
             "samples_low": self.samples_low,
             "samples_delay": self.samples_delay,
-            "samples_offset": self.samples_offset
+            "samples_offset": self.samples_offset,
+            "galvo_sw_states ": self.galvo_sw_states
         }
         try:
             if origins is not None:
@@ -159,6 +160,7 @@ class TriggerSequence:
             self.frequency = int(self.sample_rate / self.ramp_up_samples)  # Hz
             self.samples_delay = int(np.abs(self.dot_starts[0] - self.galvo_starts[0]) / self.up_rate)
             self.samples_offset = self.ramp_up_samples - self.samples_delay - self.dot_step_s * self.dot_pos.size
+            self.galvo_sw_states = sws
             if self.samples_offset < 0:
                 self.logg.error("Invalid parameter combination leading to negative samples_offset.")
                 raise ValueError("Invalid Galvo scanning parameters.")
@@ -187,12 +189,7 @@ class TriggerSequence:
             self.cycle_time = cycle_time
 
     def generate_digital_triggers(self, lasers, camera):
-        if camera == 0:
-            cam_sw = 5.
-        elif camera == 1:
-            cam_sw = -5.
-        else:
-            cam_sw = 0.
+        cam_sw = self.galvo_sw_states[camera]
         cam_ind = camera + 4
         lasers = lasers.copy()
         interval_samples = max(self.initial_samples, self.galvo_sw_settle_samples)
@@ -221,12 +218,7 @@ class TriggerSequence:
         return digital_trigger, switch_trigger, lasers
 
     def generate_widefield_zstack_triggers(self, lasers, camera):
-        if camera == 0:
-            cam_sw = 5.
-        elif camera == 1:
-            cam_sw = -5.
-        else:
-            cam_sw = 0.
+        cam_sw = self.galvo_sw_states[camera]
         cam_ind = camera + 4
         lasers = lasers.copy()
         interval_samples = max(self.initial_samples, self.galvo_sw_settle_samples)
@@ -262,12 +254,7 @@ class TriggerSequence:
         return np.asarray(digital_sequences), switch_trigger, piezo_sequence, lasers, self.piezo_scan_pos[2]
 
     def generate_digital_scanning_triggers(self, lasers, camera):
-        if camera == 0:
-            cam_sw = 5.
-        elif camera == 1:
-            cam_sw = -5.
-        else:
-            cam_sw = 0.
+        cam_sw = self.galvo_sw_states[camera]
         cam_ind = camera + 4
         lasers = lasers.copy()
         ramp_down = np.linspace(self.ramp_up[-1], self.ramp_up[0], num=self.ramp_down_samples, endpoint=True)
@@ -346,12 +333,7 @@ class TriggerSequence:
         return np.asarray(digital_sequences), np.asarray(galvo_sequences), lasers
 
     def generate_dotscan_resolft_2d(self, lasers, camera):
-        if camera == 0:
-            cam_sw = 5.
-        elif camera == 1:
-            cam_sw = -5.
-        else:
-            cam_sw = 0.
+        cam_sw = self.galvo_sw_states[camera]
         cam_ind = camera + 4
         lasers = lasers.copy()
         ramp_down = np.linspace(self.ramp_up[-1], self.ramp_up[0], num=self.ramp_down_samples, endpoint=True)
@@ -456,12 +438,7 @@ class TriggerSequence:
         return np.asarray(galvo_sequences), np.asarray(piezo_sequences), np.asarray(digital_sequences), lasers, scan_pos
 
     def generate_monalisa_scan_2d(self, lasers, camera):
-        if camera == 0:
-            cam_sw = 5.
-        elif camera == 1:
-            cam_sw = -5.
-        else:
-            cam_sw = 0.
+        cam_sw = self.galvo_sw_states[camera]
         cam_ind = camera + 4
         lasers = lasers.copy()
         interval_samples = max(self.initial_samples, self.galvo_sw_settle_samples)

@@ -91,6 +91,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QDoubleSpinBox_emccd_t_clean = cw.doublespinbox_widget(0, 10, 0.001, 3, 0.009)
         self.QDoubleSpinBox_emccd_exposure_time = cw.doublespinbox_widget(0, 10, 0.001, 3, 0.000)
         self.QDoubleSpinBox_emccd_t_standby = cw.doublespinbox_widget(0, 10, 0.001, 3, 0.050)
+        self.QDoubleSpinBox_emccd_gvs = cw.doublespinbox_widget(-5., 5., 0.01, 2, 5.)
         self.emccd_scroll_area, emccd_scroll_layout = cw.create_scroll_area()
         emccd_scroll_layout.addRow(cw.label_widget(str('EMCCD')))
         emccd_scroll_layout.addRow(cw.frame_widget())
@@ -106,6 +107,7 @@ class ConWidget(QtWidgets.QWidget):
         emccd_scroll_layout.addRow(cw.label_widget(str('Clean / s')), self.QDoubleSpinBox_emccd_t_clean)
         emccd_scroll_layout.addRow(cw.label_widget(str('Exposure / s')), self.QDoubleSpinBox_emccd_exposure_time)
         emccd_scroll_layout.addRow(cw.label_widget(str('Standby / s')), self.QDoubleSpinBox_emccd_t_standby)
+        emccd_scroll_layout.addRow(cw.label_widget(str('GalvoSW')), self.QDoubleSpinBox_emccd_gvs)
 
         self.QDoubleSpinBox_scmos_exposure_time = cw.doublespinbox_widget(0, 10, 0.005, 3, 0.01)
         self.QSpinBox_scmos_coordinate_x = cw.spinbox_widget(0, 2048, 1, 0)
@@ -114,6 +116,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QSpinBox_scmos_coordinate_ny = cw.spinbox_widget(0, 2048, 1, 2048)
         self.QSpinBox_scmos_coordinate_binx = cw.spinbox_widget(0, 2048, 1, 1)
         self.QSpinBox_scmos_coordinate_biny = cw.spinbox_widget(0, 2048, 1, 1)
+        self.QDoubleSpinBox_scmos_gvs = cw.doublespinbox_widget(-5., 5., 0.01, 2, -2.)
         self.scmos_scroll_area, scmos_scroll_layout = cw.create_scroll_area()
         scmos_scroll_layout.addRow(cw.label_widget(str('sCMOS')))
         scmos_scroll_layout.addRow(cw.frame_widget())
@@ -124,6 +127,7 @@ class ConWidget(QtWidgets.QWidget):
         scmos_scroll_layout.addRow(cw.label_widget(str('Ny')), self.QSpinBox_scmos_coordinate_ny)
         scmos_scroll_layout.addRow(cw.label_widget(str('Binx')), self.QSpinBox_scmos_coordinate_binx)
         scmos_scroll_layout.addRow(cw.label_widget(str('Biny')), self.QSpinBox_scmos_coordinate_biny)
+        scmos_scroll_layout.addRow(cw.label_widget(str('GalvoSW')), self.QDoubleSpinBox_scmos_gvs)
 
         self.QDoubleSpinBox_thorcam_exposure_time = cw.doublespinbox_widget(0, 10, 0.005, 3, 0.01)
         self.QSpinBox_thorcam_coordinate_x = cw.spinbox_widget(0, 2447, 1, 0)
@@ -132,6 +136,7 @@ class ConWidget(QtWidgets.QWidget):
         self.QSpinBox_thorcam_coordinate_ny = cw.spinbox_widget(0, 2048, 1, 2048)
         self.QSpinBox_thorcam_coordinate_binx = cw.spinbox_widget(0, 2447, 1, 1)
         self.QSpinBox_thorcam_coordinate_biny = cw.spinbox_widget(0, 2047, 1, 1)
+        self.QDoubleSpinBox_thorcam_gvs = cw.doublespinbox_widget(-5., 5., 0.01, 2, 0.)
         self.thorcam_scroll_area, thorcam_scroll_layout = cw.create_scroll_area()
         thorcam_scroll_layout.addRow(cw.label_widget(str('Thorlabs')))
         thorcam_scroll_layout.addRow(cw.frame_widget())
@@ -142,6 +147,7 @@ class ConWidget(QtWidgets.QWidget):
         thorcam_scroll_layout.addRow(cw.label_widget(str('Ny')), self.QSpinBox_thorcam_coordinate_ny)
         thorcam_scroll_layout.addRow(cw.label_widget(str('Binx')), self.QSpinBox_thorcam_coordinate_binx)
         thorcam_scroll_layout.addRow(cw.label_widget(str('Biny')), self.QSpinBox_thorcam_coordinate_biny)
+        thorcam_scroll_layout.addRow(cw.label_widget(str('GalvoSW')), self.QDoubleSpinBox_thorcam_gvs)
 
         self.QDoubleSpinBox_tis_exposure_time = cw.doublespinbox_widget(2e-05, 4, 0.0002, 5, 0.0004)
         self.QSpinBox_tis_coordinate_x = cw.spinbox_widget(0, 2448, 1, 0)
