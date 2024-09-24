@@ -1385,8 +1385,8 @@ class MainController(QtCore.QObject):
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
         if vd_mod == "Wide Field":
             dtr, sw, dch = self.generate_live_triggers("imaging")
-            self.m.daq.write_triggers(galvo_sequences=sw, galvo_channels=[2], digital_sequences=dtr,
-                                      digital_channels=dch)
+            self.set_switch(self.p.trigger.galvo_sw_states[self.cameras["imaging"]])
+            self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=dch)
             self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
         elif vd_mod == "Dot Scan":
             dtr, gtr, chs = self.p.trigger.generate_digital_scanning_triggers(self.lasers, self.cameras["imaging"])
