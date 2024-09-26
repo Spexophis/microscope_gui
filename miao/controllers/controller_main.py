@@ -142,7 +142,7 @@ class MainController(QtCore.QObject):
             self.magnifications = [196.875, 1., 1., 1.]
             self.pixel_sizes = []
             self.pixel_sizes = [self.m.cam_set[i].ps / mag for i, mag in enumerate(self.magnifications)]
-            self.pixel_sizes[0] = 0.063
+            self.pixel_sizes[0] = 0.081
             self.magnifications[0] = self.m.cam_set[0].ps / self.pixel_sizes[0]
 
             for key in self.m.dm.keys():
@@ -411,6 +411,11 @@ class MainController(QtCore.QObject):
             self.m.daq.write_triggers(galvo_sequences=gtr, galvo_channels=[0, 1, 2],
                                       digital_sequences=dtr, digital_channels=chs, finite=False)
             self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
+        elif vd_mod == "Scan Calib":
+            self.set_switch(self.p.trigger.galvo_sw_states[self.cameras["imaging"]])
+            dtr, sw, ptr, chs = self.p.trigger.generate_piezo_line_scan(self.lasers, self.cameras["imaging"])
+            self.m.daq.write_triggers(piezo_sequences=ptr, piezo_channels=[0, 1],
+                                      digital_sequences=dtr, digital_channels=chs, finite=False)
         elif vd_mod == "Focus Lock":
             self.logg.info(f"Focus Lock live")
         else:
@@ -423,7 +428,7 @@ class MainController(QtCore.QObject):
             self.prepare_video(vm)
         except Exception as e:
             self.logg.error(f"Error preparing imaging video: {e}")
-            self.stop_video()
+            self.stop_video(vm)
             return
         try:
             self.m.cam_set[self.cameras["imaging"]].start_live()
@@ -432,10 +437,10 @@ class MainController(QtCore.QObject):
             self.thread_video.start()
         except Exception as e:
             self.logg.error(f"Error starting imaging video: {e}")
-            self.stop_video()
+            self.stop_video(vm)
             return
 
-    def stop_video(self):
+    def stop_video(self, vm):
         try:
             self.m.daq.stop_triggers()
             self.m.cam_set[self.cameras["imaging"]].stop_live()
@@ -443,6 +448,10 @@ class MainController(QtCore.QObject):
             if self.thread_video.isRunning():
                 self.thread_video.quit()
                 self.thread_video.wait()
+            if vm == "Dot Scan":
+                self.reset_galvo_positions()
+            elif vm == "Scan Calib":
+                self.reset_piezo_positions()
         except Exception as e:
             self.logg.error(f"Error stopping imaging video: {e}")
 
@@ -451,7 +460,7 @@ class MainController(QtCore.QObject):
         if sw:
             self.start_video(md)
         else:
-            self.stop_video()
+            self.stop_video(md)
 
     @QtCore.pyqtSlot()
     def imshow_main(self):
@@ -1405,8 +1414,8 @@ class MainController(QtCore.QObject):
             self.logg.error(f"Prepare sensorless iteration Error: {e}")
             return
         try:
-            lpr, hpr, mindex, metric = self.ao_controller.get_ao_parameters()
-            name = time.strftime("%Y%m%d_%H%M%S_") + '_ao_iteration_' + metric
+            lpr, hpr, mf = self.ao_controller.get_ao_parameters()
+            name = time.strftime("%Y%m%d_%H%M%S_") + '_ao_iteration_' + mf
             new_folder = os.path.join(self.data_folder, name)
             os.makedirs(new_folder, exist_ok=True)
             self.logg.info(f'Directory {new_folder} has been created successfully.')
@@ -1447,11 +1456,13 @@ class MainController(QtCore.QObject):
                     fn = "zm%0.2d_amp%.4f" % (mode, amp)
                     fn1 = os.path.join(new_folder, fn + '.tif')
                     tf.imwrite(fn1, self.m.cam_set[self.cameras["imaging"]].get_last_image())
-                    if mindex == 0:
+                    if mf == "Max(Intensity)":
                         dt.append(self.m.cam_set[self.cameras["imaging"]].get_last_image().max())
-                    if mindex == 1:
+                    if mf == "Sum(Intensity)":
+                        dt.append(self.m.cam_set[self.cameras["imaging"]].get_last_image().sum())
+                    if mf == "SNR(FFT)":
                         dt.append(ipr.snr(self.m.cam_set[self.cameras["imaging"]].get_last_image(), lpr, hpr, True))
-                    if mindex == 2:
+                    if mf == "HighPass(FFT)":
                         dt.append(ipr.hpf(self.m.cam_set[self.cameras["imaging"]].get_last_image(), hpr))
                     results.append((mode, amp, dt[stnm]))
                 za.extend(amprange)

@@ -230,7 +230,8 @@ class AOWidget(QtWidgets.QWidget):
         self.QDoubleSpinBox_zernike_mode_amps_step = cw.doublespinbox_widget(-50, 50, 0.005, 3, 0.01)
         self.QDoubleSpinBox_lpf = cw.doublespinbox_widget(0, 1, 0.05, 2, 0.1)
         self.QDoubleSpinBox_hpf = cw.doublespinbox_widget(0, 1, 0.05, 2, 0.6)
-        self.QComboBox_metric = cw.combobox_widget(list_items=['Max(Intensity)', 'SNR(FFT)', 'HighPass(FFT)'])
+        self.QComboBox_metric = cw.combobox_widget(list_items=['Max(Intensity)', 'Sum(Intensity)',
+                                                               'SNR(FFT)', 'HighPass(FFT)'])
         self.QPushButton_sensorless_run = cw.pushbutton_widget('Run AO')
         self.QPushButton_sensorless_save = cw.pushbutton_widget('Save Results')
 

@@ -482,13 +482,40 @@ class TriggerSequence:
             digital_sequences[i] = np.tile(dtr, self.piezo_scan_pos[1])
         return np.asarray(digital_sequences), switch_trigger, piezo_sequences, lasers, self.piezo_scan_pos[2]
 
+    def generate_piezo_line_scan(self, lasers, camera):
+        cam_sw = self.galvo_sw_states[camera]
+        lasers = lasers.copy()
+        cam_ind = camera + 4
+        scan_samples = int(0.064 * self.sample_rate)
+        interval_samples = int(0.016 * self.sample_rate)
+        piezo_sequences = [np.empty((0,)) for _ in range(2)]
+        temp = np.concatenate((smooth_ramp(1.0, 9.0, scan_samples, 0.9), smooth_ramp(9.0, 1.0, scan_samples, 0.9)))
+        piezo_sequences[0] = np.pad(temp,
+                                    (self.initial_samples, 2 * scan_samples + interval_samples + self.standby_samples),
+                                    'constant', constant_values=(1, 1))
+        piezo_sequences[1] = np.pad(temp,
+                                    (self.initial_samples + 2 * scan_samples + interval_samples, self.standby_samples),
+                                    'constant', constant_values=(1, 1))
+        cycle_samples = 4 * scan_samples + self.initial_samples + interval_samples + self.standby_samples
+        switch_trigger = cam_sw * np.ones(cycle_samples, dtype=np.float16)
+        switch_trigger[:self.initial_samples - self.galvo_sw_settle_samples] = 0.
+        switch_trigger[-self.standby_samples:] = 0.
+        digital_triggers = np.zeros((len(lasers) + 1, cycle_samples), dtype=np.int8)
+        digital_triggers[-1, self.initial_samples:] = 1
+        digital_triggers[-1, -self.standby_samples:] = 0
+        for ln, laser in enumerate(lasers):
+            digital_triggers[ln, self.initial_samples:self.initial_samples + 2 * scan_samples] = 1
+            digital_triggers[ln, -2 * scan_samples - self.standby_samples:- self.standby_samples] = 1
+        lasers.append(cam_ind)
+        return digital_triggers, switch_trigger, np.asarray(piezo_sequences), lasers
+
 
 def smooth_ramp(start, end, samples, curve_half=0.02):
     n = int(curve_half * samples)
     x = np.linspace(0, np.pi / 2, n, endpoint=True)
     signal_first_half = np.sin(x) * (end - start) / np.sin(np.pi / 2) + start
     signal_second_half = np.full(samples - n, end)
-    return np.concatenate((signal_first_half, signal_second_half))
+    return np.concatenate((signal_first_half, signal_second_half), dtype=np.float16)
 
 
 def shift_array(arr, shift_length, fill=None, direction='backward'):

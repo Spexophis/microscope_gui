@@ -370,7 +370,7 @@ class ConWidget(QtWidgets.QWidget):
     def _create_video_widgets(self):
         layout_video = QtWidgets.QHBoxLayout()
         self.QComboBox_imaging_camera_selection = cw.combobox_widget(list_items=["EMCCD", "SCMOS", "Thorlabs", "TIS"])
-        self.QComboBox_live_modes = cw.combobox_widget(list_items=["Wide Field", "Dot Scan", "Focus Lock"])
+        self.QComboBox_live_modes = cw.combobox_widget(list_items=["Wide Field", "Dot Scan", "Focus Lock", "Scan Calib"])
         self.QPushButton_video = cw.pushbutton_widget("Video", checkable=True)
         self.QPushButton_fft = cw.pushbutton_widget("FFT", checkable=True, enable=False)
         self.QComboBox_profile_axis = cw.combobox_widget(list_items=["X", "Y"])

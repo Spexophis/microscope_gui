@@ -65,4 +65,4 @@ class AOController:
 
     def get_ao_parameters(self):
         return self.v.QDoubleSpinBox_lpf.value(), self.v.QDoubleSpinBox_hpf.value(), \
-            self.v.QComboBox_metric.currentIndex(), self.v.QComboBox_metric.currentText()
+            self.v.QComboBox_metric.currentText()
