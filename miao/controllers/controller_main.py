@@ -406,29 +406,26 @@ class MainController(QtCore.QObject):
             dtr, sw, chs = self.p.trigger.generate_digital_triggers(self.lasers, self.cameras["imaging"])
             self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs, finite=False)
             self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
-        elif vd_mod == "Dot Scan":
+        if vd_mod == "Dot Scan":
             dtr, gtr, chs = self.p.trigger.generate_digital_scanning_triggers(self.lasers, self.cameras["imaging"])
             self.m.daq.write_triggers(galvo_sequences=gtr, galvo_channels=[0, 1, 2],
                                       digital_sequences=dtr, digital_channels=chs, finite=False)
             self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
-        elif vd_mod == "Scan Calib":
+        if vd_mod == "Scan Calib":
             self.set_switch(self.p.trigger.galvo_sw_states[self.cameras["imaging"]])
             dtr, sw, ptr, chs = self.p.trigger.generate_piezo_line_scan(self.lasers, self.cameras["imaging"])
             self.m.daq.write_triggers(piezo_sequences=ptr, piezo_channels=[0, 1],
                                       digital_sequences=dtr, digital_channels=chs, finite=False)
-        elif vd_mod == "Focus Lock":
+        if vd_mod == "Focus Lock":
             self.logg.info(f"Focus Lock live")
-        else:
-            self.m.cam_set[self.cameras["imaging"]].stop_live()
-            self.lasers_off()
-            raise ValueError("Invalid video mode")
 
     def start_video(self, vm):
         try:
             self.prepare_video(vm)
         except Exception as e:
             self.logg.error(f"Error preparing imaging video: {e}")
-            self.stop_video(vm)
+            self.m.daq.stop_triggers()
+            self.lasers_off()
             return
         try:
             self.m.cam_set[self.cameras["imaging"]].start_live()
@@ -971,7 +968,7 @@ class MainController(QtCore.QObject):
         self.m.cam_set[self.cameras["imaging"]].prepare_live()
         self.update_trigger_parameters("imaging")
         dtr, sw, dch = self.generate_live_triggers("imaging")
-        self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=dch, galvo_sequences=sw, galvo_channels=[2])
+        self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=dch)
         self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
 
     def grid_pattern_scan(self):

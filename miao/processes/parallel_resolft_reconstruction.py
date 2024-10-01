@@ -81,14 +81,10 @@ class ImageReconstruction:
         subarray_stack = []
         for y_center in self.y_centers:
             for x_center in self.x_centers:
-                x_start = max(0, x_center - self.period_x_um / 2)
-                y_start = max(0, y_center - self.period_y_um / 2)
-                x_end = min(self.nx * self.pixel_size_x, x_start + self.period_x_um)
-                y_end = min(self.ny * self.pixel_size_y, y_start + self.period_y_um)
-                x_start = int(x_start / self.pixel_size_x)
-                y_start = int(y_start / self.pixel_size_y)
-                x_end = int(x_end / self.pixel_size_x)
-                y_end = int(y_end / self.pixel_size_y)
+                x_start = int(max(0, x_center - self.period_x_um / 2) / self.pixel_size_x)
+                y_start = int(max(0, y_center - self.period_y_um / 2) / self.pixel_size_y)
+                x_end = int(min(self.nx * self.pixel_size_x, x_start + self.period_x_um) / self.pixel_size_x)
+                y_end = int(min(self.ny * self.pixel_size_y, y_start + self.period_y_um) / self.pixel_size_y)
                 subarray = array_stack[:, y_start:y_end, x_start:x_end]
                 subarray = np.sum(subarray, axis=(1, 2)).reshape(self.step_y, self.step_x)
                 if direction == 0:
@@ -167,8 +163,7 @@ if __name__ == "__main__":
     kernel = - np.ones((5, 5))
     kernel[2, 2] = 25
     convolved_image = convolve(data_avg, kernel)
-    r.set_focal_parameters(periods=(0.816, 0.794),
-                           ranges=((0.10, r.nx * r.pixel_size_x), (0.11, r.ny * r.pixel_size_y)))
+    r.set_focal_parameters(periods=(0.848, 0.848), ranges=((0.3, r.nx * r.pixel_size_x), (0.3, r.ny * r.pixel_size_y)))
     arr = r.generate_center_array()
     plt.figure()
     plt.imshow(arr, cmap='viridis', interpolation='none')

@@ -216,6 +216,8 @@ class NIDAQ:
             indices = [0, 1, 2, 3, 4, 5, 6]
         if digital_sequences.ndim > 1:
             n_channels, n_samples = digital_sequences.shape
+            if n_channels == 1:
+                digital_sequences = digital_sequences[0]
         else:
             n_channels = 1
             n_samples = digital_sequences.shape[0]
