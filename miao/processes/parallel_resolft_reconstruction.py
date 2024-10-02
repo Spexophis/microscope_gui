@@ -11,8 +11,8 @@ class ImageReconstruction:
         self.na = 1.4
         self.wl = 0.5
         self.resolution = self.wl / (2 * self.na)
-        self.pixel_size_x = 0.063
-        self.pixel_size_y = 0.063
+        self.pixel_size_x = 0.081
+        self.pixel_size_y = 0.081
         self.sigma = self.resolution / (2 * np.sqrt(2 * np.log(2)))
         self.wd = 2
 
@@ -97,15 +97,34 @@ class ImageReconstruction:
                     subarray_stack.append(subarray[::-1, ::-1])
         return np.asarray(subarray_stack)
 
-    def get_result(self, substack):
+    def get_result(self, substack, axis='x'):
         assert substack.shape == (
             self.x_centers.shape[0] * self.y_centers.shape[0], self.step_y,
             self.step_x), f"Input stack has the wrong shape"
         reshaped_stack = substack.reshape(self.y_centers.shape[0], self.x_centers.shape[0], self.step_y, self.step_x)
-        transposed_stack = reshaped_stack.transpose(0, 2, 1, 3)
-        tiled_array = transposed_stack.reshape(self.y_centers.shape[0] * self.step_y,
-                                               self.x_centers.shape[0] * self.step_x)
+        if axis == 'x':
+            transposed_stack = reshaped_stack.transpose(0, 2, 1, 3)
+            tiled_array = transposed_stack.reshape(self.y_centers.shape[0] * self.step_y,
+                                                   self.x_centers.shape[0] * self.step_x)
+        elif axis == 'y':
+            transposed_stack = reshaped_stack.transpose(1, 3, 0, 2)
+            tiled_array = transposed_stack.reshape(self.x_centers.shape[0] * self.step_y,
+                                                   self.y_centers.shape[0] * self.step_x)
+        else:
+            raise ValueError("Axis must be 'x' or 'y'")
         return tiled_array
+
+    def gaussian_1d(self, x_, mu_x, sigma):
+        g = np.exp(-((x_ - mu_x) ** 2) / (2 * sigma ** 2))
+        msk = ((x_ - mu_x) ** 2) / (self.wd * sigma ** 2)
+        msk = msk <= 1.
+        return g * msk
+
+    def gaussian_2d(self, x_, y_, mu_x, mu_y, sigma):
+        g = np.exp(-((x_ - mu_x) ** 2 + (y_ - mu_y) ** 2) / (2 * sigma ** 2))
+        msk = ((x_ - mu_x) ** 2 + (y_ - mu_y) ** 2) / (self.wd * sigma ** 2)
+        msk = msk <= 1.
+        return g * msk
 
     def extract_periods(self):
         image = np.average(self.data_stack, axis=0)
@@ -127,18 +146,6 @@ class ImageReconstruction:
             period = (image.shape[0] / distance) * self.pixel_size_x
             periods.append(period)
         return periods, normalized_spectrum, sorted_peaks[1:5]
-
-    def gaussian_1d(self, x_, mu_x, sigma):
-        g = np.exp(-((x_ - mu_x) ** 2) / (2 * sigma ** 2))
-        msk = ((x_ - mu_x) ** 2) / (self.wd * sigma ** 2)
-        msk = msk <= 1.
-        return g * msk
-
-    def gaussian_2d(self, x_, y_, mu_x, mu_y, sigma):
-        g = np.exp(-((x_ - mu_x) ** 2 + (y_ - mu_y) ** 2) / (2 * sigma ** 2))
-        msk = ((x_ - mu_x) ** 2 + (y_ - mu_y) ** 2) / (self.wd * sigma ** 2)
-        msk = msk <= 1.
-        return g * msk
 
     def fft_frequency_map(self):
         rows, cols = self.ny, self.nx
