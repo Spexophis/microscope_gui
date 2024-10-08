@@ -7,15 +7,18 @@ from scipy.ndimage import gaussian_filter, convolve
 class ImageReconstruction:
 
     def __init__(self):
-        self.gain_value = 2.5
-        self.scale_factor = 2.5
+        self.gain_value = 1.4
+        self.scale_factor = 1
         self.na = 1.4
         self.wl = 0.5
-        self.pixel_size = 0.063
+        self.pixel_size = 0.081
         self.window_radius = int(1 * np.ceil((self.wl / (2 * self.na)) / self.pixel_size))
 
-    def load_data(self):
-        self.I_in = tf.imread(r"C:\Users\ruizhe.lin\Desktop\20240530161327_dot_scanning_crop-1.tif")
+    def load_data(self, fn=None, img=None):
+        if fn is not None:
+            self.I_in = tf.imread(fn)
+        if img is not None:
+            self.I_in = img
 
     def calculate_coordinates(self):
         self.number_row_initial, self.number_column_initial = self.I_in.shape
@@ -29,7 +32,6 @@ class ImageReconstruction:
         self.X, self.Y = np.meshgrid(self.x, self.y)
 
     def dpr_single(self):
-        # DPR on single frames
         self.single_frame_I_in = self.I_in - np.min(self.I_in)
         self.local_minimum = np.zeros_like(self.single_frame_I_in)
         self.single_frame_I_in_localmin = np.zeros_like(self.single_frame_I_in)
@@ -44,7 +46,6 @@ class ImageReconstruction:
                 self.single_frame_I_in_localmin[u, v] = self.single_frame_I_in[u, v] - self.local_minimum[u, v]
 
     def upscale_interp(self):
-        # Upscale using spline interpolation
         interp_localmin = RectBivariateSpline(self.y0, self.x0, self.single_frame_I_in_localmin)
         single_frame_localmin_magnified = interp_localmin(self.y, self.x, grid=True)
         single_frame_localmin_magnified[single_frame_localmin_magnified < 0] = 0
@@ -59,12 +60,10 @@ class ImageReconstruction:
         self.number_row, self.number_column = single_frame_I_magnified.shape
 
     def local_norm(self):
-        # Local normalization
         self.I_normalized = self.single_frame_localmin_magnified / (
                     gaussian_filter(self.single_frame_localmin_magnified, 8) + 1e-5)
 
     def calculate_gradients(self):
-        # Calculate normalized gradients
         sobelX = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]])
         sobelY = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
         gradient_y = convolve(self.I_normalized, sobelX, mode='reflect')
@@ -74,14 +73,12 @@ class ImageReconstruction:
         self.gradient_y = gradient_y / (self.I_normalized + 1e-5)
 
     def calculate_displacement(self):
-        # Calculate pixel displacements
         self.displacement_x = self.gain_value * self.gradient_x
         self.displacement_y = self.gain_value * self.gradient_y
         self.displacement_x[np.abs(self.displacement_x) > 10] = 0
         self.displacement_y[np.abs(self.displacement_y) > 10] = 0
 
     def calcualte_output(self):
-        # Calculate I_out with weighted pixel displacements
         self.single_frame_I_out = np.zeros((self.number_row, self.number_column))
         for nx in range(10, self.number_row - 10):
             for ny in range(10, self.number_column - 10):
@@ -114,8 +111,16 @@ class ImageReconstruction:
                 self.single_frame_I_out[nx + coordinate4[0], ny + coordinate4[1]] += weighted4 * \
                                                                                      self.single_frame_I_magnified[
                                                                                          nx, ny]
+        return self.single_frame_I_out, self.single_frame_I_magnified
 
-        self.single_frame_I_out = self.single_frame_I_out[10:-10, 10:-10]
-        self.single_frame_I_magnified = self.single_frame_I_magnified[10:-10, 10:-10]
-        result = [self.single_frame_I_out, self.single_frame_I_magnified]
-        tf.imwrite(r"C:\Users\ruizhe.lin\Desktop\result.tif", np.asarray(result))
+
+if __name__ == "__main__":
+    r = ImageReconstruction()
+    r.load_data(r"C:\Users\ruizhe.lin\Documents\data\20241001\20241001124830_dot_scanning_crop.tif")
+    r.calculate_coordinates()
+    r.dpr_single()
+    r.upscale_interp()
+    r.local_norm()
+    r.calculate_gradients()
+    r.calculate_displacement()
+    result = r.calcualte_output()

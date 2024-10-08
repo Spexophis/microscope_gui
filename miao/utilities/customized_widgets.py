@@ -106,7 +106,7 @@ def create_file_dialogue(name="Save File", file_filter="All Files (*)", default_
     return dialog
 
 
-def create_scroll_area():
+def create_scroll_area(layout="Form"):
     scroll_area = QtWidgets.QScrollArea()
     scroll_area.setWidgetResizable(True)
     scroll_area.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
@@ -119,7 +119,10 @@ def create_scroll_area():
     content_widget = QtWidgets.QWidget(scroll_area)
     content_widget.setStyleSheet("background-color: #1E1E1E;")
     scroll_area.setWidget(content_widget)
-    layout = QtWidgets.QFormLayout(content_widget)
+    if layout == "Form":
+        layout = QtWidgets.QFormLayout(content_widget)
+    else:
+        layout = QtWidgets.QGridLayout(content_widget)
     content_widget.setLayout(layout)
     return scroll_area, layout
 

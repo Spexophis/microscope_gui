@@ -365,18 +365,21 @@ class MainController(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def update_galvo_scanner(self):
-        galvo_positions, galvo_ranges, dot_pos, sws = self.con_controller.get_galvo_scan_parameters()
-        self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions, ranges=galvo_ranges, foci=dot_pos, sws=sws)
-        self.con_controller.display_frequency(self.p.trigger.frequency)
+        galvo_positions, galvo_ranges, dot_pos, galvo_positions_act, galvo_ranges_act, dot_pos_act, sws = self.con_controller.get_galvo_scan_parameters()
+        self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions, ranges=galvo_ranges, foci=dot_pos,
+                                                    origins_act=galvo_positions_act, ranges_act=galvo_ranges_act,
+                                                    foci_act=dot_pos_act, sws=sws)
+        self.con_controller.display_frequency(self.p.trigger.frequency, self.p.trigger.frequency_act)
 
     def update_trigger_parameters(self, cam_key):
         try:
             digital_starts, digital_ends = self.con_controller.get_digital_parameters()
             self.p.trigger.update_digital_parameters(digital_starts, digital_ends)
-            galvo_positions, galvo_ranges, dot_pos, sws = self.con_controller.get_galvo_scan_parameters()
+            galvo_positions, galvo_ranges, dot_pos, galvo_positions_act, galvo_ranges_act, dot_pos_act, sws = self.con_controller.get_galvo_scan_parameters()
             self.p.trigger.update_galvo_scan_parameters(origins=galvo_positions, ranges=galvo_ranges, foci=dot_pos,
-                                                        sws=sws)
-            self.con_controller.display_frequency(self.p.trigger.frequency)
+                                                        origins_act=galvo_positions_act, ranges_act=galvo_ranges_act,
+                                                        foci_act=dot_pos_act, sws=sws)
+            self.con_controller.display_frequency(self.p.trigger.frequency, self.p.trigger.frequency_act)
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             positions = self.con_controller.get_piezo_positions()
             return_time = self.con_controller.get_piezo_return_time()

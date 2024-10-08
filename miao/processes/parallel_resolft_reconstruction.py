@@ -68,9 +68,9 @@ class ImageReconstruction:
     def generate_center_array(self):
         center_array = np.zeros_like(self.xv)
         for i, (yc, xc) in enumerate(self.center_list):
-                x_idx = (np.abs(self.xv[0, :] - xc)).argmin()
-                y_idx = (np.abs(self.yv[:, 0] - yc)).argmin()
-                center_array[y_idx, x_idx] = 1
+            x_idx = (np.abs(self.xv[0, :] - xc)).argmin()
+            y_idx = (np.abs(self.yv[:, 0] - yc)).argmin()
+            center_array[y_idx, x_idx] = 1
         return center_array
 
     def create_gaussian_1d_array(self, x_=True):
@@ -97,24 +97,24 @@ class ImageReconstruction:
     def stack_subarray(self, array_stack, direction=0):
         subarray_stack = []
         for [y_center, x_center] in self.center_list:
-                x_start = max(0, x_center - self.period_x_um / 2)
-                y_start = max(0, y_center - self.period_y_um / 2)
-                x_end = min(self.nx * self.pixel_size_x, x_start + self.period_x_um)
-                y_end = min(self.ny * self.pixel_size_y, y_start + self.period_y_um)
-                x_start = int(x_start / self.pixel_size_x)
-                y_start = int(y_start / self.pixel_size_y)
-                x_end = int(x_end / self.pixel_size_x)
-                y_end = int(y_end / self.pixel_size_y)
-                subarray = array_stack[:, y_start:y_end, x_start:x_end]
-                subarray = np.sum(subarray, axis=(1, 2)).reshape(self.step_y, self.step_x)
-                if direction == 0:
-                    subarray_stack.append(subarray)
-                elif direction == 1:
-                    subarray_stack.append(np.transpose(subarray)[::-1])
-                elif direction == 2:
-                    subarray_stack.append(np.transpose(subarray[::-1]))
-                elif direction == 3:
-                    subarray_stack.append(subarray[::-1, ::-1])
+            x_start = max(0, x_center - self.period_x_um / 2)
+            y_start = max(0, y_center - self.period_y_um / 2)
+            x_end = min(self.nx * self.pixel_size_x, x_start + self.period_x_um)
+            y_end = min(self.ny * self.pixel_size_y, y_start + self.period_y_um)
+            x_start_px = int(x_start / self.pixel_size_x)
+            y_start_px = int(y_start / self.pixel_size_y)
+            x_end_px = int(x_end / self.pixel_size_x)
+            y_end_px = int(y_end / self.pixel_size_y)
+            subarray = array_stack[:, y_start_px:y_end_px, x_start_px:x_end_px]
+            subarray = np.sum(subarray, axis=(1, 2)).reshape(self.step_y, self.step_x)
+            if direction == 0:
+                subarray_stack.append(subarray)
+            elif direction == 1:
+                subarray_stack.append(np.transpose(subarray)[::-1])
+            elif direction == 2:
+                subarray_stack.append(np.transpose(subarray[::-1]))
+            elif direction == 3:
+                subarray_stack.append(subarray[::-1, ::-1])
         return np.asarray(subarray_stack)
 
     def tile_sub_images(self, substack, axis='x'):
