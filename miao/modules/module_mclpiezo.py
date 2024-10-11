@@ -51,7 +51,9 @@ class MCLNanoDrive:
         """
         Closes the connection by releasing the handle.
         """
-        self.move_position(2, 0)
+        self.move_position(0, 0.)
+        self.move_position(1, 0.)
+        self.move_position(2, 0.)
         self.mcl_piezo.MCL_ReleaseHandle(self.handle)
         self.logg.info("Piezo Handle released")
 
@@ -94,7 +96,6 @@ class MCLNanoDrive:
         err = self.mcl_piezo.MCL_SingleWriteN(ct.c_double(pos), self.axis[ax], self.handle)
         if err != 0:
             self.logg.error(f"Error: NanoDrive did not correctly write position. Error Code: {err}")
-            self.mcl_piezo.MCL_ReleaseHandle(self.handle)
             return
         else:
             # pause before reading again
@@ -103,7 +104,6 @@ class MCLNanoDrive:
             pos = self.mcl_piezo.MCL_SingleReadN(self.axis[ax], self.handle)
             if pos < 0:
                 self.logg.error(f"Error: NanoDrive did not correctly read position. Error Code: {pos}")
-                self.mcl_piezo.MCL_ReleaseHandle(self.handle)
                 return
             else:
                 return pos

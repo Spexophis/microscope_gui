@@ -244,11 +244,16 @@ class MainController(QtCore.QObject):
         except Exception as e:
             self.logg.error(f"MCL Piezo Error: {e}")
 
-    def set_piezo_position_z(self, pos_z):
+    def set_piezo_position_z(self, pos_z, port="analog"):
         try:
-            self.m.daq.set_piezo_position([pos_z / 10.], [2])
-            time.sleep(0.1)
-            self.con_controller.display_piezo_position_z(self.m.pz.read_position(2))
+            if port == "software":
+                self.m.pz.move_position(2, pos_z)
+                time.sleep(0.1)
+                self.con_controller.display_piezo_position_z(self.m.pz.read_position(2))
+            else:
+                self.m.daq.set_piezo_position([pos_z / 10.], [2])
+                time.sleep(0.1)
+                self.con_controller.display_piezo_position_z(self.m.pz.read_position(2))
         except Exception as e:
             self.logg.error(f"MCL Piezo Error: {e}")
 
@@ -352,8 +357,8 @@ class MainController(QtCore.QObject):
             if self.cameras[key] == 3:
                 expo = self.con_controller.get_tis_expo()
                 self.m.cam_set[3].set_exposure(expo)
-                # x, y, nx, ny, bx, by = self.con_controller.get_tis_roi()
-                # self.m.cam_set[3].set_roi(x, y, nx, ny)
+                x, y, nx, ny, bx, by = self.con_controller.get_tis_roi()
+                self.m.cam_set[3].set_roi(x, y, nx, ny)
         except Exception as e:
             self.logg.error(f"Camera Error: {e}")
 
@@ -617,7 +622,8 @@ class MainController(QtCore.QObject):
 
     def focus_locking(self):
         self.p.foc_ctrl.update(self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
-        self.v.con_view.QDoubleSpinBox_stage_z.setValue(self.p.foc_ctrl.ctd.data_list[-1])
+        # self.v.con_view.QDoubleSpinBox_stage_z.setValue(self.p.foc_ctrl.ctd.data_list[-1])
+        self.set_piezo_position_z(self.p.foc_ctrl.ctd.ctrl_list[-1], port="software")
         self.view_controller.plot_update(self.p.foc_ctrl.ctd.data_list, s=self.p.foc_ctrl.pid.set_point)
 
     def prepare_widefield_zstack(self):
