@@ -28,7 +28,6 @@ class MCLNanoDrive:
             self.clk_adc, self.clk_dac = self.set_clock_frequency()
             self.logg.info("ADC Clock Frequency: {} ms".format(self.clk_adc))
             self.logg.info("DAC Clock Frequency: {} ms".format(self.clk_dac))
-            self.seq_max = self.mcl_piezo.sequence_get_max(self.handle)
             self.axis = []
             if (self.pi.axis_bitmap & 0x1) == 0x1:
                 self.axis.append(1)
@@ -88,32 +87,6 @@ class MCLNanoDrive:
         self.mcl_piezo.setup_read_waveform_n(self.axis[ax], dps, dt_r, self.handle)
         wv = self.mcl_piezo.trigger_waveform_acquisition(self.axis[ax], dps, self.handle)
         return wv
-    
-    def load_sequences(self, axs, data):
-        self.mcl_piezo.sequence_clear(self.handle)
-        if data.ndim > 1:
-            n_axis, data_points = data.shape
-            if n_axis == 1:
-                data = data[0]
-        else:
-            n_axis = 1
-            data_points = data.shape[0]
-        if n_axis != len(axs):
-            self.logg.error("Number of axis and data differ.")
-            return
-        if data_points > self.seq_max:
-            self.logg.error("Number of data points exceed limit.")
-            return
-        for ax in range(n_axis):
-            self.mcl_piezo.sequence_load(self.axis[ax], data[ax], data_points, self.handle)
-
-    def start_sequence(self):
-        self.mcl_piezo.sequence_start(self.handle)
-
-    def stop_sequence(self, cl=False):
-        self.mcl_piezo.sequence_stop(self.handle)
-        if cl:
-            self.mcl_piezo.sequence_clear(self.handle)
 
 
 class MCLNanoDriveWrapper:

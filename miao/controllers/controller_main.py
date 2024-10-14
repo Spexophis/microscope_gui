@@ -78,6 +78,7 @@ class MainController(QtCore.QObject):
         self.sada.connect(self.save_data)
         self.sazf.connect(self.save_zernike_coeffs)
         # MCL Piezo
+        self.v.con_view.Signal_piezo_move_usb.connect(self.set_piezo_positions_usb)
         self.v.con_view.Signal_piezo_move.connect(self.set_piezo_positions)
         self.v.con_view.Signal_focus_finding.connect(self.run_focus_finding)
         self.v.con_view.Signal_focus_locking.connect(self.run_focus_locking)
@@ -217,26 +218,40 @@ class MainController(QtCore.QObject):
 
     def reset_piezo_positions(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        self.set_piezo_position_x(pos_x, port="software")
-        self.set_piezo_position_y(pos_y, port="software")
-        self.set_piezo_position_z(pos_z, port="software")
-        self.m.daq.set_piezo_position([0., 0., 0.], [0, 1, 2])
+        self.set_piezo_position_x(pos_x[0], port="software")
+        self.set_piezo_position_y(pos_y[0], port="software")
+        self.set_piezo_position_z(pos_z[0], port="software")
+        self.set_piezo_position_x(pos_x[1], port="analog")
+        self.set_piezo_position_y(pos_y[1], port="analog")
+        self.set_piezo_position_z(pos_z[1], port="analog")
+        self.con_controller.display_piezo_position_x(self.m.pz.read_position(0))
+        self.con_controller.display_piezo_position_y(self.m.pz.read_position(1))
+        self.con_controller.display_piezo_position_z(self.m.pz.read_position(2))
+
+    @QtCore.pyqtSlot(str, float, float, float)
+    def set_piezo_positions_usb(self, axis: str, value_x: float, value_y: float, value_z: float):
+        if axis == "x":
+            self.set_piezo_position_x(value_x, port="software")
+        if axis == "y":
+            self.set_piezo_position_y(value_y, port="software")
+        if axis == "z":
+            self.set_piezo_position_z(value_z, port="software")
 
     @QtCore.pyqtSlot(str, float, float, float)
     def set_piezo_positions(self, axis: str, value_x: float, value_y: float, value_z: float):
         if axis == "x":
-            self.set_piezo_position_x(value_x)
+            self.set_piezo_position_x(value_x, port="analog")
         if axis == "y":
-            self.set_piezo_position_y(value_y)
+            self.set_piezo_position_y(value_y, port="analog")
         if axis == "z":
-            self.set_piezo_position_z(value_z)
+            self.set_piezo_position_z(value_z, port="analog")
 
     def set_piezo_position_x(self, pos_x, port="analog"):
         try:
             if port == "software":
                 self.m.pz.move_position(0, pos_x)
                 time.sleep(0.1)
-                self.con_controller.display_piezo_position_z(self.m.pz.read_position(2))
+                self.con_controller.display_piezo_position_x(self.m.pz.read_position(0))
             else:
                 self.m.daq.set_piezo_position([pos_x / 10.], [0])
                 time.sleep(0.1)
@@ -249,7 +264,7 @@ class MainController(QtCore.QObject):
             if port == "software":
                 self.m.pz.move_position(1, pos_y)
                 time.sleep(0.1)
-                self.con_controller.display_piezo_position_z(self.m.pz.read_position(2))
+                self.con_controller.display_piezo_position_y(self.m.pz.read_position(1))
             else:
                 self.m.daq.set_piezo_position([pos_y / 10.], [1])
                 time.sleep(0.1)
@@ -399,7 +414,8 @@ class MainController(QtCore.QObject):
                                                         foci_act=dot_pos_act, sws=sws)
             self.con_controller.display_frequency(self.p.trigger.frequency, self.p.trigger.frequency_act)
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
-            positions = self.con_controller.get_piezo_positions()
+            pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
+            positions = [pos_x[1], pos_y[1], pos_z[1]]
             return_time = self.con_controller.get_piezo_return_time()
             self.p.trigger.update_piezo_scan_parameters(axis_lengths, step_sizes, positions, return_time)
             self.p.trigger.update_camera_parameters(initial_time=self.m.cam_set[self.cameras[cam_key]].t_clean,
@@ -590,17 +606,86 @@ class MainController(QtCore.QObject):
             1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
                    metadata={'unit': 'um', 'indices': idx})
 
-    @QtCore.pyqtSlot(bool)
-    def run_focus_locking(self, sw: bool):
-        if sw:
-            self.lock_focus()
-        else:
-            self.release_focus()
+    def prepare_focus_finding(self):
+        self.lasers = self.con_controller.get_lasers()
+        self.set_lasers(self.lasers)
+        self.cameras["imaging"] = self.con_controller.get_imaging_camera()
+        self.set_camera_roi("imaging")
+        self.m.cam_set[self.cameras["imaging"]].prepare_live()
+        dtr, sw, dch = self.generate_live_triggers("imaging")
+        self.set_switch(self.p.trigger.galvo_sw_states[self.cameras["imaging"]])
+        self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=dch)
+        self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
+        self.m.cam_set[self.cameras["focus_lock"]].set_exposure(self.con_controller.get_tis_expo())
+        self.m.cam_set[self.cameras["focus_lock"]].prepare_live()
+
+    def focus_finding(self):
+        try:
+            self.prepare_focus_finding()
+        except Exception as e:
+            self.logg.error(f"Error starting focus finding: {e}")
+            return
+        try:
+            pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
+            center_pos, axis_length, step_size = pos_z[0], 0.8, 0.08
+            start = center_pos - axis_length
+            end = center_pos + axis_length
+            zps = np.arange(start, end + step_size, step_size)
+            data = []
+            data_calib = []
+            pzs = []
+            self.m.cam_set[self.cameras["imaging"]].start_live()
+            self.m.cam_set[self.cameras["focus_lock"]].start_live()
+            for i, z in enumerate(zps):
+                self.set_piezo_position_z(z, port="software")
+                time.sleep(0.1)
+                self.m.daq.run_triggers()
+                time.sleep(0.04)
+                temp = self.m.cam_set[self.cameras["imaging"]].get_last_image()
+                data.append(temp)
+                self.m.daq.stop_triggers(_close=False)
+                data_calib.append(self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
+                pzs.append(ipr.calculate_focus_measure_with_sobel(temp - temp.min()))
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_widefield_zstack.tif')
+            tf.imwrite(fd, np.asarray(data), imagej=True, resolution=(
+                1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
+                       metadata={'unit': 'um',
+                                 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
+            self.view_controller.plot_update(pzs, x=zps)
+            fp = ipr.peak_find(zps, pzs)
+            self.set_piezo_position_z(fp, port="software")
+            time.sleep(0.06)
+            data_calib.append(self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
+            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_focus_calibration_stack.tif')
+            tf.imwrite(fd, np.asarray(data_calib), imagej=True, resolution=(
+                1 / self.pixel_sizes[self.cameras["focus_lock"]], 1 / self.pixel_sizes[self.cameras["focus_lock"]]),
+                       metadata={'unit': 'um'})
+            self.p.foc_ctrl.calibrate(np.append(zps, fp), np.asarray(data_calib))
+        except Exception as e:
+            self.finish_focus_finding()
+            self.logg.error(f"Error running focus finding: {e}")
+            return
+        self.finish_focus_finding()
+
+    def finish_focus_finding(self):
+        try:
+            self.m.cam_set[self.cameras["imaging"]].stop_live()
+            self.m.cam_set[self.cameras["focus_lock"]].stop_live()
+            self.lasers_off()
+            self.m.daq.stop_triggers()
+            self.reset_piezo_positions()
+            self.logg.info("Focus finding stack acquired")
+        except Exception as e:
+            self.logg.error(f"Error stopping focus finding: {e}")
+
+    @QtCore.pyqtSlot()
+    def run_focus_finding(self):
+        self.run_task(task=self.focus_finding)
 
     def prepare_focus_locking(self):
         p = self.con_controller.get_pid_parameters()
         self.p.foc_ctrl.update_pid(p)
-        z = self.m.pz.read_position(2)
+        z = self.v.con_view.QDoubleSpinBox_stage_z_usb.value()
         self.p.foc_ctrl.initiate(z)
         self.m.cam_set[self.cameras["focus_lock"]].set_exposure(self.con_controller.get_tis_expo())
         self.m.cam_set[self.cameras["focus_lock"]].prepare_live()
@@ -635,9 +720,15 @@ class MainController(QtCore.QObject):
 
     def focus_locking(self):
         self.p.foc_ctrl.update(self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
-        # self.v.con_view.QDoubleSpinBox_stage_z.setValue(self.p.foc_ctrl.ctd.data_list[-1])
-        self.set_piezo_position_z(self.p.foc_ctrl.ctd.ctrl_list[-1], port="software")
+        self.v.con_view.QDoubleSpinBox_stage_z_usb.setValue(self.p.foc_ctrl.ctd.data_list[-1])
         self.view_controller.plot_update(self.p.foc_ctrl.ctd.data_list, s=self.p.foc_ctrl.pid.set_point)
+
+    @QtCore.pyqtSlot(bool)
+    def run_focus_locking(self, sw: bool):
+        if sw:
+            self.lock_focus()
+        else:
+            self.release_focus()
 
     def prepare_widefield_zstack(self):
         self.lasers = self.con_controller.get_lasers()
@@ -685,81 +776,6 @@ class MainController(QtCore.QObject):
 
     def run_widefield_zstack(self, n: int):
         self.run_task(task=self.widefield_zstack, iteration=n)
-
-    def prepare_focus_finding(self):
-        self.lasers = self.con_controller.get_lasers()
-        self.set_lasers(self.lasers)
-        self.cameras["imaging"] = self.con_controller.get_imaging_camera()
-        self.set_camera_roi("imaging")
-        self.m.cam_set[self.cameras["imaging"]].prepare_live()
-        dtr, sw, dch = self.generate_live_triggers("imaging")
-        self.set_switch(self.p.trigger.galvo_sw_states[self.cameras["imaging"]])
-        self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=dch)
-        self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
-        self.m.cam_set[self.cameras["focus_lock"]].set_exposure(self.con_controller.get_tis_expo())
-        self.m.cam_set[self.cameras["focus_lock"]].prepare_live()
-
-    def focus_finding(self):
-        try:
-            self.prepare_focus_finding()
-        except Exception as e:
-            self.logg.error(f"Error starting focus finding: {e}")
-            return
-        try:
-            positions = self.con_controller.get_piezo_positions()
-            center_pos, axis_length, step_size = positions[2], 0.8, 0.1
-            start = center_pos - axis_length
-            end = center_pos + axis_length
-            zps = np.arange(start, end + step_size, step_size)
-            data = []
-            data_calib = []
-            pzs = []
-            self.m.cam_set[self.cameras["imaging"]].start_live()
-            self.m.cam_set[self.cameras["focus_lock"]].start_live()
-            for i, z in enumerate(zps):
-                self.set_piezo_position_z(z)
-                time.sleep(0.1)
-                self.m.daq.run_triggers()
-                time.sleep(0.04)
-                temp = self.m.cam_set[self.cameras["imaging"]].get_last_image()
-                data.append(temp)
-                self.m.daq.stop_triggers(_close=False)
-                data_calib.append(self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
-                pzs.append(ipr.calculate_focus_measure_with_sobel(temp - temp.min()))
-            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_widefield_zstack.tif')
-            tf.imwrite(fd, np.asarray(data), imagej=True, resolution=(
-                1 / self.pixel_sizes[self.cameras["imaging"]], 1 / self.pixel_sizes[self.cameras["imaging"]]),
-                       metadata={'unit': 'um',
-                                 'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
-            self.view_controller.plot_update(pzs, x=zps)
-            fp = ipr.peak_find(zps, pzs)
-            self.v.con_view.QDoubleSpinBox_stage_z.setValue(fp)
-            time.sleep(0.06)
-            data_calib.append(self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
-            fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_focus_calibration_stack.tif')
-            tf.imwrite(fd, np.asarray(data_calib), imagej=True, resolution=(
-                1 / self.pixel_sizes[self.cameras["focus_lock"]], 1 / self.pixel_sizes[self.cameras["focus_lock"]]),
-                       metadata={'unit': 'um'})
-            self.p.foc_ctrl.calibrate(np.append(zps, fp), np.asarray(data_calib))
-        except Exception as e:
-            self.finish_focus_finding()
-            self.logg.error(f"Error running focus finding: {e}")
-            return
-        self.finish_focus_finding()
-
-    def finish_focus_finding(self):
-        try:
-            self.m.cam_set[self.cameras["imaging"]].stop_live()
-            self.m.cam_set[self.cameras["focus_lock"]].stop_live()
-            self.lasers_off()
-            self.m.daq.stop_triggers()
-            self.reset_piezo_positions()
-            self.logg.info("Focus finding stack acquired")
-        except Exception as e:
-            self.logg.error(f"Error stopping focus finding: {e}")
-
-    def run_focus_finding(self):
-        self.run_task(task=self.focus_finding)
 
     def prepare_dot_scanning(self):
         self.lasers = self.con_controller.get_lasers()
@@ -1000,7 +1016,8 @@ class MainController(QtCore.QObject):
             self.logg.error(f"Error preparing grid pattern scanning: {e}")
             return
         try:
-            positions = self.con_controller.get_piezo_positions()
+            pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
+            positions = [pos_x[1], pos_y[1], pos_z[1]]
             axis_lengths, step_sizes = self.con_controller.get_piezo_scan_parameters()
             starts = [position - 0.5 * axis_length for position, axis_length in zip(positions, axis_lengths)]
             ends = [position + 0.5 * axis_length for position, axis_length in zip(positions, axis_lengths)]

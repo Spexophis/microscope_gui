@@ -48,16 +48,9 @@ class ConController:
         return [self.v.QDoubleSpinBox_deck_movement.value(), self.v.QDoubleSpinBox_deck_velocity.value()]
 
     def get_piezo_positions(self):
-        return [self.v.QDoubleSpinBox_stage_x.value(), self.v.QDoubleSpinBox_stage_y.value(),
-                self.v.QDoubleSpinBox_stage_z.value()]
-
-    def change_piezo_positions(self, x=None, y=None, z=None):
-        if x is not None:
-            self.v.QDoubleSpinBox_stage_x.setValue(x)
-        if y is not None:
-            self.v.QDoubleSpinBox_stage_y.setValue(y)
-        if z is not None:
-            self.v.QDoubleSpinBox_stage_z.setValue(z)
+        return [[self.v.QDoubleSpinBox_stage_x_usb.value(), self.v.QDoubleSpinBox_stage_x.value()],
+                [self.v.QDoubleSpinBox_stage_y_usb.value(), self.v.QDoubleSpinBox_stage_y.value()],
+                [self.v.QDoubleSpinBox_stage_z_usb.value(), self.v.QDoubleSpinBox_stage_z.value()]]
 
     def get_pid_parameters(self):
         return (self.v.QDoubleSpinBox_pid_kp.value(),

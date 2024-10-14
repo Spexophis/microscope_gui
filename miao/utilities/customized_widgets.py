@@ -141,6 +141,7 @@ def label_widget(name=''):
     label = QtWidgets.QLabel(name)
     label.setFont(QtGui.QFont("Arial", 10, QtGui.QFont.Bold))
     label.setStyleSheet('background-color: #1E1E1E; color: #ECECEC; padding: 2px; border-radius: 2px;')
+    label.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
     return label
 
 
@@ -160,7 +161,7 @@ def lcdnumber_widget(num=None, n=None):
         lcd.display(num)
     if n is not None:
         lcd.setDigitCount(n)
-    lcd.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+    lcd.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
     lcd.setMinimumWidth(lcd.sizeHint().width())
     lcd.setMaximumWidth(64)
     return lcd
@@ -200,13 +201,13 @@ def spinbox_widget(range_min, range_max, step, value):
     spinbox.setRange(range_min, range_max)
     spinbox.setSingleStep(step)
     spinbox.setValue(value)
-    spinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
     spinbox.setMinimumWidth(spinbox.sizeHint().width())
     spinbox.setMinimumHeight(spinbox.sizeHint().height())
     max_value_width = spinbox.fontMetrics().horizontalAdvance(str(spinbox.maximum()))
-    max_value_height = spinbox.fontMetrics().height()
+    # max_value_height = spinbox.fontMetrics().height()
     spinbox.setMaximumWidth(max_value_width + 32)
-    spinbox.setMaximumHeight(max_value_height + 16)
+    # spinbox.setMaximumHeight(max_value_height + 16)
+    spinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
     return spinbox
 
 
@@ -250,13 +251,13 @@ def doublespinbox_widget(range_min, range_max, step, decimals, value):
     doublespinbox.setSingleStep(step)
     doublespinbox.setDecimals(decimals)
     doublespinbox.setValue(value)
-    doublespinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
     doublespinbox.setMinimumWidth(doublespinbox.sizeHint().width())
     doublespinbox.setMinimumHeight(doublespinbox.sizeHint().height())
     max_value_width = doublespinbox.fontMetrics().horizontalAdvance(str(doublespinbox.maximum()))
-    max_value_height = doublespinbox.fontMetrics().height()
+    # max_value_height = doublespinbox.fontMetrics().height()
     doublespinbox.setMaximumWidth(max_value_width + 32)
-    doublespinbox.setMaximumHeight(max_value_height + 16)
+    # doublespinbox.setMaximumHeight(max_value_height + 16)
+    doublespinbox.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
     return doublespinbox
 
 
@@ -286,7 +287,7 @@ def pushbutton_widget(name='', checkable=False, enable=True, checked=False):
             border-style: inset;
         }
     ''')
-    button.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+    button.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Fixed)
     button_size = button.fontMetrics().boundingRect(button.text()).size()
     if button_size.width() < 96:
         button_size.setWidth(96)
