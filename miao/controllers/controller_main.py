@@ -653,7 +653,7 @@ class MainController(QtCore.QObject):
                                  'indices': list(self.m.cam_set[self.cameras["imaging"]].data.ind_list)})
             self.view_controller.plot_update(pzs, x=zps)
             fp = ipr.peak_find(zps, pzs)
-            self.set_piezo_position_z(fp, port="software")
+            self.v.con_view.QDoubleSpinBox_stage_z_usb.setValue(fp)
             time.sleep(0.06)
             data_calib.append(self.m.cam_set[self.cameras["focus_lock"]].get_last_image())
             fd = os.path.join(self.data_folder, time.strftime("%Y%m%d%H%M%S") + '_focus_calibration_stack.tif')
