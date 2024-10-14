@@ -217,7 +217,10 @@ class MainController(QtCore.QObject):
 
     def reset_piezo_positions(self):
         pos_x, pos_y, pos_z = self.con_controller.get_piezo_positions()
-        self.m.daq.set_piezo_position([pos_x / 10., pos_y / 10., pos_z / 10.], [0, 1, 2])
+        self.set_piezo_position_x(pos_x, port="software")
+        self.set_piezo_position_y(pos_y, port="software")
+        self.set_piezo_position_z(pos_z, port="software")
+        self.m.daq.set_piezo_position([0., 0., 0.], [0, 1, 2])
 
     @QtCore.pyqtSlot(str, float, float, float)
     def set_piezo_positions(self, axis: str, value_x: float, value_y: float, value_z: float):
@@ -228,19 +231,29 @@ class MainController(QtCore.QObject):
         if axis == "z":
             self.set_piezo_position_z(value_z)
 
-    def set_piezo_position_x(self, pos_x):
+    def set_piezo_position_x(self, pos_x, port="analog"):
         try:
-            self.m.daq.set_piezo_position([pos_x / 10.], [0])
-            time.sleep(0.1)
-            self.con_controller.display_piezo_position_x(self.m.pz.read_position(0))
+            if port == "software":
+                self.m.pz.move_position(0, pos_x)
+                time.sleep(0.1)
+                self.con_controller.display_piezo_position_z(self.m.pz.read_position(2))
+            else:
+                self.m.daq.set_piezo_position([pos_x / 10.], [0])
+                time.sleep(0.1)
+                self.con_controller.display_piezo_position_x(self.m.pz.read_position(0))
         except Exception as e:
             self.logg.error(f"MCL Piezo Error: {e}")
 
-    def set_piezo_position_y(self, pos_y):
+    def set_piezo_position_y(self, pos_y, port="analog"):
         try:
-            self.m.daq.set_piezo_position([pos_y / 10.], [1])
-            time.sleep(0.1)
-            self.con_controller.display_piezo_position_y(self.m.pz.read_position(1))
+            if port == "software":
+                self.m.pz.move_position(1, pos_y)
+                time.sleep(0.1)
+                self.con_controller.display_piezo_position_z(self.m.pz.read_position(2))
+            else:
+                self.m.daq.set_piezo_position([pos_y / 10.], [1])
+                time.sleep(0.1)
+                self.con_controller.display_piezo_position_y(self.m.pz.read_position(1))
         except Exception as e:
             self.logg.error(f"MCL Piezo Error: {e}")
 
