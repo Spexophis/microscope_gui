@@ -21,10 +21,10 @@ class TriggerSequence:
             self.digital_ends = [int(digital_end * self.sample_rate) for digital_end in self.digital_ends]
             # piezo scanner
             self.piezo_conv_factors = [10., 10., 10.]
-            self.piezo_steps = [0.025, 0.025, 0.15]
-            self.piezo_ranges = [0.1, 0.1, 0.0]
+            self.piezo_steps = [0.03, 0.03, 0.15]
+            self.piezo_ranges = [0.54, 0.54, 0.0]
             self.piezo_positions = [50., 50., 50.]
-            self.piezo_return_time = 0.08
+            self.piezo_return_time = 0.1
             self.return_samples = int(np.ceil(self.piezo_return_time * self.sample_rate))
             self.piezo_steps = [step_size / conv_factor for step_size, conv_factor in
                                 zip(self.piezo_steps, self.piezo_conv_factors)]
@@ -40,9 +40,9 @@ class TriggerSequence:
             # galvo switcher
             self.galvo_sw_settle = 0.0025  # s
             self.galvo_sw_settle_samples = int(np.ceil(self.galvo_sw_settle * self.sample_rate))
-            self.galvo_sw_states = [5., -2., 0.]
+            self.galvo_sw_states = [4., -2., 0.]
             # galvo scanner
-            self.galvo_return = int(10e-4 * self.sample_rate)  # ~800 us
+            self.galvo_return = int(8e-4 * self.sample_rate)  # ~800 us
             self.ramp_down_fraction = 0.016
             # galvo scan for read out
             self.galvo_origins = [0.0, 0.0]  # V
@@ -69,7 +69,7 @@ class TriggerSequence:
             self.samples_delay = int(np.abs(self.dot_starts[0] - self.galvo_starts[0]) / self.up_rate)
             self.samples_offset = self.ramp_up_samples - self.samples_delay - self.dot_step_s * self.dot_pos.size
             # galvo scan for activation
-            self.galvo_origins_act = [0.04, 0.04]  # V
+            self.galvo_origins_act = [0.00, 0.00]  # V
             self.galvo_ranges_act = [1.0, 1.0]  # V
             self.galvo_starts_act = [o_ - r_ / 2 for (o_, r_) in zip(self.galvo_origins_act, self.galvo_ranges_act)]
             self.galvo_stops_act = [o_ + r_ / 2 for (o_, r_) in zip(self.galvo_origins_act, self.galvo_ranges_act)]
