@@ -25,8 +25,12 @@ class ConController:
                 self.v.QSpinBox_scmos_coordinate_nx.value(), self.v.QSpinBox_scmos_coordinate_ny.value(),
                 self.v.QSpinBox_scmos_coordinate_binx.value(), self.v.QSpinBox_scmos_coordinate_biny.value()]
 
+    def get_scmos_mode(self):
+        return self.v.QComboBox_scmos_sensor_modes.currentText()
+
     def get_scmos_expo(self):
-        return self.v.QDoubleSpinBox_scmos_exposure_time.value()
+        return [self.v.QDoubleSpinBox_scmos_line_exposure.value(), self.v.QDoubleSpinBox_scmos_line_interval.value(),
+                self.v.QDoubleSpinBox_scmos_interval_lines.value()]
 
     def set_scmos_expo(self, t):
         self.v.QDoubleSpinBox_scmos_exposure_time.setValue(t)
@@ -161,6 +165,10 @@ class ConController:
             self.v.QDoubleSpinBox_emccd_exposure_time.setValue(exposure)
         if standby is not None:
             self.v.QDoubleSpinBox_emccd_t_standby.setValue(standby)
+
+    def display_cmos_rolling_timings(self, line_exposure, line_interval):
+        self.v.QDoubleSpinBox_scmos_line_exposure.setValue(line_exposure)
+        self.v.QDoubleSpinBox_scmos_line_interval.setValue(line_interval)
 
     def display_deck_position(self, mdposz):
         self.v.QLCDNumber_deck_position.display(mdposz)

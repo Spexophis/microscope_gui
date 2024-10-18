@@ -436,18 +436,45 @@ class MainController(QtCore.QObject):
         self.set_lasers(self.lasers)
         self.cameras["imaging"] = self.con_controller.get_imaging_camera()
         self.set_camera_roi("imaging")
-        self.m.cam_set[self.cameras["imaging"]].prepare_live()
-        self.update_trigger_parameters("imaging")
+        if self.cameras["imaging"] == 0:
+            self.m.cam_set[self.cameras["imaging"]].prepare_live()
+            self.update_trigger_parameters("imaging")
+        if self.cameras["imaging"] == 1:
+            self.m.cam_set[self.cameras["imaging"]].mode = self.con_controller.get_scmos_mode()
+            if self.m.cam_set[self.cameras["imaging"]].mode == "LightSheet":
+                self.update_trigger_parameters("imaging")
+                line_exposure, line_interval, interval_lines = self.con_controller.get_scmos_expo()
+                line_exposure, line_interval = self.p.trigger.update_lightsheet_rolling(interval_lines)
+                self.m.cam_set[self.cameras["imaging"]].line_exposure = line_exposure
+                self.m.cam_set[self.cameras["imaging"]].line_interval = line_interval
+                self.con_controller.display_cmos_rolling_timings(line_exposure, line_interval)
+                self.m.cam_set[self.cameras["imaging"]].prepare_live()
+            if self.m.cam_set[self.cameras["imaging"]].mode == "Normal":
+                self.m.cam_set[self.cameras["imaging"]].prepare_live()
+                self.update_trigger_parameters("imaging")
         if vd_mod == "Wide Field":
             self.set_switch(self.p.trigger.galvo_sw_states[self.cameras["imaging"]])
             dtr, sw, chs = self.p.trigger.generate_digital_triggers(self.lasers, self.cameras["imaging"])
             self.m.daq.write_triggers(digital_sequences=dtr, digital_channels=chs, finite=False)
             self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
         if vd_mod == "Dot Scan":
-            dtr, gtr, chs = self.p.trigger.generate_digital_scanning_triggers(self.lasers, self.cameras["imaging"])
-            self.m.daq.write_triggers(galvo_sequences=gtr, galvo_channels=[0, 1, 2],
-                                      digital_sequences=dtr, digital_channels=chs, finite=False)
-            self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
+            if self.cameras["imaging"] == 1:
+                if self.m.cam_set[self.cameras["imaging"]].mode == "LightSheet":
+                    self.set_switch(self.p.trigger.galvo_sw_states[self.cameras["imaging"]])
+                    dtr, gtr, chs = self.p.trigger.generate_digital_scanning_triggers_rolling(self.lasers,
+                                                                                              self.cameras["imaging"])
+                    self.m.daq.write_triggers(galvo_sequences=gtr, galvo_channels=[0, 1],
+                                              digital_sequences=dtr, digital_channels=chs, finite=False)
+                else:
+                    dtr, gtr, chs = self.p.trigger.generate_digital_scanning_triggers(self.lasers,
+                                                                                      self.cameras["imaging"])
+                    self.m.daq.write_triggers(galvo_sequences=gtr, galvo_channels=[0, 1, 2],
+                                              digital_sequences=dtr, digital_channels=chs, finite=False)
+            else:
+                dtr, gtr, chs = self.p.trigger.generate_digital_scanning_triggers(self.lasers, self.cameras["imaging"])
+                self.m.daq.write_triggers(galvo_sequences=gtr, galvo_channels=[0, 1, 2],
+                                          digital_sequences=dtr, digital_channels=chs, finite=False)
+                self.con_controller.display_camera_timings(exposure=self.p.trigger.exposure_time)
         if vd_mod == "Scan Calib":
             self.set_switch(self.p.trigger.galvo_sw_states[self.cameras["imaging"]])
             dtr, sw, ptr, chs = self.p.trigger.generate_piezo_line_scan(self.lasers, self.cameras["imaging"])

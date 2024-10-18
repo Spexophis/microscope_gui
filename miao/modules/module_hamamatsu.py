@@ -256,6 +256,8 @@ class HamamatsuCamera(object):
             self.t_exposure = 0
             self.t_accumulate = 0
             self.t_kinetic = 0
+            self.line_interval = 1e-05
+            self.line_exposure = 0.001
             self.bin_h = 1
             self.bin_v = 1
             self.start_h = 1
@@ -295,6 +297,8 @@ class HamamatsuCamera(object):
         self.t_exposure = None
         self.t_readout = None
         self.t_cycle = None
+        self.mode = "Normal"
+        self.trigger_source = 2
         # Initialization
         init_param = DCAMAPI_INIT(0, 0, 0, 0, None, None)
         init_param.size = ctypes.sizeof(init_param)
@@ -325,13 +329,7 @@ class HamamatsuCamera(object):
                     # Setup camera properties
                     self.set_acquisition_mode(self.acquisition_mode)
                     self.set_property_value("defect_correct_mode", 2)
-                    self.set_property_value("binning", "1x1")
                     self.set_property_value("readout_speed", 2)
-                    self.set_property_value('trigger_mode', 1)
-                    self.set_property_value('trigger_source', 2)
-                    self.set_property_value('trigger_active', 2)
-                    self.set_property_value('trigger_polarity', 2)
-                    self.set_property_value('trigger_global_exposure', 5)
                 else:
                     print('Hamamtsu CMOS camera not found')
             else:
@@ -801,8 +799,24 @@ class HamamatsuCameraMR(HamamatsuCamera):
         self.set_property_value("binning", hbin)
 
     def prepare_live(self):
-        self.acquisition_mode = "run_till_abort"
-        self.set_acquisition_mode(self.acquisition_mode)
+        self.set_property_value('trigger_source', self.trigger_source)
+        self.set_property_value('trigger_polarity', 2)
+        if self.mode == "Normal":
+            self.acquisition_mode = "run_till_abort"
+            self.set_acquisition_mode(self.acquisition_mode)
+            self.set_property_value("sensor_mode", 1)
+            self.set_property_value('trigger_mode', 1)
+            self.set_property_value('trigger_active', 2)
+            self.set_property_value('trigger_global_exposure', 5)
+        if self.mode == "LightSheet":
+            self.acquisition_mode = "run_till_abort"
+            self.set_acquisition_mode(self.acquisition_mode)
+            self.set_property_value("sensor_mode", 12)
+            self.set_property_value('trigger_mode', 6)
+            self.set_property_value('trigger_active', 1)
+            self.set_property_value('trigger_global_exposure', 3)
+            self.set_property_value('internal_line_interval', self.line_interval)
+            self.set_property_value('internal_line_interval', self.line_exposure)
         # self.camera_thread = CameraThread(self)
 
     def start_live(self):
@@ -838,8 +852,24 @@ class HamamatsuCameraMR(HamamatsuCamera):
         #     self.hcam_data[n].getData().reshape(self.frame_y, self.frame_x)
 
     def prepare_data_acquisition(self, num):
-        self.acquisition_mode = "fixed_length"
-        self.set_acquisition_mode(self.acquisition_mode, num)
+        self.set_property_value('trigger_source', self.trigger_source)
+        self.set_property_value('trigger_polarity', 2)
+        if self.mode == "Normal":
+            self.acquisition_mode = "fixed_length"
+            self.set_acquisition_mode(self.acquisition_mode, num)
+            self.set_property_value("sensor_mode", 1)
+            self.set_property_value('trigger_mode', 1)
+            self.set_property_value('trigger_active', 2)
+            self.set_property_value('trigger_global_exposure', 5)
+        if self.mode == "LightSheet":
+            self.acquisition_mode = "fixed_length"
+            self.set_acquisition_mode(self.acquisition_mode, num)
+            self.set_property_value("sensor_mode", 12)
+            self.set_property_value('trigger_mode', 6)
+            self.set_property_value('trigger_active', 1)
+            self.set_property_value('trigger_global_exposure', 3)
+            self.set_property_value('internal_line_interval', self.line_interval)
+            self.set_property_value('internal_line_interval', self.line_exposure)
 
     def start_data_acquisition(self):
         self.start_acquisition()
